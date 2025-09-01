@@ -11,58 +11,48 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          
-      - name: Install dependencies
-        working-directory: frontend
-        run: |
-          yarn install --frozen-lockfile || yarn install
-          # Capacitor-Pakete sicherstellen (idempotent)
-          yarn add @capacitor/core@^6 || true
-          yarn add -D @capacitor/cli@^6 @capacitor/android@^6 || true
+    uses: actions/setup-node@v4
+    with:
+      node-version: '20'
 
-      - name: Build web assets
-        working-directory: frontend
-        run: yarn build
+  - name: Install dependencies
+    run: yarn --cwd frontend install --frozen-lockfile || yarn --cwd frontend install
 
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+  - name: Ensure Capacitor + TypeScript (idempotent)
+    run: |
+      yarn --cwd frontend add -D typescript@^5.6.0 @capacitor/cli@^6 @capacitor/android@^6 || true
+      yarn --cwd frontend add @capacitor/core@^6 || true
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+  - name: Build web assets
+    run: yarn --cwd frontend build
 
-      - name: Capacitor info
-        working-directory: frontend
-        run: |
-          npx cap --version || true
-          npx cap doctor || true
+  - name: Setup Java 17
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: '17'
 
-      - name: Add Android platform (idempotent)
-        working-directory: frontend
-        run: npx cap add android || echo 'Android platform already present'
+  - name: Setup Android SDK
+    uses: android-actions/setup-android@v3
 
-      - name: Sync Android platform
-        working-directory: frontend
-        run: npx cap sync android
+  - name: Capacitor info
+    run: cd frontend && (npx cap --version || true) && (npx cap doctor || true)
 
-      - name: Grant execute permission for Gradle
-        working-directory: frontend/android
-        run: |
-          chmod +x ./gradlew
-          ./gradlew --version || true
+  - name: Add Android platform (idempotent)
+    run: cd frontend && (npx cap add android || echo 'Android platform already present')
 
-      - name: Build Debug APK
-        working-directory: frontend/android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+  - name: Sync Android platform
+    run: cd frontend && npx cap sync android
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: qualitool-debug-apk
-          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+  - name: Grant execute permission for Gradle
+    run: cd frontend/android && chmod +x ./gradlew && ./gradlew --version || true
+
+  - name: Build Debug APK
+    run: cd frontend/android && ./gradlew assembleDebug --no-daemon --stacktrace
+
+  - name: Upload APK artifact
+    uses: actions/upload-artifact@v4
+    with:
+      name: qualitool-debug-apk
+      path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+      if-no-files-found: error
