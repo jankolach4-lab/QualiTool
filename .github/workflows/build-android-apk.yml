@@ -13,13 +13,14 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
+          cache: 'yarn'
 
       - name: Install dependencies
         working-directory: frontend
         run: |
           yarn install --frozen-lockfile || yarn install
-          # Sicherstellen, dass Capacitor verfügbar ist (idempotent)
+          # Capacitor-Pakete sicherstellen (idempotent)
           yarn add @capacitor/core@^6 || true
           yarn add -D @capacitor/cli@^6 @capacitor/android@^6 || true
 
