@@ -28,8 +28,10 @@ jobs: build-apk: runs-on: ubuntu-latest defaults: run: working-directory: fronte
   - name: Setup Android SDK
     uses: android-actions/setup-android@v3
 
-  - name: Show Capacitor version
-    run: npx cap --version || true
+  - name: Capacitor info
+    run: |
+      npx cap --version || true
+      npx cap doctor || true
 
   - name: Add Android platform (idempotent)
     run: npx cap add android || echo 'Android platform already present'
@@ -41,6 +43,7 @@ jobs: build-apk: runs-on: ubuntu-latest defaults: run: working-directory: fronte
     run: |
       cd android
       chmod +x ./gradlew
+      ./gradlew --version || true
 
   - name: Build Debug APK
     run: |
