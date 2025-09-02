@@ -32,6 +32,15 @@ jobs:
       - name: Build web assets
         run: yarn --cwd frontend build
 
+      - name: Add Android platform (idempotent)
+        run: cd frontend && (npx cap add android || echo 'Android platform already present')
+
+      - name: Generate Android icons (from resources/icon.png)
+        run: cd frontend && npx @capacitor/assets generate --android || true
+
+      - name: Sync Android platform (copy assets/plugins)
+        run: cd frontend && npx cap sync android
+
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
@@ -40,15 +49,6 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Capacitor info
-        run: cd frontend && (npx cap --version || true) && (npx cap doctor || true)
-
-      - name: Add Android platform (idempotent)
-        run: cd frontend && (npx cap add android || echo 'Android platform already present')
-
-      - name: Sync Android platform
-        run: cd frontend && npx cap sync android
 
       - name: Grant execute permission for Gradle
         run: cd frontend/android && chmod +x ./gradlew && ./gradlew --version || true
