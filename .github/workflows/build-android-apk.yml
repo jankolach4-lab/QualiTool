@@ -6,56 +6,88 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Environment info (before)
+        run: |
+          echo "PWD:" && pwd
+          echo "Repo tree:" && ls -la
+          echo "Node/Yarn before setup:" && node -v || true && yarn -v || true
+          echo "frontend tree (if exists):" && ls -la frontend || true
+
+      - name: Setup Node (v20)
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20.19.4'
+
+      - name: Verify Node after setup
+        run: node -v
+
+      - name: Prepare yarn config (ignore engines)
+        run: |
+          yarn --cwd frontend config set ignore-engines true
+          yarn --cwd frontend config set network-timeout 600000
 
       - name: Install dependencies
-        run: |
-          yarn install --frozen-lockfile || yarn install
-          # Ensure Capacitor core is available for CLI operations
-          yarn add @capacitor/core@^6 -W || yarn add @capacitor/core@^6
+        run: yarn --cwd frontend install --frozen-lockfile || yarn --cwd frontend install
 
       - name: Build web assets
         run: |
-          yarn build
+          yarn --cwd frontend build
+          echo "Build tree:" && ls -la frontend/build || true
+          echo "Qualitool tree:" && ls -la frontend/build/qualitool || true
 
-      - name: Show Capacitor version
-        run: npx cap --version || true
+      - name: Put logo as icon source
+        run: |
+          mkdir -p frontend/resources
+          curl -L "https://customer-assets.emergentagent.com/job_apk-builder-15/artifacts/jgxek9v2_Design%20ohne%20Titel%20%281%29.png" -o frontend/resources/icon.png
+          ls -l frontend/resources/icon.png || true
 
       - name: Add Android platform (idempotent)
-        run: |
-          npx cap add android || echo 'Android platform already present'
+        working-directory: frontend
+        run: npx cap add android || echo 'Android platform already present'
 
       - name: Generate Android icons
-        run: cd frontend && npx @capacitor/assets generate --android || true
+        working-directory: frontend
+        run: npx @capacitor/assets generate --android || true
+
+
+     - name: Generate Android icons
+    working-directory: frontend
+    run: npx @capacitor/assets generate --android || true
+
+  - name: Sync Android platform (copy web + plugins)
+    working-directory: frontend
+    run: npx cap sync android
+
+  - name: Force start into Tool inside APK
+    run: |
+      REDIR_DIR="frontend/android/app/src/main/assets/public"
+      mkdir -p "$REDIR_DIR"
+      echo '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./qualitool/index.html"></head><body></body></html>' > "$REDIR_DIR/index.html"
+      echo "APK assets/public list:" && ls -la "$REDIR_DIR" || true
+
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Grant execute permission for Gradle
+      - name: Gradle permission + version
+        working-directory: frontend/android
         run: |
-          cd android
           chmod +x ./gradlew
+          ./gradlew --version || true
 
       - name: Build Debug APK
-        run: |
-          cd android
-          ./gradlew assembleDebug
+        working-directory: frontend/android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
