@@ -15,11 +15,25 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Show repo tree (debug)
+        run: |
+          echo "PWD:" && pwd
+          echo "Tree repo root:" && ls -la
+          echo "Tree frontend:" && ls -la frontend || true
+
       - name: Install dependencies
-        run: yarn --cwd frontend install --frozen-lockfile || yarn --cwd frontend install
+        working-directory: frontend
+        run: yarn install --frozen-lockfile || yarn install
+
+      - name: Ensure Capacitor + TypeScript (idempotent)
+        working-directory: frontend
+        run: |
+          yarn add -D typescript@^5.6.0 @capacitor/cli@^6 @capacitor/android@^6 || true
+          yarn add @capacitor/core@^6 || true
 
       - name: Build web assets
-        run: yarn --cwd frontend build
+        working-directory: frontend
+        run: yarn build
 
       - name: Verify web build content
         run: |
@@ -35,17 +49,19 @@ jobs:
           ls -l frontend/resources/icon.png
 
       - name: Add Android platform (idempotent)
-        run: cd frontend && (npx cap add android || echo 'Android platform already present')
+        working-directory: frontend
+        run: npx cap add android || echo 'Android platform already present'
 
       - name: Generate Android icons (from resources/icon.png)
-        run: cd frontend && npx @capacitor/assets generate --android
+        working-directory: frontend
+        run: npx @capacitor/assets generate --android
 
       - name: Sync Android platform (copy web + plugins)
-        run: cd frontend && npx cap sync android
+        working-directory: frontend
+        run: npx cap sync android
 
       - name: Force start into Tool inside APK
         run: |
-          # Ersetze Startseite in der APK-Assets mit direkter Weiterleitung ins Tool
           REDIR_FILE="frontend/android/app/src/main/assets/public/index.html"
           echo '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./qualitool/index.html"></head><body></body></html>' > "$REDIR_FILE"
           echo "Wrote redirect index to $REDIR_FILE"
@@ -68,10 +84,14 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Grant execute permission for Gradle
-        run: cd frontend/android && chmod +x ./gradlew && ./gradlew --version || true
+        working-directory: frontend/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --version || true
 
       - name: Build Debug APK
-        run: cd frontend/android && ./gradlew assembleDebug --no-daemon --stacktrace
+        working-directory: frontend/android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
