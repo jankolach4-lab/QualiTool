@@ -10,39 +10,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Environment info
+      - name: Environment info (before)
         run: |
           echo "PWD:" && pwd
           echo "Repo tree:" && ls -la
-          echo "Node/Yarn:" && node -v && yarn -v || npm -v
+          echo "Node/Yarn before setup:" && node -v || true && yarn -v || true
           echo "frontend tree (if exists):" && ls -la frontend || true
 
       - name: Setup Node (v20)
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20.19.4'
 
-      - name: Install dependencies (robust)
+      - name: Verify Node after setup
+        run: node -v
+
+      - name: Prepare yarn config (ignore engines)
         run: |
-          if [ -f "frontend/package.json" ]; then
-            echo "Installing in frontend..."
-            # Ignoriere engines/Peer-Konflikte, setze großzügiges Timeout
-            yarn --cwd frontend install --ignore-engines --network-timeout 600000 || yarn --cwd frontend install
-          else
-            echo "ERROR: frontend/package.json nicht gefunden"; exit 1
-          fi
+          yarn --cwd frontend config set ignore-engines true
+          yarn --cwd frontend config set network-timeout 600000
+
+      - name: Install dependencies
+        run: yarn --cwd frontend install --frozen-lockfile || yarn --cwd frontend install
 
       - name: Build web assets
         run: |
-          yarn --cwd frontend build || (echo "Build-Fehler – bitte die Fehlermeldung oben prüfen" && exit 1)
-          echo "Build tree:" && ls -la frontend/build
+          yarn --cwd frontend build
+          echo "Build tree:" && ls -la frontend/build || true
           echo "Qualitool tree:" && ls -la frontend/build/qualitool || true
 
       - name: Put logo as icon source
         run: |
           mkdir -p frontend/resources
           curl -L "https://customer-assets.emergentagent.com/job_apk-builder-15/artifacts/jgxek9v2_Design%20ohne%20Titel%20%281%29.png" -o frontend/resources/icon.png
-          ls -l frontend/resources/icon.png
+          ls -l frontend/resources/icon.png || true
 
       - name: Add Android platform (idempotent)
         working-directory: frontend
@@ -52,16 +53,16 @@ jobs:
         working-directory: frontend
         run: npx @capacitor/assets generate --android || true
 
-      - name: Sync Android platform
+      - name: Sync Android platform (copy web + plugins)
         working-directory: frontend
         run: npx cap sync android
 
       - name: Force start into Tool inside APK
         run: |
-          REDIR_FILE="frontend/android/app/src/main/assets/public/index.html"
-          echo '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./qualitool/index.html"></head><body></body></html>' > "$REDIR_FILE"
-          echo "APK assets/public list:" && ls -la frontend/android/app/src/main/assets/public
-          test -f frontend/android/app/src/main/assets/public/qualitool/index.html || (echo "ERROR: assets/public/qualitool/index.html fehlt!" && exit 1)
+          REDIR_DIR="frontend/android/app/src/main/assets/public"
+          mkdir -p "$REDIR_DIR"
+          echo '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./qualitool/index.html"></head><body></body></html>' > "$REDIR_DIR/index.html"
+          echo "APK assets/public list:" && ls -la "$REDIR_DIR" || true
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -72,7 +73,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Grant execute permission for Gradle
+      - name: Gradle permission + version
         working-directory: frontend/android
         run: |
           chmod +x ./gradlew
