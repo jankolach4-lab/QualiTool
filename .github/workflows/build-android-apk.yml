@@ -6,9 +6,6 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -16,46 +13,47 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install dependencies
+        run: yarn --cwd frontend install --frozen-lockfile || yarn --cwd frontend install
+
+      - name: Ensure Capacitor + TypeScript (idempotent)
         run: |
-          yarn install --frozen-lockfile || yarn install
-          # Ensure Capacitor core is available for CLI operations
-          yarn add @capacitor/core@^6 -W || yarn add @capacitor/core@^6
+          yarn --cwd frontend add -D typescript@^5.6.0 @capacitor/cli@^6 @capacitor/android@^6 || true
+          yarn --cwd frontend add @capacitor/core@^6 || true
 
       - name: Build web assets
-        run: |
-          yarn build
+        run: yarn --cwd frontend build
 
-      - name: Show Capacitor version
-        run: npx cap --version || true
+      - name: Put logo as icon source
+        run: |
+          mkdir -p frontend/resources
+          curl -L "https://customer-assets.emergentagent.com/job_apk-builder-15/artifacts/jgxek9v2_Design%20ohne%20Titel%20%281%29.png" -o frontend/resources/icon.png
 
       - name: Add Android platform (idempotent)
-        run: |
-          npx cap add android || echo 'Android platform already present'
+        run: cd frontend && (npx cap add android || echo 'Android platform already present')
 
-      - name: Generate Android icons
+      - name: Generate Android icons (from resources/icon.png)
         run: cd frontend && npx @capacitor/assets generate --android || true
+
+      - name: Sync Android platform (copy web + plugins)
+        run: cd frontend && npx cap sync android
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Grant execute permission for Gradle
-        run: |
-          cd android
-          chmod +x ./gradlew
+        run: cd frontend/android && chmod +x ./gradlew && ./gradlew --version || true
 
       - name: Build Debug APK
-        run: |
-          cd android
-          ./gradlew assembleDebug
+        run: cd frontend/android && ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
