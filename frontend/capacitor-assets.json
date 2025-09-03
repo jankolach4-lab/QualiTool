@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/ionic-team/capacitor-assets/main/schemas/1.0/capacitor-assets.schema.json",
+  "platforms": {
+    "android": {
+      "icon": {
+        "sources": [
+          {
+            "src": "resources/icon.png",
+            "foreground": true,
+            "background": "#ffffff"
+          }
+        ]
+      }
+    }
+  }
+}

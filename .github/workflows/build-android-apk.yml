@@ -15,12 +15,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Show repo tree (debug)
-        run: |
-          echo "PWD:" && pwd
-          echo "Tree repo root:" && ls -la
-          echo "Tree frontend:" && ls -la frontend || true
-
       - name: Install dependencies
         run: yarn --cwd frontend install --frozen-lockfile || yarn --cwd frontend install
 
@@ -32,13 +26,18 @@ jobs:
       - name: Build web assets
         run: yarn --cwd frontend build
 
+      - name: Put logo as icon source
+        run: |
+          mkdir -p frontend/resources
+          curl -L "https://customer-assets.emergentagent.com/job_apk-builder-15/artifacts/jgxek9v2_Design%20ohne%20Titel%20%281%29.png" -o frontend/resources/icon.png
+
       - name: Add Android platform (idempotent)
         run: cd frontend && (npx cap add android || echo 'Android platform already present')
 
       - name: Generate Android icons (from resources/icon.png)
         run: cd frontend && npx @capacitor/assets generate --android || true
 
-      - name: Sync Android platform (copy assets/plugins)
+      - name: Sync Android platform (copy web + plugins)
         run: cd frontend && npx cap sync android
 
       - name: Setup Java 17

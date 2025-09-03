@@ -19,10 +19,36 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
         <title>Emergent | Fullstack App</title>
-    </head>
+        <script>
+          (function(){
+            try {
+              var href = String(window.location.href || '');
+              if (!/\/qualitool\//.test(href)) {
+                window.location.replace('./qualitool/index.html');
+              }
+            } catch (e) {}
+          })();
+        </script>
+
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>
         <div id="root"></div>
+        <script>
+          // Auto-Weiterleitung ins Tool (funktioniert in Web & Capacitor)
+          (function(){
+            try {
+              var href = String(window.location.href || '');
+              var alreadyInTool = /\/qualitool\//.test(href);
+              if (!alreadyInTool) {
+                window.location.replace('./qualitool/index.html');
+              }
+            } catch (e) {}
+          })();
+        </script>
+        <noscript>
+          <meta http-equiv="refresh" content="0; url=./qualitool/index.html" />
+          <a href="./qualitool/index.html">Zum Tool wechseln</a>
+        </noscript>
         <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.
