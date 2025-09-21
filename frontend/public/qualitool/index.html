@@ -2864,7 +2864,7 @@
         if (val == null || val === '') return fallback;
         if (typeof val !== 'string') return Array.isArray(val) ? val : fallback;
         return JSON.parse(val);
-      } catch { return fallback; }
+      } catch(_e) { return fallback; }
     }
 
     reader.onload = function(e) {
@@ -3177,7 +3177,7 @@
       } catch (e) {
         console.warn('Signout Warnung:', e?.message || e);
       } finally {
-        try { localStorage.removeItem('contacts'); } catch {}
+        try { localStorage.removeItem('contacts'); } catch(_e) {}
         window.location.href = './login.html';
       }
     }
@@ -3202,7 +3202,7 @@
         if (!localContacts || !Array.isArray(localContacts)) {
           localStorage.setItem('contacts','[]');
         }
-      } catch { localStorage.setItem('contacts','[]'); }
+      } catch(_e) { localStorage.setItem('contacts','[]'); }
 
       // Originale Initialisierung: Immer zuerst zur Adressliste (Kontaktliste)
       showSection('contacts');
@@ -3358,6 +3358,8 @@
       <button id="dbgRefreshBtn" class="unit-btn">Aktualisieren</button>
       <button id="dbgCopyBtn" class="unit-btn">In Zwischenablage</button>
       <button id="dbgCloseBtn" class="unit-btn" style="background:#111827;">Schließen</button>
+      <button id="dbgClearBtn" class="unit-btn" style="background:#ef4444;">Lokale Kontakte leeren</button>
+      <button id="dbgClearSyncBtn" class="unit-btn" style="background:#b91c1c;">Leeren + Sync</button>
     </div>
     <pre id="debugContent" style="background:#0b1020; color:#e5e7eb; padding:12px; border-radius:8px; font-size:12px; line-height:1.4; white-space:pre-wrap; word-break:break-word;">
     </pre>
@@ -3380,7 +3382,7 @@
       return null;
     }
 
-    function safeParse(str){ try { return JSON.parse(str || 'null'); } catch { return str || null; } }
+    function safeParse(str){ try { return JSON.parse(str || 'null'); } catch(_e) { return str || null; } }
 
     async function collectDebug(){
       const info = {};
@@ -3408,6 +3410,23 @@
       if (!modal) return;
       modal.style.display = 'block';
       renderDebug();
+    }
+
+    function clearLocalContacts(){
+      try{
+        // Kontakte vollständig entfernen (nicht nur auf [] setzen)
+        localStorage.removeItem('contacts');
+        const uid = localStorage.getItem('last_user_id');
+        if (uid) { try { localStorage.removeItem(`contacts:${uid}`); } catch(_e){} }
+        localStorage.removeItem('qt_last_contacts_hash');
+        // Erneut Snapshot der (nun leeren) Kontakte einreihen und flushen
+        if (typeof window.enqueueFullContactsSnapshot === 'function') {
+          window.enqueueFullContactsSnapshot();
+        }
+        if (typeof window.flushSoon === 'function') {
+          window.flushSoon();
+        }
+      }catch(_e){ }
     }
     function closeDebug(){
       const modal = document.getElementById('debugModal');
@@ -3438,6 +3457,10 @@
         if (refreshBtn) refreshBtn.addEventListener('click', function(ev){ ev.preventDefault(); renderDebug(); });
         if (sessBtn) sessBtn.addEventListener('click', async function(ev){ ev.preventDefault(); try{ const u = await (window.supa ? window.supa.auth.getUser() : { data: { user: null }}); const s = (u && u.data && u.data.user) ? `ok id=${u.data.user.id}` : 'keine Session'; setPanelStatus(`session: ${s}`); }catch(err){ setPanelStatus('session fehler: '+(err&&err.message||err)); } renderDebug(); });
         if (syncBtn) syncBtn.addEventListener('click', async function(ev){ ev.preventDefault(); await runDirectSyncAndReport(); });
+        const clearBtn = document.getElementById('dbgClearBtn');
+        const clearSyncBtn = document.getElementById('dbgClearSyncBtn');
+        if (clearBtn) clearBtn.addEventListener('click', function(ev){ ev.preventDefault(); clearLocalContacts(); renderDebug(); alert('Lokale Kontakte geleert.'); });
+        if (clearSyncBtn) clearSyncBtn.addEventListener('click', async function(ev){ ev.preventDefault(); clearLocalContacts(); await runDirectSyncAndReport(); alert('Leeren + Sync ausgeführt.'); });
       }catch(_){ }
     });
 
@@ -3504,13 +3527,13 @@
   const LAST_HASH_KEY = 'qt_last_contacts_hash';
 
   function getQueue(){
-    try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); } catch(_e) { return []; }
   }
   function setQueue(q){ localStorage.setItem(QUEUE_KEY, JSON.stringify(q||[])); }
   function enqueue(item){ const q=getQueue(); q.push(item); setQueue(q); }
 
   function stableStringify(obj){
-    try { return JSON.stringify(obj, Object.keys(obj).sort()); } catch { try{ return JSON.stringify(obj);}catch{return '';} }
+    try { return JSON.stringify(obj, Object.keys(obj).sort()); } catch(_e1) { try{ return JSON.stringify(obj);}catch(_e2){return '';} }
   }
 
   // 4) Kontakte lesen/vereinheitlichen (heuristisch)
@@ -3519,7 +3542,7 @@
     try {
       const raw = JSON.parse(localStorage.getItem('contacts') || '[]');
       if (Array.isArray(raw) && raw.length) return raw;
-    } catch {}
+    } catch(_e) {}
     try {
       const uid = localStorage.getItem('last_user_id');
       if (uid){
@@ -3530,7 +3553,7 @@
           return rawUser;
         }
       }
-    } catch {}
+    } catch(_e) {}
     return [];
   }
 
@@ -3582,8 +3605,7 @@
   try { window.enqueueFullContactsSnapshot = enqueueFullContactsSnapshot; } catch(_){ }
 
   // Direkter Sync ohne Queue: Upsert + Events-RPC (2A)
-  async function manualDirectSyncNow(){
-    try { window.manualDirectSyncNow = manualDirectSyncNow; } catch(_){ }
+  async function manualDirectSyncNow(){ try { window.manualDirectSyncNow = manualDirectSyncNow; } catch(_e) {}
 
     const stamp = Date.now();
     try{
@@ -3865,7 +3887,7 @@
 
           }catch(err){ console.warn('saveResident Hook Fehler:', err); }
           // Nach jeder Änderung gesamten Kontaktbestand synchronisieren
-          try{ enqueueContactsSnapshot(); flushSoon(); }catch{}
+          try{ enqueueContactsSnapshot(); flushSoon(); }catch(_e){}
           return res;
         };
       }
@@ -3876,7 +3898,7 @@
           const orig = window[fnName];
           window[fnName] = function(){
             const r = orig.apply(this, arguments);
-            try{ enqueueContactsSnapshot(); flushSoon(); }catch{}
+            try{ enqueueContactsSnapshot(); flushSoon(); }catch(_e){}
             return r;
           };
         }
@@ -3888,7 +3910,7 @@
           const orig = window[fnName];
           window[fnName] = function(){
             const r = orig.apply(this, arguments);
-            try{ enqueueContactsSnapshot(); flushSoon(); }catch{}
+            try{ enqueueContactsSnapshot(); flushSoon(); }catch(_e){}
             return r;
           };
         }
