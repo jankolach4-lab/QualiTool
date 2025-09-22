@@ -3348,6 +3348,26 @@
 })();
 </script>
 
+<script>
+  // Globaler Shim: stellt sicher, dass window.manualDirectSyncNow immer existiert,
+  // auch wenn die echte Implementierung später geladen wird.
+  (function(){
+    if (typeof window.manualDirectSyncNow !== 'function') {
+      window.__mdsn_impl = null;
+      window.manualDirectSyncNow = async function(){
+        // Warten (max. 5s) bis die echte Implementierung registriert ist
+        for (let i = 0; i < 50; i++) {
+          if (typeof window.__mdsn_impl === 'function') {
+            return await window.__mdsn_impl();
+          }
+          await new Promise(r => setTimeout(r, 100));
+        }
+        throw new Error('manualDirectSyncNow impl missing');
+      };
+    }
+  })();
+</script>
+  
 <!-- Sichtbares Sync/Debug Panel -->
 <div id="debugModal" class="modal" style="display:none;">
   <div class="modal-content" style="max-width: 860px; width: 92%; max-height: 80vh; overflow: auto;">
@@ -3474,14 +3494,17 @@
     }
 
     async function runDirectSyncAndReport(){
-      try{
-        setPanelStatus('start');
-        const fn = (window && window.manualDirectSyncNow) ? window.manualDirectSyncNow : manualDirectSyncNow;
-        const ok = await fn();
-        setPanelStatus(ok ? 'events_ok' : 'failed');
-      }catch(err){ setPanelStatus('error: '+(err&&err.message||err)); }
-      await renderDebug();
-    }
+  try{
+    setPanelStatus('start');
+    const fn = (window && typeof window.manualDirectSyncNow === 'function') ? window.manualDirectSyncNow : null;
+    if (!fn) { throw new Error('manualDirectSyncNow not available on window'); }
+    const ok = await fn();
+    setPanelStatus(ok ? 'events_ok' : 'failed');
+  }catch(err){
+    setPanelStatus('error: '+(err && err.message || err));
+  }
+  await renderDebug();
+}
 
     // Modal Klick außerhalb schließen (Delegation)
     document.addEventListener('click', function(e){ if (e.target && e.target.id === 'debugModal') closeDebug(); }, { capture: true });
@@ -3608,7 +3631,12 @@
   try { window.manualDirectSyncNow = manualDirectSyncNow; } catch(_e) {}
 
   async function manualDirectSyncNow(){
-window.manualDirectSyncNow = manualDirectSyncNow;
+// globale Registrierung der echten Implementierung
+  try {
+    window.__mdsn_impl = manualDirectSyncNow;
+    window.manualDirectSyncNow = manualDirectSyncNow;
+  } catch(_e) {}
+    window.manualDirectSyncNow = manualDirectSyncNow;
     const stamp = Date.now();
     try{
       localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'start' }));
