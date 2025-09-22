@@ -54,7 +54,25 @@
   <script>
     const SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
-    const supabase = window.supa || window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
+    const SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
+
+  function getCapacitorStorage(){
+    try{
+      const P = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) || null;
+      if (!P) return null;
+      return {
+        getItem: async (key) => { const r = await P.get({ key }); return (r && typeof r.value==='string') ? r.value : null; },
+        setItem: async (key, value) => { await P.set({ key, value: String(value ?? '') }); },
+        removeItem: async (key) => { await P.remove({ key }); }
+      };
+    }catch(e){ return null; }
+  }
+  const capStore2 = getCapacitorStorage();
+
+  const supabase = window.supa || window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: true, storage: capStore2 || undefined, autoRefreshToken: true, detectSessionInUrl: false }
+  });
 
     const $ = (id) => document.getElementById(id);
     const isOnline = () => navigator.onLine;
