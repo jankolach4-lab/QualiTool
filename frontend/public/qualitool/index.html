@@ -3608,7 +3608,7 @@
   try { window.manualDirectSyncNow = manualDirectSyncNow; } catch(_e) {}
 
   async function manualDirectSyncNow(){
-
+window.manualDirectSyncNow = manualDirectSyncNow;
     const stamp = Date.now();
     try{
       localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'start' }));
