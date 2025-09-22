@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Qualifizierungs-Tool</title>
+    <script>
+      (function(){
+        try {
+          var href = String(window.location.href || '');
+          if (!/\/qualitool\//.test(href)) {
+            window.location.replace('./qualitool/index.html');
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <noscript>
+      <meta http-equiv="refresh" content="0; url=./qualitool/index.html" />
+      <a href="./qualitool/index.html">Zum Tool wechseln</a>
+    </noscript>
+    <div id="root"></div>
+  </body>
+</html>
