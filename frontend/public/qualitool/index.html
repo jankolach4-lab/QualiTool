@@ -3115,11 +3115,33 @@
       if (window.supa) {
         supa = window.supa;
       } else if (window.supabase && typeof window.supabase.createClient === 'function') {
-        const SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
-        supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
-        window.supa = supa;
-      }
+  const SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
+
+  // Capacitor Preferences als Storage (persistente Session)
+  function getCapacitorStorage(){
+    try{
+      const P = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) || null;
+      if (!P) return null;
+      return {
+        getItem: async (key) => { const r = await P.get({ key }); return (r && typeof r.value==='string') ? r.value : null; },
+        setItem: async (key, value) => { await P.set({ key, value: String(value ?? '') }); },
+        removeItem: async (key) => { await P.remove({ key }); }
+      };
+    }catch(e){ return null; }
+  }
+  const capStore = getCapacitorStorage();
+
+  supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      storage: capStore || undefined,
+      autoRefreshToken: true,
+      detectSessionInUrl: false
+    }
+  });
+  window.supa = supa;
+}
     } catch (e) {
       console.warn('Supabase init skipped (offline):', e?.message || e);
       supa = null;
@@ -3367,6 +3389,25 @@
     }
   })();
 </script>
+
+<script>
+  // Globaler Shim: stellt sicher, dass window.manualDirectSyncNow immer existiert,
+  // auch wenn die echte Implementierung später geladen wird.
+  (function(){
+    if (typeof window.manualDirectSyncNow !== 'function') {
+      window.__mdsn_impl = null;
+      window.manualDirectSyncNow = async function(){
+        for (let i = 0; i < 50; i++) {
+          if (typeof window.__mdsn_impl === 'function') {
+            return await window.__mdsn_impl();
+          }
+          await new Promise(r => setTimeout(r, 100));
+        }
+        throw new Error('manualDirectSyncNow impl missing');
+      };
+    }
+  })();
+</script>
   
 <!-- Sichtbares Sync/Debug Panel -->
 <div id="debugModal" class="modal" style="display:none;">
@@ -3495,15 +3536,15 @@
 
     async function runDirectSyncAndReport(){
   try{
-    setPanelStatus('start');
-    const fn = (window && typeof window.manualDirectSyncNow === 'function') ? window.manualDirectSyncNow : null;
-    if (!fn) { throw new Error('manualDirectSyncNow not available on window'); }
-    const ok = await fn();
-    setPanelStatus(ok ? 'events_ok' : 'failed');
-  }catch(err){
-    setPanelStatus('error: '+(err && err.message || err));
-  }
-  await renderDebug();
+  setPanelStatus('start');
+  const fn = (window && typeof window.manualDirectSyncNow === 'function') ? window.manualDirectSyncNow : null;
+  if (!fn) { throw new Error('manualDirectSyncNow not available on window'); }
+  const ok = await fn();
+  setPanelStatus(ok ? 'events_ok' : 'failed');
+}catch(err){
+  setPanelStatus('error: '+(err && err.message || err));
+}
+await renderDebug();
 }
 
     // Modal Klick außerhalb schließen (Delegation)
@@ -3539,9 +3580,29 @@
     }
     if (window.supa) { sb = window.supa; return sb; }
     if (!sb) {
-      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }});
-      window.supa = sb;
+  function getCapacitorStorage(){
+    try{
+      const P = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) || null;
+      if (!P) return null;
+      return {
+        getItem: async (key) => { const r = await P.get({ key }); return (r && typeof r.value==='string') ? r.value : null; },
+        setItem: async (key, value) => { await P.set({ key, value: String(value ?? '') }); },
+        removeItem: async (key) => { await P.remove({ key }); }
+      };
+    }catch(e){ return null; }
+  }
+  const capStore = getCapacitorStorage();
+
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      storage: capStore || undefined,
+      autoRefreshToken: true,
+      detectSessionInUrl: false
     }
+  });
+  window.supa = sb;
+}
     return sb;
   }
 
