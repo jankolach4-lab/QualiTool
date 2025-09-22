@@ -275,6 +275,18 @@
   test_all: false
   test_priority: "high_first"
 
+  - task: "Qualitool Debug Panel UI Smoke Test"
+    implemented: true
+    working: false
+    file: "frontend/public/qualitool/index.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "testing"
+        comment: "❌ QUALITOOL DEBUG PANEL SMOKE TEST COMPLETED (22.09.2025): Umfassende automatisierte Tests der Debug Panel Funktionalität durchgeführt. ✅ ERFOLGREICH: 1) Offline-Zugang funktioniert korrekt (localStorage offline_allowed='true', last_user_id='test-user-smoke-test'), 2) Debug Panel Sidebar-Icon (#dbgNavItem) gefunden und klickbar, 3) Debug Modal (#debugModal) öffnet erfolgreich, 4) Alle erforderlichen Debug-Panel-Felder vorhanden und sinnvoll: now='2025-09-22T06:58:06.149Z', online=true, userId=null, contacts_count=0, 5) Screenshot des Debug-Panels erfolgreich erstellt, 6) 'Jetzt synchronisieren' Button (#dbgSyncBtn) gefunden und klickbar (force=True), 7) KEIN 'manualDirectSyncNow is not defined' Fehler in der Konsole gefunden. ❌ KRITISCHES PROBLEM: window.manualDirectSyncNow ist NICHT VERFÜGBAR (typeof undefined), obwohl die Funktion im Seitenquellcode vorhanden ist. Die Funktion wird nicht korrekt im window-Scope exponiert. FAZIT: 6/7 Tests erfolgreich, aber kritisches Problem mit manualDirectSyncNow-Funktion erfordert Behebung durch Hauptagent."
+
   - task: "Admin Dashboard SQL Funktionen fehlend"
     implemented: true
     working: true
@@ -361,3 +373,5 @@
     message: "QUALITOOL UI RE-TESTING COMPLETED (21.09.2025): Umfassende automatisierte Tests aller 8 User-Anforderungen durchgeführt mit 3 Screenshots (initial, debug panel offen, import section). ✅ ERFOLGREICH: 1) Kein sichtbarer JavaScript-Code im Content, 2) Sidebar-Icon #dbgNavItem vorhanden und öffnet #debugModal korrekt, 3) Debug-Panel Buttons alle klickbar (#dbgClearBtn, #dbgClearSyncBtn und 5 weitere), 4) 4/5 window Funktionen verfügbar (enqueueContactsSnapshot, rescanAndEnqueueStatusDiffs, flushSoon, flushQueue). ❌ PROBLEME: 5) window.manualDirectSyncNow NICHT VERFÜGBAR (undefined), 6) 'Lokale Kontakte leeren' löscht qt_last_contacts_hash aber nicht localStorage.contacts vollständig, 7) Import-Section Header 'Adressen importieren' existiert aber ist nicht sichtbar/klickbar (alle Buttons im DOM aber visible=false), 8) Console Syntax Error 'Unexpected token catch' vorhanden. FAZIT: 3/8 Tests vollständig bestanden, 1 teilweise bestanden, 4 fehlgeschlagen. Debug-Panel funktioniert sehr gut, aber Import-Section und manualDirectSyncNow-Funktion benötigen Fixes."
   - agent: "testing"
     message: "QUALITOOL FINAL UI RE-TEST COMPLETED (21.09.2025): Umfassende automatisierte Tests aller 7 User-Anforderungen durchgeführt mit 2 Screenshots (initial + debug panel offen). ❌ KRITISCHE PROBLEME IDENTIFIZIERT: 1) window.manualDirectSyncNow NICHT VERFÜGBAR (typeof undefined), 2) SICHTBARER JAVASCRIPT-CODE beim Scrollen (function(, addEventListener, localStorage.setItem, document.querySelector, renderCalendar, importExcelFile, filterByStatus - alle Scroll-Positionen betroffen), 3) clearLocalContacts FUNKTION NICHT VERFÜGBAR (weder in window noch global scope), 4) Import-Section Header 'Adressen importieren' existiert aber Buttons sind außerhalb Viewport (inViewport: false), 5) CONSOLE SYNTAX ERROR 'Unexpected token catch' bestätigt. ✅ FUNKTIONAL: Debug-Panel (#dbgNavItem) öffnet #debugModal korrekt mit allen 7 Buttons (5 klickbar, 2 nicht klickbar aber vorhanden). FAZIT: 1/7 Tests vollständig bestanden, 6 kritische Probleme erfordern sofortige Behebung durch Hauptagent. Besonders schwerwiegend: Sichtbarer JavaScript-Code und fehlende Kern-Funktionen."
+  - agent: "testing"
+    message: "QUALITOOL DEBUG PANEL SMOKE TEST COMPLETED (22.09.2025): Umfassende automatisierte Tests der Debug Panel Funktionalität durchgeführt entsprechend User-Anfrage. ✅ ERFOLGREICH: 1) Offline-Zugang funktioniert korrekt (localStorage offline_allowed='true', last_user_id='test-user-smoke-test'), 2) Debug Panel Sidebar-Icon (#dbgNavItem) gefunden und klickbar, 3) Debug Modal (#debugModal) öffnet erfolgreich, 4) Alle erforderlichen Debug-Panel-Felder vorhanden und sinnvoll: now='2025-09-22T06:58:06.149Z', online=true, userId=null, contacts_count=0, 5) Screenshot des Debug-Panels erfolgreich erstellt (debug_panel_final_screenshot.png), 6) 'Jetzt synchronisieren' Button (#dbgSyncBtn) gefunden und klickbar (force=True), 7) KEIN 'manualDirectSyncNow is not defined' Fehler in der Konsole gefunden. ❌ KRITISCHES PROBLEM: window.manualDirectSyncNow ist NICHT VERFÜGBAR (typeof undefined), obwohl die Funktion im Seitenquellcode vorhanden ist. Die Funktion wird nicht korrekt im window-Scope exponiert. FAZIT: 6/7 Tests erfolgreich, aber kritisches Problem mit manualDirectSyncNow-Funktion erfordert Behebung durch Hauptagent."
