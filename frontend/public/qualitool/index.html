@@ -4039,6 +4039,98 @@ await renderDebug();
   })();
 })();
 </script>
+<script>
+/**
+ * Robuste, eigenständige Implementierung von window.manualDirectSyncNow:
+ * - funktioniert auch dann, wenn frühere Skripte die Registrierung verpasst haben
+ * - erstellt bei Bedarf den Supabase-Client (mit Preferences-Storage, Fallback)
+ * - lädt die lokalen Kontakte (localStorage 'contacts') hoch (RPC → Fallback Table Upsert)
+ * - triggert Events-RPC
+ * - schreibt Diagnose nach localStorage (qt_last_sync_try, qt_last_event_err)
+ */
+(function(){
+  if (typeof window.manualDirectSyncNow !== 'function') {
+    window.manualDirectSyncNow = async function(){
+      const SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
 
+      function setTry(stage, extra){
+        try { localStorage.setItem('qt_last_sync_try', JSON.stringify(Object.assign({ t: Date.now(), stage }, extra||{}))); } catch(_){}
+      }
+      function setErr(stage, msg){
+        try { localStorage.setItem('qt_last_event_err', JSON.stringify({ t: Date.now(), stage, msg: String(msg||'') })); } catch(_){}
+      }
+      function getCapacitorStorage(){
+        try{
+          const P = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) || null;
+          if (!P) return null;
+          return {
+            getItem: async (key) => { const r = await P.get({ key }); return (r && typeof r.value==='string') ? r.value : null; },
+            setItem: async (key, value) => { await P.set({ key, value: String(value ?? '') }); },
+            removeItem: async (key) => { await P.remove({ key }); }
+          };
+        }catch(e){ return null; }
+      }
+
+      try {
+        setTry('start');
+
+        // supabase-js warten
+        const t0 = Date.now();
+        while(!(window.supabase && window.supabase.createClient)){
+          if (Date.now()-t0 > 10000) throw new Error('supabase-js nicht geladen');
+          await new Promise(r=>setTimeout(r,100));
+        }
+
+        // Client erstellen/verwenden
+        let sb = window.supa;
+        if (!sb) {
+          const capStore = getCapacitorStorage();
+          sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { persistSession: true, storage: capStore || undefined, autoRefreshToken: true, detectSessionInUrl: false }
+          });
+          window.supa = sb;
+        }
+        setTry('client_ready');
+
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) throw new Error('Keine Session vorhanden');
+        setTry('got_user', { user: { id: user.id } });
+
+        // Lokale Kontakte lesen (minimal, unabhängig vom restlichen Code)
+        let snapshot = [];
+        try { snapshot = JSON.parse(localStorage.getItem('contacts')||'[]'); } catch(_){}
+        if (!Array.isArray(snapshot)) snapshot = [];
+        setTry('snapshot_ready', { count: snapshot.length });
+
+        // Upsert (RPC → Fallback Table)
+        try {
+          const { error } = await sb.rpc('fn_public_upsert_user_contacts', { p_contacts: snapshot });
+          if (error) throw error;
+        } catch(e1) {
+          setTry('rpc_upsert_failed', { err: String(e1 && e1.message || e1) });
+          const { error: e2 } = await sb.from('user_contacts').upsert(
+            { user_id: user.id, contacts: snapshot },
+            { onConflict: 'user_id' }
+          );
+          if (e2) throw e2;
+        }
+        setTry('upsert_ok');
+
+        // Events
+        const { error: e3 } = await sb.rpc('fn_log_events_from_contacts_snapshot', { p_user_id: user.id, p_contacts: snapshot });
+        if (e3) throw e3;
+        setTry('events_ok');
+        try { localStorage.removeItem('qt_last_event_err'); } catch(_){}
+
+        return true;
+      } catch(err) {
+        setErr('manual_direct_sync', err && err.message || err);
+        return false;
+      }
+    };
+  }
+})();
+</script>
 </body>
 </html>
