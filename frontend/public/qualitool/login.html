@@ -26,7 +26,7 @@
         }
 
         const capStore = getCapacitorStorage();
-        // Fallback auf Default-Storage, wenn Preferences nicht verfügbar sind
+        // Fallback: wenn Preferences-Plugin fehlt, nimmt Supabase den Default-Storage
         window.supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           auth: {
             persistSession: true,
@@ -99,7 +99,7 @@
       detectSessionInUrl: false
     }
   });
-
+</script>
     const $ = (id) => document.getElementById(id);
     const isOnline = () => navigator.onLine;
 
