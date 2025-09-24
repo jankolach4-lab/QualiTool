@@ -2,10 +2,10 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Qualifizierungs‑Tool</title>
 
-  <!-- Bibliotheken -->
+  <!-- Bibliotheken: defer => geladen, bevor DOMContentLoaded-Handler laufen -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 
@@ -27,7 +27,7 @@
     *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
     body{background:var(--bg);color:var(--text);line-height:1.4}
     .page-layout{display:flex;min-height:100vh}
-    .sidebar{width:58px;background:linear-gradient(180deg,var(--accent) 0%,var(--accent-700) 100%);color:#fff;position:fixed;top:0;bottom:0;left:0;z-index:10;padding:8px;border-right:1px solid rgba(255,255,255,0.12)}
+    .sidebar{width:58px;background:linear-gradient(180deg,var(--accent) 0%,var(--accent-700) 100%);color:#fff;position:fixed;top:0;bottom:0;left:0;z-index:10;padding:8px;border-right:1px solid rgba(255,255,255,.12)}
     .sidebar-nav{list-style:none;margin:8px 0;padding:0}
     .sidebar-nav li{margin:10px 0}
     .sidebar-nav a{display:flex;align-items:center;justify-content:center;color:#fff;text-decoration:none;padding:10px;border-radius:8px;transition:.2s}
@@ -38,19 +38,22 @@
     .container{max-width:1120px;margin:0 auto;background:var(--surface);border-radius:12px;box-shadow:var(--shadow);padding:16px;min-height:calc(100vh - 56px);display:flex;flex-direction:column}
     h1{margin:0 0 16px 0;font-size:1.7rem}
     h2,h3{color:#2563eb;margin:10px 0;font-weight:600}
+    input,select,textarea{padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:#fafafa}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12);background:#fff}
     button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;transition:.2s;box-shadow:var(--shadow-sm);font-weight:600}
     button:hover{background:var(--accent-600);transform:translateY(-1px)}
     .delete-all-btn{background:#ef4444}
     .import-section,.entry-section,.calendar-section,.statistics-section,.visit-recommendation-box{margin:10px 0;padding:15px;border-radius:10px;background:#fff;box-shadow:var(--shadow)}
     .import-content,.entry-content{display:none}
     .import-section.expanded .import-content,.entry-section.expanded .entry-content{display:block}
-    .import-export-buttons{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+    .import-export-buttons{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:8px}
     .search-box{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
     .status-filters{display:flex;gap:8px;flex-wrap:wrap;background:#fff;border-radius:8px;padding:8px;margin:10px 0}
     .street-filter-container{text-align:center;margin:10px 0;display:none}
-    .street-filter{width:300px;padding:8px;border:1px solid var(--border);border-radius:6px}
+    .street-filter{width:300px}
     .contact-list{flex:1;overflow:auto}
     .contact-card{background:#fff;border-radius:10px;box-shadow:var(--shadow-sm);padding:14px;margin:8px 0}
+    .contact-info{display:grid;grid-template-columns:auto auto auto auto auto minmax(160px,1fr) minmax(140px,1fr);gap:8px 12px;align-items:center}
     .unit-info p{margin:2px 0}
     .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000}
     .modal-content{background:#fff;margin:6% auto;max-width:860px;width:92%;border-radius:12px;padding:20px}
@@ -59,7 +62,7 @@
 </head>
 <body>
 
-<!-- Früher Redirect zur Login-Seite, falls kein Offline-Flag / kein letzter Nutzer -->
+<!-- Früh-Redirect zur Login-Seite falls kein Offline-Flag/kein letzter Nutzer -->
 <script>
   (function(){
     try{
@@ -68,9 +71,22 @@
       if (!offlineAllowed || !lastUser) window.location.replace('./login.html');
     }catch(_e){}
   })();
+
+  // Shim: stellt sicher, dass window.manualDirectSyncNow existiert (wartet bis echte Implementierung registriert ist)
+  (function(){
+    if (typeof window.manualDirectSyncNow !== 'function') {
+      window.__mdsn_impl = null;
+      window.manualDirectSyncNow = async function(){
+        for (let i=0;i<80;i++){
+          if (typeof window.__mdsn_impl === 'function') return await window.__mdsn_impl();
+          await new Promise(r=>setTimeout(r,100));
+        }
+        throw new Error('manualDirectSyncNow impl missing');
+      };
+    }
+  })();
 </script>
 
-<!-- Sidebar + Hauptaufbau (unverändert klassisch) -->
 <div class="page-layout">
   <nav class="sidebar">
     <ul class="sidebar-nav">
@@ -107,7 +123,7 @@
       <div class="import-section collapsed">
         <h3 onclick="toggleImportSection()">Adressen importieren</h3>
         <div class="import-content">
-          <p>Excel (XLSX/XLS): Spalten PLZ, Ort, Straße, Nr., Zusatz, WE</p>
+          <p>Excel (XLSX/XLS) mit Spalten: PLZ, Ort, Straße, Nr., Zusatz, WE</p>
           <div class="import-export-buttons">
             <input type="file" id="excelImport" accept=".xlsx,.xls" style="display:none" onchange="importFromExcel(this.files[0])" />
             <button onclick="document.getElementById('excelImport').click()">Excel importieren</button>
@@ -121,15 +137,31 @@
       <div class="entry-section collapsed">
         <h3 onclick="toggleEntrySection()">Adresse hinzufügen</h3>
         <div class="entry-content">
-          <form id="contactForm" onsubmit="addContact(event)" style="display:flex;gap:10px;flex-wrap:wrap">
-            <input type="text" id="plz" placeholder="PLZ" maxlength="5" required />
-            <input type="text" id="ort" placeholder="Ort" required />
-            <input type="text" id="strasse" placeholder="Straße" required />
-            <input type="text" id="nummer" placeholder="Nr." required />
-            <input type="text" id="zusatz" placeholder="Zusatz" />
-            <input type="text" id="we" placeholder="WE" />
-            <button type="submit">Kontakt hinzufügen</button>
-          </form>
+          <div class="tab-buttons" style="text-align:center;margin-bottom:10px;">
+            <button id="singleBtn" class="active" onclick="showForm('single')">Einzelne Adresse</button>
+            <button id="streetBtn" onclick="showForm('street')">Komplette Straße</button>
+          </div>
+          <div id="singleEntry">
+            <form id="contactForm" onsubmit="addContact(event)" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+              <input type="text" id="plz" placeholder="PLZ" maxlength="5" required />
+              <input type="text" id="ort" placeholder="Ort" required />
+              <input type="text" id="strasse" placeholder="Straße" required />
+              <input type="text" id="nummer" placeholder="Nr." required />
+              <input type="text" id="zusatz" placeholder="Zusatz" />
+              <input type="text" id="we" placeholder="WE" />
+              <button type="submit">Kontakt hinzufügen</button>
+            </form>
+          </div>
+          <div id="streetEntry" style="display:none;">
+            <form id="streetForm" onsubmit="addStreet(event)" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+              <input type="text" id="street_plz" placeholder="PLZ" maxlength="5" required />
+              <input type="text" id="street_ort" placeholder="Ort" required />
+              <input type="text" id="street_strasse" placeholder="Straße" required />
+              <input type="number" id="street_start" placeholder="Hausnr. von" required />
+              <input type="number" id="street_end" placeholder="Hausnr. bis" required />
+              <button type="submit">Straße hinzufügen</button>
+            </form>
+          </div>
         </div>
       </div>
 
@@ -163,7 +195,7 @@
       <!-- Liste -->
       <div id="contactList" class="contact-list"></div>
 
-      <!-- Platzhalter für weitere Sektionen (sichtbar auf Wunsch) -->
+      <!-- Platzhalter für weitere Sektionen (optional) -->
       <div class="calendar-section" style="display:none"><h3>Aktivitäten‑Kalender</h3><div id="calendar"></div></div>
       <div class="statistics-section" style="display:none"><h3>Statusauswertung</h3><div id="statsGrid"></div></div>
       <div class="visit-recommendation-box" style="display:none"><h3>Besuchsempfehlung</h3><div id="visitRecommendationContent"></div></div>
@@ -212,10 +244,10 @@
 </div>
 
 <script>
-  // Kleine DOM-Helpers
+  // DOM Helpers
   const $ = (sel)=>document.querySelector(sel);
 
-  // Sichtbarkeit/Navigation (klassisch)
+  // Navigation / Sichtbarkeit
   function navTo(sectionId){
     try{
       document.querySelectorAll('.sidebar-nav a').forEach(a=>a.classList.remove('active'));
@@ -249,76 +281,88 @@
     return false;
   }
 
-  // Import / Export
-  function importFromExcel(file){
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e){
-      try{
-        const data = new Uint8Array(e.target.result);
-        const wb = XLSX.read(data,{type:'array'});
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws,{header:1});
-        for(let i=1;i<rows.length;i++){
-          const r = rows[i]; if (!r || !r.length) continue;
-          contacts.push({
-            id: Date.now()+i,
-            plz:(r[0]||'').toString(), ort:(r[1]||'').toString(),
-            strasse:(r[2]||'').toString(), nummer:(r[3]||'').toString(),
-            zusatz:(r[4]||'').toString(), we:(r[5]||'').toString(),
-            residents:[]
-          });
-        }
-        saveContacts();
-        alert('Import erfolgreich: '+Math.max(0,rows.length-1)+' Adressen');
-      }catch(err){ alert('Import-Fehler: '+(err?.message||err)); }
-    };
-    reader.readAsArrayBuffer(file);
-  }
-  function exportToCSV(){
-    const rows = [['PLZ','Ort','Straße','Nr.','Zusatz','WE']].concat(
-      (contacts||[]).map(c=>[c.plz||'',c.ort||'',c.strasse||'',c.nummer||'',c.zusatz||'',c.we||''])
-    );
-    const csv = rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(';')).join('\n');
-    const uri = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-    const a=document.createElement('a'); a.href=uri; a.download='kontakte.csv'; a.click();
-  }
-  function exportToExcel(){
-    const ws = XLSX.utils.aoa_to_sheet([['PLZ','Ort','Straße','Nr.','Zusatz','WE']]);
-    (contacts||[]).forEach(c=>XLSX.utils.sheet_add_aoa(ws, [[c.plz||'',c.ort||'',c.strasse||'',c.nummer||'',c.zusatz||'',c.we||'']], {origin:-1}));
-    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Kontakte'); XLSX.writeFile(wb, 'kontakte.xlsx');
+  function toggleImportSection(){ const s=document.querySelector('.import-section'); if(!s) return; s.classList.toggle('expanded'); s.style.display='block'; }
+  function toggleEntrySection(){ const s=document.querySelector('.entry-section'); if(!s) return; s.classList.toggle('expanded'); s.style.display='block'; }
+  function showForm(type){
+    document.getElementById('singleEntry').style.display = type==='single' ? 'block' : 'none';
+    document.getElementById('streetEntry').style.display = type==='street' ? 'block' : 'none';
+    document.getElementById('singleBtn').classList.toggle('active', type==='single');
+    document.getElementById('streetBtn').classList.toggle('active', type==='street');
   }
 
   // Kontakte lokal
   window.contacts = JSON.parse(localStorage.getItem('contacts')||'[]'); let contacts = window.contacts;
+
+  function renderContacts(list=contacts){
+    list = Array.isArray(list)? list : (contacts||[]);
+    const el = $('#contactList'); el.innerHTML='';
+    list.forEach(c=>{
+      const div=document.createElement('div'); div.className='contact-card';
+      const unitNames = (c.residents||[]).map((r,i)=>`<p>WE${(i+1)}: <strong>${(r?.name||'-')}</strong>${r?.mieter?' (M)':''}${r?.phone? ' 📞':''}</p>`).join('') || '<p>-</p>';
+      const unitStatus = (c.residents||[]).map(r=>`<p>${(r?.status||'Kein Status')}</p>`).join('') || '<p>Kein Status</p>';
+      div.innerHTML = `
+        <div class="contact-info">
+          <p>${c.plz||''}</p>
+          <p>${c.ort||''}</p>
+          <p>${c.strasse||''} ${c.nummer||''}</p>
+          <p>${c.zusatz||''}</p>
+          <p>${c.we? (c.we+' WE'):''}</p>
+          <div class="unit-info">${unitNames}</div>
+          <div class="unit-info">${unitStatus}</div>
+        </div>`;
+      el.appendChild(div);
+    });
+  }
+
+  function updateStreetFilter(){
+    const s = document.getElementById('streetFilter'); if (!s) return;
+    while (s.options.length>1) s.remove(1);
+    const set = new Set((contacts||[]).map(c=>c.strasse).filter(Boolean));
+    [...set].sort().forEach(st=>{ const o=document.createElement('option'); o.value=st; o.textContent=st; s.appendChild(o); });
+  }
+
   function saveContacts(){
     localStorage.setItem('contacts', JSON.stringify(contacts||[]));
     try{ enqueueContactsSnapshot(); flushSoon(); }catch(_e){}
     renderContacts(); updateStreetFilter();
   }
+
   function addContact(ev){
     ev.preventDefault();
     contacts.push({
       id: Date.now(),
-      plz: $('#plz').value, ort: $('#ort').value, strasse: $('#strasse').value,
-      nummer: $('#nummer').value, zusatz: $('#zusatz').value, we: $('#we').value,
-      residents:[]
+      plz: document.getElementById('plz').value,
+      ort: document.getElementById('ort').value,
+      strasse: document.getElementById('strasse').value,
+      nummer: document.getElementById('nummer').value,
+      zusatz: document.getElementById('zusatz').value,
+      we: document.getElementById('we').value,
+      residents: []
     });
     saveContacts(); ev.target.reset();
   }
+
+  function addStreet(ev){
+    ev.preventDefault();
+    const plz = document.getElementById('street_plz').value;
+    const ort = document.getElementById('street_ort').value;
+    const strasse = document.getElementById('street_strasse').value;
+    const start = parseInt(document.getElementById('street_start').value);
+    const end   = parseInt(document.getElementById('street_end').value);
+    for(let n=start; n<=end; n++){
+      contacts.push({ id: Date.now()+n, plz, ort, strasse, nummer:String(n), zusatz:'', we:'', residents:[] });
+    }
+    saveContacts(); ev.target.reset();
+  }
+
   function deleteAllContacts(){
-    if (!confirm('Alle Adressen löschen?')) return;
+    if (!confirm('Möchten Sie wirklich alle Adressen löschen?')) return;
     contacts = []; saveContacts();
   }
-  function updateStreetFilter(){
-    const s = $('.street-filter'); if (!s) return;
-    while (s.options && s.options.length>1) s.remove(1);
-    const set = new Set((contacts||[]).map(c=>c.strasse).filter(Boolean));
-    [...set].sort().forEach(st=>{ const o=document.createElement('option'); o.value=st; o.textContent=st; s.appendChild(o); });
-  }
+
   function applyFilters(){
-    const q = ($('#searchInput').value||'').toLowerCase();
-    const stSel = $('#streetFilter')?.value || 'all';
+    const q = (document.getElementById('searchInput').value||'').toLowerCase();
+    const stSel = document.getElementById('streetFilter').value;
     const list = (contacts||[]).filter(c=>{
       const inStreet = stSel==='all' || (c.strasse||'')===stSel;
       const txt = [c.plz,c.ort,c.strasse,c.nummer,c.zusatz,c.we].map(x=>(x||'').toString().toLowerCase()).join(' ');
@@ -326,36 +370,27 @@
     });
     renderContacts(list);
   }
-  function renderContacts(list){
-    list = Array.isArray(list)? list : (contacts||[]);
-    const el = $('#contactList'); el.innerHTML='';
-    list.forEach(c=>{
-      const div=document.createElement('div'); div.className='contact-card';
-      div.innerHTML = `<div class="contact-info"><p>${c.plz||''}</p><p>${c.ort||''}</p><p>${c.strasse||''} ${c.nummer||''}</p><p>${c.zusatz||''}</p><p>${c.we? (c.we+' WE'):''}</p></div>`;
-      el.appendChild(div);
-    });
-  }
 
   // Delete Dialogs
-  function showDeleteByPLZDialog(){ $('#deletePLZDialog').style.display='block';}
-  function closeDeletePLZDialog(){ $('#deletePLZDialog').style.display='none';}
-  function deleteByPLZ(){ const v=($('#plzToDelete').value||'').trim(); if(!v) return; contacts=(contacts||[]).filter(c=>(c.plz||'')!==v); saveContacts(); closeDeletePLZDialog(); }
+  function showDeleteByPLZDialog(){ document.getElementById('deletePLZDialog').style.display='block';}
+  function closeDeletePLZDialog(){ document.getElementById('deletePLZDialog').style.display='none';}
+  function deleteByPLZ(){ const v=(document.getElementById('plzToDelete').value||'').trim(); if(!v) return; contacts=(contacts||[]).filter(c=>(c.plz||'')!==v); saveContacts(); closeDeletePLZDialog(); }
   function showDeleteStreetDialog(){
-    const dlg = $('#deleteStreetDialog'), sel = $('#streetToDelete'); sel.innerHTML='';
+    const dlg = document.getElementById('deleteStreetDialog'); const sel = document.getElementById('streetToDelete'); sel.innerHTML='';
     const set = new Set((contacts||[]).map(c=>c.strasse).filter(Boolean)); [...set].sort().forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o); });
     dlg.style.display='block';
   }
-  function closeDeleteStreetDialog(){ $('#deleteStreetDialog').style.display='none';}
+  function closeDeleteStreetDialog(){ document.getElementById('deleteStreetDialog').style.display='none';}
   function deleteByStreet(){
-    const sel = $('#streetToDelete'); const del = Array.from(sel.selectedOptions||[]).map(o=>o.value);
+    const sel = document.getElementById('streetToDelete'); const del = Array.from(sel.selectedOptions||[]).map(o=>o.value);
     if (!del.length) return; contacts = (contacts||[]).filter(c=>!del.includes(c.strasse||'')); saveContacts(); closeDeleteStreetDialog();
   }
 
   // Debug Panel
-  function openDebug(){ $('#debugModal').style.display='block'; renderDebug(); }
-  function closeDebug(){ $('#debugModal').style.display='none'; }
-  function copyDebug(){ const t=$('#debugContent').textContent||''; if (navigator.clipboard) navigator.clipboard.writeText(t); }
-  function setPanelStatus(m){ try{ const pre=$('#debugContent'); const d=JSON.parse(pre.textContent||'{}'); d.status=m; pre.textContent=JSON.stringify(d,null,2);}catch(_e){} }
+  function openDebug(){ document.getElementById('debugModal').style.display='block'; renderDebug(); }
+  function closeDebug(){ document.getElementById('debugModal').style.display='none'; }
+  function copyDebug(){ const t=document.getElementById('debugContent').textContent||''; if (navigator.clipboard) navigator.clipboard.writeText(t); }
+  function setPanelStatus(m){ try{ const pre=document.getElementById('debugContent'); const d=JSON.parse(pre.textContent||'{}'); d.status=m; pre.textContent=JSON.stringify(d,null,2);}catch(_e){} }
   function safeParse(s){ try{return JSON.parse(s||'null');}catch(_e){return null;} }
   async function renderDebug(){
     const info={}; info.now=new Date().toISOString(); info.online=navigator.onLine;
@@ -364,18 +399,18 @@
     info.last_sync_try=safeParse(localStorage.getItem('qt_last_sync_try'));
     info.last_event_err=safeParse(localStorage.getItem('qt_last_event_err'));
     const q = safeParse(localStorage.getItem('qt_sync_queue_v1'))||[]; info.queue_total=Array.isArray(q)?q.length:0;
-    $('#debugContent').textContent=JSON.stringify(info,null,2);
+    document.getElementById('debugContent').textContent=JSON.stringify(info,null,2);
   }
-  $('#dbgNavItem').addEventListener('click',e=>{e.preventDefault();openDebug();});
-  $('#dbgCloseBtn').addEventListener('click',e=>{e.preventDefault();closeDebug();});
-  $('#dbgCopyBtn').addEventListener('click',e=>{e.preventDefault();copyDebug();});
-  $('#dbgRefreshBtn').addEventListener('click',e=>{e.preventDefault();renderDebug();});
-  $('#dbgSessBtn').addEventListener('click',async e=>{
+  document.getElementById('dbgNavItem').addEventListener('click',e=>{e.preventDefault();openDebug();});
+  document.getElementById('dbgCloseBtn').addEventListener('click',e=>{e.preventDefault();closeDebug();});
+  document.getElementById('dbgCopyBtn').addEventListener('click',e=>{e.preventDefault();copyDebug();});
+  document.getElementById('dbgRefreshBtn').addEventListener('click',e=>{e.preventDefault();renderDebug();});
+  document.getElementById('dbgSessBtn').addEventListener('click',async e=>{
     e.preventDefault();
     try{ const sb=await getClient(); const {data:{user}}=await sb.auth.getUser(); setPanelStatus(user?('session ok '+user.id):'keine Session'); }catch(err){ setPanelStatus('session fehler: '+(err?.message||err)); }
     renderDebug();
   });
-  $('#dbgSyncBtn').addEventListener('click',async e=>{
+  document.getElementById('dbgSyncBtn').addEventListener('click',async e=>{
     e.preventDefault();
     try{
       setPanelStatus('start');
@@ -386,12 +421,12 @@
     }catch(err){ setPanelStatus('error: '+(err?.message||err)); }
     renderDebug();
   });
-  $('#dbgClearBtn').addEventListener('click',e=>{
+  document.getElementById('dbgClearBtn').addEventListener('click',e=>{
     e.preventDefault();
     try{ localStorage.removeItem('contacts'); const uid=localStorage.getItem('last_user_id'); if(uid) localStorage.removeItem('contacts:'+uid); localStorage.removeItem('qt_last_contacts_hash'); }catch(_e){}
     renderDebug(); alert('Lokale Kontakte geleert.');
   });
-  $('#dbgClearSyncBtn').addEventListener('click',async e=>{
+  document.getElementById('dbgClearSyncBtn').addEventListener('click',async e=>{
     e.preventDefault();
     try{ localStorage.removeItem('contacts'); const uid=localStorage.getItem('last_user_id'); if(uid) localStorage.removeItem('contacts:'+uid); localStorage.removeItem('qt_last_contacts_hash'); }catch(_e){}
     try{ await window.manualDirectSyncNow(); }catch(_e){}
@@ -432,7 +467,7 @@
     return supa;
   }
 
-  // Direkter Sync – echte Implementierung (Shim wird überschrieben)
+  // Direkter Sync (RPC → Fallback Upsert) – echte Implementierung
   async function manualDirectSyncNow(){
     try{ window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = manualDirectSyncNow; }catch(_e){}
 
@@ -475,7 +510,7 @@
   // globale Registrierung sicherstellen
   try{ window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = manualDirectSyncNow; }catch(_e){}
 
-  // Minimal-Queue (Platzhalter, damit saveContacts Hooks aufrufbar sind)
+  // Minimal-Queue (Platzhalter, damit bestehende Hooks keine Fehler werfen)
   function enqueueContactsSnapshot(){ /* optional */ }
   function flushSoon(){ /* optional */ }
 
@@ -483,10 +518,6 @@
   window.addEventListener('DOMContentLoaded', ()=>{
     navTo('contacts'); renderContacts(); updateStreetFilter();
   });
-
-  // Import-Klappen
-  function toggleImportSection(){ const s=document.querySelector('.import-section'); if(!s) return; s.classList.toggle('expanded'); s.style.display='block'; }
-  function toggleEntrySection(){ const s=document.querySelector('.entry-section'); if(!s) return; s.classList.toggle('expanded'); s.style.display='block'; }
 </script>
 
 </body>
