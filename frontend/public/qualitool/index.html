@@ -4080,5 +4080,139 @@ window.manualDirectSyncNow = manualDirectSyncNow;
   }catch(_e){}
 })();
 </script>
+  <script>
+/*
+  Add-on: Upsert ohne ON CONFLICT (UI-neutral)
+  - Versucht zuerst RPC (fn_public_upsert_user_contacts)
+  - Fällt dann auf SELECT->UPDATE/INSERT zurück (ohne onConflict)
+  - Triggert danach Events-RPC
+  - Schreibt Debug-Stages in qt_last_sync_try / qt_last_event_err
+*/
+(function(){
+  const SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
+
+  function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+  async function awaitSupabase(maxMs=15000){
+    const t0=Date.now();
+    while(!(window.supabase && window.supabase.createClient)){
+      if (Date.now()-t0>maxMs) throw new Error('Supabase SDK nicht geladen');
+      await sleep(100);
+    }
+    return window.supabase;
+  }
+  function getCapacitorStorage(){
+    try{
+      const P=(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences)||null;
+      if (!P) return null;
+      return {
+        getItem: async (k)=>{ const r=await P.get({key:k}); return (r && typeof r.value==='string')? r.value:null; },
+        setItem: async (k,v)=>{ await P.set({key:k, value:String(v??'')}); },
+        removeItem: async (k)=>{ await P.remove({key:k}); }
+      };
+    }catch(_e){ return null; }
+  }
+  let __supa=null;
+  async function getClient(){
+    if (window.supa) return window.supa;
+    if (__supa) return __supa;
+    const lib = await awaitSupabase();
+    const cap = getCapacitorStorage();
+    __supa = lib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession:true, storage:cap||undefined, autoRefreshToken:true, detectSessionInUrl:false }
+    });
+    try{ window.supa=__supa; }catch(_e){}
+    return __supa;
+  }
+
+  function setTry(stage, extra){
+    try{ localStorage.setItem('qt_last_sync_try', JSON.stringify(Object.assign({ t: Date.now(), stage }, extra||{}))); }catch(_e){}
+  }
+  function setErr(stage, msg){
+    try{ localStorage.setItem('qt_last_event_err', JSON.stringify({ t: Date.now(), stage, msg: String(msg||'') })); }catch(_e){}
+  }
+
+  async function safeUpsertWithoutOnConflict(sb, userId, snapshot){
+    // 1) Existiert Zeile?
+    const { data: existing, error: selErr } = await sb
+      .from('user_contacts')
+      .select('user_id, version')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (selErr && selErr.code !== 'PGRST116') throw selErr;
+
+    if (existing && existing.user_id){
+      const newVersion = (existing.version||0) + 1;
+      const { error: updErr } = await sb
+        .from('user_contacts')
+        .update({ contacts: snapshot, version: newVersion, updated_at: new Date().toISOString() })
+        .eq('user_id', userId);
+      if (updErr) throw updErr;
+    } else {
+      // version ist NOT NULL – setze initial auf 1
+      const { error: insErr } = await sb
+        .from('user_contacts')
+        .insert({ user_id: userId, contacts: snapshot, version: 1 });
+      if (insErr) throw insErr;
+    }
+  }
+
+  async function __manualDirectSyncNoConflict(){
+    try{
+      setTry('start');
+      const sb = await getClient();
+      setTry('client_ready');
+
+      const { data:{ user } } = await sb.auth.getUser();
+      if (!user) throw new Error('Keine Session vorhanden');
+      setTry('got_user', { user: { id: user.id } });
+
+      let snapshot=[];
+      try{ snapshot = JSON.parse(localStorage.getItem('contacts')||'[]'); }catch(_e){ snapshot=[]; }
+      if (!Array.isArray(snapshot)) snapshot=[];
+      setTry('snapshot_ready', { count: snapshot.length });
+
+      // 1) RPC versuchen
+      try{
+        const { error } = await sb.rpc('fn_public_upsert_user_contacts', { p_contacts: snapshot });
+        if (error) throw error;
+        setTry('rpc_ok');
+      }catch(e1){
+        setTry('rpc_upsert_failed', { err: String(e1?.message||e1) });
+        // 2) Fallback ohne ON CONFLICT
+        await safeUpsertWithoutOnConflict(sb, user.id, snapshot);
+        setTry('fallback_upsert_ok');
+      }
+
+      // 3) Events
+      const { error: e3 } = await sb.rpc('fn_log_events_from_contacts_snapshot', { p_user_id:user.id, p_contacts:snapshot });
+      if (e3) throw e3;
+      setTry('events_ok');
+      try{ localStorage.removeItem('qt_last_event_err'); }catch(_e){}
+      return true;
+    }catch(err){
+      setErr('manual_direct_sync', err?.message||err);
+      return false;
+    }
+  }
+
+  // Sicher registrieren (überschreibt ggf. vorherige Implementierung/Shim)
+  try{
+    window.__mdsn_impl = __manualDirectSyncNoConflict;
+    window.manualDirectSyncNow = __manualDirectSyncNoConflict;
+  }catch(_e){}
+
+  // Zusätzliche Absicherung: Debug-Button an window.manualDirectSyncNow hängen
+  try{
+    document.addEventListener('DOMContentLoaded', function(){
+      const b = document.getElementById('dbgSyncBtn');
+      if (b && !b.__qt_no_conflict_bound){
+        b.addEventListener('click', async function(){ try{ await window.manualDirectSyncNow(); }catch(_e){} });
+        b.__qt_no_conflict_bound = true;
+      }
+    });
+  }catch(_e){}
+})();
+</script>
 </body>
 </html>
