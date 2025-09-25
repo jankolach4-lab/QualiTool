@@ -3950,6 +3950,135 @@ window.manualDirectSyncNow = manualDirectSyncNow;
   })();
 })();
 </script>
+<script>
+/*
+  Add-on Sync + Session Stabilisierung (append-only, UI-neutral)
+  - Garantiert window.manualDirectSyncNow
+  - Persistente Supabase-Session via Capacitor Preferences (Fallback)
+  - RPC: fn_public_upsert_user_contacts(p_contacts) -> Fallback Upsert -> fn_log_events_from_contacts_snapshot
+*/
+(function(){
+  const SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
 
+  // Capacitor Preferences als Storage (persistente Session). Fallback auf Default, falls nicht vorhanden.
+  function getCapacitorStorage(){
+    try{
+      const P = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) || null;
+      if (!P) return null;
+      return {
+        getItem: async (key) => { const r = await P.get({ key }); return (r && typeof r.value==='string') ? r.value : null; },
+        setItem: async (key, value) => { await P.set({ key, value: String(value ?? '') }); },
+        removeItem: async (key) => { await P.remove({ key }); }
+      };
+    }catch(_e){ return null; }
+  }
+
+  function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+  async function awaitSupabase(maxMs=15000){
+    const t0 = Date.now();
+    while(!(window.supabase && typeof window.supabase.createClient === 'function')){
+      if (Date.now()-t0 > maxMs) throw new Error('Supabase SDK nicht geladen');
+      await sleep(100);
+    }
+    return window.supabase;
+  }
+
+  // Einen (1) globalen Client bereitstellen/weiterverwenden – verändert bestehende Logik nicht.
+  let __supa = null;
+  async function getClient(){
+    if (window.supa) return window.supa;
+    if (__supa) return __supa;
+    const lib = await awaitSupabase();
+    const capStore = getCapacitorStorage();
+    __supa = lib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, storage: capStore || undefined, autoRefreshToken: true, detectSessionInUrl: false }
+    });
+    try { window.supa = __supa; } catch(_e){}
+    return __supa;
+  }
+
+  // Shim: stelle sicher, dass window.manualDirectSyncNow existiert und ggf. auf echte Implementierung wartet
+  if (typeof window.manualDirectSyncNow !== 'function') {
+    window.__mdsn_impl = null;
+    window.manualDirectSyncNow = async function(){
+      for (let i = 0; i < 80; i++) {
+        if (typeof window.__mdsn_impl === 'function') {
+          return await window.__mdsn_impl();
+        }
+        await sleep(100);
+      }
+      throw new Error('manualDirectSyncNow impl missing');
+    };
+  }
+
+  // Echte Implementierung (UI-neutral; liest nur localStorage 'contacts')
+  async function __manualDirectSyncNow(){
+    const setTry=(stage, extra)=>{ try{ localStorage.setItem('qt_last_sync_try', JSON.stringify(Object.assign({ t: Date.now(), stage }, extra||{}))); }catch(_e){} };
+    const setErr=(stage, msg)=>{ try{ localStorage.setItem('qt_last_event_err', JSON.stringify({ t: Date.now(), stage, msg: String(msg||'') })); }catch(_e){} };
+
+    try{
+      setTry('start');
+
+      const sb = await getClient();
+      setTry('client_ready');
+
+      const { data:{ user } } = await sb.auth.getUser();
+      if (!user) throw new Error('Keine Session vorhanden');
+      setTry('got_user', { user: { id: user.id } });
+
+      let snapshot = [];
+      try { snapshot = JSON.parse(localStorage.getItem('contacts')||'[]'); } catch(_e){ snapshot = []; }
+      if (!Array.isArray(snapshot)) snapshot = [];
+      setTry('snapshot_ready', { count: snapshot.length });
+
+      // 1) RPC zuerst
+      try{
+        const { error } = await sb.rpc('fn_public_upsert_user_contacts', { p_contacts: snapshot });
+        if (error) throw error;
+      }catch(e1){
+        setTry('rpc_upsert_failed', { err: String(e1?.message || e1) });
+        // 2) Fallback Tabellen-Upsert
+        const { error: e2 } = await sb.from('user_contacts').upsert({ user_id: user.id, contacts: snapshot }, { onConflict: 'user_id' });
+        if (e2) throw e2;
+      }
+      setTry('upsert_ok');
+
+      // 3) Events aus Snapshot generieren
+      const { error: e3 } = await sb.rpc('fn_log_events_from_contacts_snapshot', { p_user_id: user.id, p_contacts: snapshot });
+      if (e3) throw e3;
+      setTry('events_ok');
+      try { localStorage.removeItem('qt_last_event_err'); } catch(_e){}
+
+      return true;
+    }catch(err){
+      setErr('manual_direct_sync', err?.message || err);
+      return false;
+    }
+  }
+
+  // Registrierung der echten Implementierung (überschreibt Shim, falls vorhanden)
+  try { window.__mdsn_impl = __manualDirectSyncNow; window.manualDirectSyncNow = __manualDirectSyncNow; } catch(_e){}
+
+  // Zusätzliche, nicht-invasive Absicherung: Button im Debug-Panel auf window.manualDirectSyncNow binden
+  try{
+    document.addEventListener('DOMContentLoaded', function(){
+      const b = document.getElementById('dbgSyncBtn');
+      if (b) {
+        // Doppelte Bindungen verhindern
+        if (!b.__qt_bound) {
+          b.addEventListener('click', async function(ev){
+            try{
+              // Falls dein Panel setPanelStatus nutzt, bleibt das unverändert – diese Bindung ruft nur die Funktion zusätzlich sicher auf
+              await window.manualDirectSyncNow();
+            }catch(_e){}
+          });
+          b.__qt_bound = true;
+        }
+      }
+    });
+  }catch(_e){}
+})();
+</script>
 </body>
 </html>
