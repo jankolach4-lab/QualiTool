@@ -15,7 +15,35 @@
 <link rel="apple-touch-icon" href="qt-logo.png">
 <link rel="icon" type="image/png" href="qt-logo.png">
 </head>
+// Auto‑Sync Helfer (debounced) – löst manualDirectSyncNow automatisch aus
+let __autoSyncTimer = null;
+let __autoSyncInFlight = false;
 
+function scheduleAutoSync(reason='auto'){
+  try {
+    if (__autoSyncTimer) clearTimeout(__autoSyncTimer);
+    __autoSyncTimer = setTimeout(() => { tryAutoSyncNow(reason); }, 1200);
+  } catch(_) {}
+}
+
+async function tryAutoSyncNow(reason='auto'){
+  if (__autoSyncInFlight) return;
+  try {
+    const client = await awaitSupabase().catch(()=>null);
+    if (!client) return;
+    const online = typeof navigator==='object' ? navigator.onLine : true;
+    if (!online) return;
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) return;
+    __autoSyncInFlight = true;
+    // nutzt dieselbe Logik wie der Button „Synchronisieren“
+    await manualDirectSyncNow();
+  } catch(_) {
+    // still ok – wird beim nächsten Anlass erneut versucht
+  } finally {
+    __autoSyncInFlight = false;
+  }
+}
 <body>
 <script>
   // Früher Redirect zur Login-Seite, falls kein Offline-Flag und kein letzter Nutzer vorhanden.
@@ -1706,12 +1734,14 @@
     }
   }
   function saveContacts() {
-    localStorage.setItem('contacts', JSON.stringify(contacts));
-    try { window.contacts = contacts; } catch(_) {}
-    try { enqueueContactsSnapshot(); } catch(_) {}
-    try { rescanAndEnqueueStatusDiffs(); } catch(_) {}
-    try { flushSoon(); } catch(_) {}
-  }
+  localStorage.setItem('contacts', JSON.stringify(contacts));
+  try { window.contacts = contacts; } catch(_) {}
+  try { enqueueContactsSnapshot(); } catch(_) {}
+  try { rescanAndEnqueueStatusDiffs(); } catch(_) {}
+  try { flushSoon(); } catch(_) {}
+  // NEU: Auto‑Sync nach Änderungen zuverlässig anstoßen (debounced)
+  try { scheduleAutoSync('saveContacts'); } catch(_) {}
+}
   function updateStreetFilter() {
     const streetFilter = document.getElementById('streetFilter');
     const streets = new Set();
@@ -4020,6 +4050,24 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       // Danach periodisch versuchen
       setInterval(flushQueue, 15000); // alle 15s (APK robuster)
       window.addEventListener('online', () => flushQueue());
+      // Zusätzliche Auto‑Sync Trigger
+try {
+  // Wenn App/Tab in den Vordergrund kommt
+  document.addEventListener('visibilitychange', () => {
+    try { if (!document.hidden) scheduleAutoSync('visible'); } catch(_){}
+  });
+
+  // Wenn Netzwerk wieder online ist
+  window.addEventListener('online', () => { try { scheduleAutoSync('online'); } catch(_){} });
+
+  // Capacitor App‑Resume (Android/iOS)
+  const App = window.Capacitor && window.Capacitor.App;
+  if (App && typeof App.addListener === 'function') {
+    App.addListener('appStateChange', ({ isActive }) => {
+      try { if (isActive) scheduleAutoSync('app_resume'); } catch(_){}
+    });
+  }
+} catch(_) {}
       document.addEventListener('visibilitychange', () => { if (!document.hidden) flushQueue(); });
       // Supabase-Client asynchron initialisieren (optional)
       (async () => { try { await awaitSupabase(); flushSoon(); } catch(_){ /* offline ok */ } })();
