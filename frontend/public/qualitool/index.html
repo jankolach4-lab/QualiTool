@@ -2878,11 +2878,27 @@ async function writeWorkbookAsXlsxAndSave(wb, filename){
     modal.dataset.isEdit = 'false';
     delete modal.dataset.correctionIndex;
   }
+<script>
+// Nutzt writeWorkbookAsXlsxAndSave, falls vorhanden – sonst Browser-Download
+async function exportWECorrectionsToExcel() {
+  // XLSX bereit?
+  if (!(window.XLSX)) {
+    try{
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('XLSX CDN Load failed'));
+        document.head.appendChild(s);
+      });
+    } catch(e){
+      alert('Excel-Bibliothek konnte nicht geladen werden.');
+      return;
+    }
+  }
 
-  async function exportWECorrectionsToExcel() {
-  if (!(await ensureXLSXReady())) return;
-
-  const tableData = contacts.flatMap(contact => {
+  const tableData = (window.contacts||[]).flatMap(contact => {
     if (!contact.weCorrections || contact.weCorrections.length === 0) return [];
     return contact.weCorrections.map(correction => ({
       Adresse: `${contact.strasse || ''} ${contact.nummer || ''}${contact.zusatz ? ` ${contact.zusatz}` : ''}`.trim(),
@@ -2905,17 +2921,29 @@ async function writeWorkbookAsXlsxAndSave(wb, filename){
   const ws = XLSX.utils.json_to_sheet(tableData);
   XLSX.utils.book_append_sheet(wb, ws, 'WE‑Korrekturen');
 
-  const d = new Date();
-  const pad = n => (n<10?('0'+n):n);
+  const d = new Date(); const pad = n => (n<10?('0'+n):n);
   const filename = `we_korrekturen_${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}.xlsx`;
 
   try {
-    await writeWorkbookAsXlsxAndSave(wb, filename);
+    if (typeof writeWorkbookAsXlsxAndSave === 'function') {
+      await writeWorkbookAsXlsxAndSave(wb, filename);
+    } else {
+      // Minimaler Fallback
+      const wbArray = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      if (typeof triggerDownload === 'function') triggerDownload(blob, filename);
+      else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+        setTimeout(()=>URL.revokeObjectURL(url), 30000);
+      }
+    }
   } catch(err){
     console.error('exportWECorrectionsToExcel failed:', err);
     alert('Excel-Export (WE‑Korrekturen) fehlgeschlagen: ' + (err?.message || err));
   }
 }
+
   function editWeCorrection(contactId, correctionIndex) {
     const contact = contacts.find(c => c.id === contactId);
     if (!contact || !contact.weCorrections) return;
@@ -2938,32 +2966,45 @@ async function writeWorkbookAsXlsxAndSave(wb, filename){
   }
 
 <script>
-// Ersetzt die bestehende importFromExcel-Funktion
+// Robuster Excel-Import (XLSX wird bei Bedarf nachgeladen)
 async function importFromExcel(file) {
-  // Sicherstellen, dass XLSX verfügbar ist
-  if (!(await ensureXLSXReady())) {
-    alert('Excel-Bibliothek (XLSX) konnte nicht geladen werden.');
-    return;
-  }
   if (!file) { alert('Keine Datei gewählt'); return; }
+
+  // XLSX sicherstellen
+  async function ensureXLSX(){
+    if (window.XLSX) return true;
+    try{
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('XLSX CDN Load failed'));
+        document.head.appendChild(s);
+      });
+      return !!window.XLSX;
+    }catch(e){
+      console.error('XLSX load failed:', e);
+      alert('Excel-Bibliothek konnte nicht geladen werden.');
+      return false;
+    }
+  }
+  if (!(await ensureXLSX())) return;
 
   const reader = new FileReader();
 
-  // Helper: mehrere mögliche Header-Namen erlauben
   function getField(row, keys) {
     for (const k of keys) {
       if (Object.prototype.hasOwnProperty.call(row, k) && row[k] != null) return row[k];
     }
     return undefined;
   }
-
   function parseBoolean(val) {
     if (typeof val === 'boolean') return val;
     if (val == null) return false;
     const s = String(val).trim().toLowerCase();
     return ['true','1','ja','j','y','yes','wahr','x'].includes(s);
   }
-
   function safeParseJSON(val, fallback) {
     try {
       if (val == null || val === '') return fallback;
@@ -2979,12 +3020,9 @@ async function importFromExcel(file) {
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(firstSheet);
 
-      // Nutzerentscheidung: Hinzufügen (OK) oder Überschreiben (Abbrechen)?
       const shouldAppend = confirm("Möchten Sie die Daten aus der Excel-Datei zu den bestehenden Einträgen hinzufügen?\n\n- OK: Hinzufügen\n- Abbrechen: Bestehende Liste ersetzen");
 
-      // Temporäre Gruppierung nach Adresse
       const addressMap = new Map();
-
       rows.forEach(row => {
         const plz = getField(row, ['PLZ']);
         const ort = getField(row, ['Ort']);
@@ -3022,16 +3060,13 @@ async function importFromExcel(file) {
       });
 
       const importedContacts = Array.from(addressMap.values());
-
-      // Bestehende Liste ersetzen oder hinzufügen
+      window.contacts = window.contacts || [];
       if (shouldAppend) {
-        window.contacts = (window.contacts || []);
         window.contacts.push(...importedContacts);
       } else {
         window.contacts = importedContacts;
       }
 
-      // Sortieren, Speichern, Rendern
       if (typeof sortContacts === 'function') window.contacts = sortContacts(window.contacts);
       if (typeof saveContacts === 'function') saveContacts();
       if (typeof updateStreetFilter === 'function') updateStreetFilter();
@@ -4751,5 +4786,119 @@ try {
   }
 })();
 </script>
+  <script>
+// Sidebar/Sections: Wrapper dynamisch erzeugen, nur aktive Section zeigen, sichtbare Code-Fragmente entfernen
+(function(){
+  if (window.__navFixed) return; window.__navFixed = true;
+
+  function q(sel){ try { return document.querySelector(sel); } catch(_){ return null; } }
+  function qa(sel){ try { return Array.from(document.querySelectorAll(sel)); } catch(_){ return []; } }
+
+  // Entferne versehentlich eingefügte Textknoten mit JS-Code im Main-Container
+  (function cleanupVisibleCode(){
+    try {
+      const cont = q('.main-content .container');
+      if (!cont) return;
+      Array.from(cont.childNodes).forEach(n => {
+        if (n.nodeType === 3) {
+          const t = (n.textContent||'').trim();
+          if (!t) { cont.removeChild(n); return; }
+          if (/\bfunction\b|\bsetTimeout\b|\bmanualDirectSyncNow\b|\bscheduleAutoSync\b|\bawaitSupabase\b/.test(t)) {
+            cont.removeChild(n);
+          }
+        }
+      });
+    } catch(_){}
+  })();
+
+  // Bestehende Bereiche einsammeln
+  function collect(){
+    return {
+      contacts: ['.search-box','.status-filters','.street-filter-container','#contactList']
+                  .map(s => q(s)).filter(Boolean),
+      import: [ q('.import-section') ].filter(Boolean),
+      add: [ q('.entry-section') ].filter(Boolean),
+      calendar: [ q('.calendar-section') ].filter(Boolean),
+      stats: [ q('.statistics-section') ].filter(Boolean),
+      recommendations: [ q('.visit-recommendation-box') ].filter(Boolean),
+      'pdf-corrections': [ q('#weCorrectionsSection') ].filter(Boolean)
+    };
+  }
+
+  // Kapsle die Nodes in Wrapper <div id="section-...">
+  function wrapSection(id, nodes){
+    if (!nodes || !nodes.length) return null;
+    const first = nodes[0];
+    const wrap = document.createElement('div');
+    wrap.id = 'section-' + id; // Sichtbarkeits-Container für diese Section
+    first.parentNode.insertBefore(wrap, first);
+    nodes.forEach(n => wrap.appendChild(n));
+    wrap.style.display = 'none';
+    return wrap;
+  }
+
+  function buildWrappers(){
+    const map = collect();
+    const wraps = {};
+    Object.keys(map).forEach(k => {
+      const w = wrapSection(k, map[k]);
+      if (w) wraps[k] = w;
+    });
+    return wraps;
+  }
+
+  function setupNav(wraps){
+    window.showSection = function(id){
+      try{
+        Object.values(wraps).forEach(w => { if (w) w.style.display = 'none'; });
+        (wraps[id] || wraps.contacts)?.style && (wraps[id] || wraps.contacts).style.display = '';
+        const links = qa('.sidebar-nav a[href^="#"]');
+        links.forEach(a => a.classList && a.classList.remove('active'));
+        links.forEach(a => { if ((a.getAttribute('href')||'').slice(1) === id) a.classList.add('active'); });
+      }catch(_){}
+    };
+
+    window.navTo = function(id){
+      try{
+        if (!id) return false;
+        if (location.hash !== '#'+id) history.replaceState(null,'','#'+id);
+        window.showSection(id);
+        return false;
+      }catch(_){ return false; }
+    };
+
+    // Links binden
+    qa('.sidebar-nav a[href^="#"]').forEach(a => {
+      if (a.__boundNav) return;
+      a.__boundNav = true;
+      a.addEventListener('click', (ev) => {
+        const id = (a.getAttribute('href')||'').slice(1);
+        if (id){ ev.preventDefault(); window.navTo(id); }
+      }, false);
+    });
+
+    // Start-Section
+    const start = (location.hash||'').slice(1) || 'contacts';
+    window.showSection(start);
+
+    // Hash-Wechsel
+    window.addEventListener('hashchange', () => {
+      const id = (location.hash||'').slice(1);
+      if (id) window.showSection(id);
+    });
+  }
+
+  function init(){
+    const wraps = buildWrappers();
+    setupNav(wraps);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>  
 </body>
 </html>
