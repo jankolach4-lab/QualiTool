@@ -4,39 +4,41 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Qualifizierungs-Tool | Login</title>
-<!-- Supabase JS (einmalig laden) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- Verhindere mehrere GoTrue-Instanzen: globaler Client -->
-<script>
-(function(){
-  try{
-    if (!window.supa && window.supabase && window.supabase.createClient){
-      const SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
-      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
+  <!-- Supabase SDK (einmalig laden) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-      function getCapacitorStorage(){
-        try{
-          const P = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) || null;
-          if (!P) return null;
-          return {
-            getItem: async (key) => { const r = await P.get({ key }); return (r && typeof r.value==='string') ? r.value : null; },
-            setItem: async (key, value) => { await P.set({ key, value: String(value ?? '') }); },
-            removeItem: async (key) => { await P.remove({ key }); }
-          };
-        }catch(e){ return null; }
-      }
+  <!-- Globaler Supabase-Client mit Capacitor Preferences (nur 1x) -->
+  <script>
+    (function(){
+      try{
+        if (!window.supa && window.supabase && window.supabase.createClient){
+          const SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
+          const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
 
-      const capStore = getCapacitorStorage();
-      window.supa = window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY,
-        { auth: { persistSession: true, storage: capStore || undefined, autoRefreshToken: true, detectSessionInUrl: false } }
-      );
-    }
-  }catch(e){ /* ignore */ }
-})();
-</script>
+          function getCapacitorStorage(){
+            try{
+              const P = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) || null;
+              if (!P) return null;
+              return {
+                getItem: async (key) => { const r = await P.get({ key }); return (r && typeof r.value==='string') ? r.value : null; },
+                setItem: async (key, value) => { await P.set({ key, value: String(value ?? '') }); },
+                removeItem: async (key) => { await P.remove({ key }); }
+              };
+            }catch(_){ return null; }
+          }
+
+          const capStore = getCapacitorStorage();
+          window.supa = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY,
+            { auth: { persistSession: true, storage: capStore || undefined, autoRefreshToken: true, detectSessionInUrl: false } }
+          );
+        }
+      }catch(_){}
+    })();
+  </script>
+
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif; background:#f5f7fa; margin:0; }
     .wrap { max-width: 380px; margin: 8vh auto; background:#fff; padding: 24px; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.08); }
@@ -71,151 +73,118 @@
     </div>
   </div>
 
+  <!-- Login-Logik -->
   <script>
-// Verhindere mehrere GoTrue-Instanzen: globaler Client (mit Capacitor Preferences)
-(function(){
-  try{
-    if (!window.supa && window.supabase && window.supabase.createClient){
+    (function(){
       const SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
       const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
 
-      function getCapacitorStorage(){
-        try{
-          const P = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) || null;
-          if (!P) return null;
-          return {
-            getItem: async (key) => { const r = await P.get({ key }); return (r && typeof r.value==='string') ? r.value : null; },
-            setItem: async (key, value) => { await P.set({ key, value: String(value ?? '') }); },
-            removeItem: async (key) => { await P.remove({ key }); }
-          };
-        }catch(e){ return null; }
-      }
-
-      const capStore = getCapacitorStorage();
-      window.supa = window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY,
-        { auth: { persistSession: true, storage: capStore || undefined, autoRefreshToken: true, detectSessionInUrl: false } }
-      );
-    }
-  }catch(e){ /* ignore */ }
-})();
-
       const $ = (id) => document.getElementById(id);
       const isOnline = () => navigator.onLine;
-      function showError(msg){ const box = $('errorBox'); box.textContent = msg; box.style.display = 'block'; }
-      function clearError(){ const box = $('errorBox'); box.textContent = ''; box.style.display = 'none'; }
-      function setLoading(on){ $('loadingBox').style.display = on ? 'block' : 'none'; $('loginBtn').disabled = on; $('signupBtn').disabled = on; }
 
-      function getCapacitorStorage(){
-        try{
-          const P = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) || null;
-          if (!P) return null;
-          return {
-            getItem: async (key) => { const r = await P.get({ key }); return (r && typeof r.value==='string') ? r.value : null; },
-            setItem: async (key, value) => { await P.set({ key, value: String(value ?? '') }); },
-            removeItem: async (key) => { await P.remove({ key }); }
-          };
-        }catch(_e){ return null; }
-      }
-
-      function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
-      async function awaitSupabase(maxMs=12000){
-        const t0 = Date.now();
-        while(!(window.supabase && window.supabase.createClient)){
-          if (Date.now()-t0 > maxMs) throw new Error('Supabase SDK nicht geladen');
-          await sleep(100);
-        }
-        return window.supabase;
-      }
-
-      async function getClient(){
-        if (window.supa) return window.supa;
-        const lib = await awaitSupabase();
-        const capStore = getCapacitorStorage();
-        const client = lib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-          auth: { persistSession: true, storage: capStore || undefined, autoRefreshToken: true, detectSessionInUrl: false }
-        });
-        window.supa = client;
-        return client;
-      }
+      function showError(msg){ const box = $('errorBox'); if (!box) return; box.textContent = msg; box.style.display = 'block'; }
+      function clearError(){ const box = $('errorBox'); if (!box) return; box.textContent=''; box.style.display='none'; }
+      function setLoading(on){ const l=$('loadingBox'); const lb=$('loginBtn'); const sb=$('signupBtn'); if(l) l.style.display=on?'block':'none'; if(lb) lb.disabled=on; if(sb) sb.disabled=on; }
 
       function storageKey(userId){ return userId ? `contacts:${userId}` : 'contacts'; }
-      function getLocalContacts(userId){ try { return JSON.parse(localStorage.getItem(storageKey(userId))||'[]'); } catch(_e) { return []; } }
+      function getLocalContacts(userId){ try { return JSON.parse(localStorage.getItem(storageKey(userId))||'[]'); } catch { return []; } }
       function setLocalContacts(userId, c){ localStorage.setItem(storageKey(userId), JSON.stringify(c||[])); }
 
-      async function getCloudContacts(supa){
-        const { data, error } = await supa.from('user_contacts').select('contacts').maybeSingle();
+      function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+      async function getSupa(){
+        if (window.supa) return window.supa;
+        // Fallback: falls globaler Client nicht gesetzt wurde, SDK abwarten und erstellen
+        const t0 = Date.now();
+        while(!(window.supabase && window.supabase.createClient)){
+          if (Date.now()-t0 > 6000) throw new Error('supabase-js nicht geladen');
+          await sleep(100);
+        }
+        window.supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }});
+        return window.supa;
+      }
+
+      async function getCloudContacts(supabase){
+        const { data, error } = await supabase.from('user_contacts').select('contacts').maybeSingle();
         if (error && error.code !== 'PGRST116') throw error;
         return (data && data.contacts) ? data.contacts : [];
       }
-      async function uploadLocalToCloud(supa, userId){
+
+      async function uploadLocalToCloud(supabase, userId){
         const contacts = getLocalContacts(userId);
-        const { error } = await supa.from('user_contacts').upsert({ user_id: userId, contacts }, { onConflict: 'user_id' });
+        const { error } = await supabase.from('user_contacts').upsert({ user_id: userId, contacts }, { onConflict: 'user_id' });
         if (error) throw error;
       }
 
-      async function signIn(){
+      async function afterAuth(supabase){
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { showError('Kein Nutzer gefunden.'); return; }
+
+        // Offline-Nutzung erlauben
+        localStorage.setItem('last_user_id', user.id);
+        localStorage.setItem('offline_allowed', 'true');
+
+        // Cloud <-> Lokal Sync beim ersten Login
+        const cloud = await getCloudContacts(supabase);
+        const local = getLocalContacts(user.id);
+        if (local.length > 0 && cloud.length === 0) {
+          const doUpload = confirm('Lokale Adressen gefunden. Jetzt in die Cloud hochladen?');
+          if (doUpload) { await uploadLocalToCloud(supabase, user.id); }
+        } else if (cloud.length > 0) {
+          setLocalContacts(user.id, cloud);
+        }
+
+        window.location.href = './index.html';
+      }
+
+      async function signIn(e){
+        if (e) e.preventDefault();
         clearError(); setLoading(true);
         try {
-          if (!isOnline()) { $('offlineMsg').style.display='block'; setLoading(false); return; }
-          const email = $('email').value.trim(); const password = $('password').value;
+          if (!isOnline()) { const off=$('offlineMsg'); if(off) off.style.display='block'; return; }
+          const email = ($('email')?.value||'').trim(); const password = $('password')?.value||'';
           if (!email || !password) { showError('Bitte E‑Mail und Passwort eingeben.'); return; }
-          const supa = await getClient();
-          const { error } = await supa.auth.signInWithPassword({ email, password });
+          const supabase = await getSupa();
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
           if (error) throw error;
-          await afterAuth(supa);
-        } catch(e){ showError(e.message || 'Login fehlgeschlagen'); }
+          await afterAuth(supabase);
+        } catch(e){ showError(e?.message || 'Login fehlgeschlagen'); }
         finally { setLoading(false); }
       }
 
-      async function signUp(){
+      async function signUp(e){
+        if (e) e.preventDefault();
         clearError(); setLoading(true);
         try {
-          if (!isOnline()) { $('offlineMsg').style.display='block'; setLoading(false); return; }
-          const email = $('email').value.trim(); const password = $('password').value;
+          if (!isOnline()) { const off=$('offlineMsg'); if(off) off.style.display='block'; return; }
+          const email = ($('email')?.value||'').trim(); const password = $('password')?.value||'';
           if (!email || !password) { showError('Bitte E‑Mail und Passwort eingeben.'); return; }
-          const supa = await getClient();
-          const { data, error } = await supa.auth.signUp({ email, password });
+          const supabase = await getSupa();
+          const { data, error } = await supabase.auth.signUp({ email, password });
           if (error) throw error;
           if (data.user && !data.session) {
             alert('Registrierung erfolgreich. Bitte E‑Mail bestätigen und anschließend einloggen.');
           } else {
-            await afterAuth(supa);
+            await afterAuth(supabase);
           }
-        } catch(e){ showError(e.message || 'Registrierung fehlgeschlagen'); }
+        } catch(e){ showError(e?.message || 'Registrierung fehlgeschlagen'); }
         finally { setLoading(false); }
       }
 
-      async function afterAuth(supa){
-        const { data: { user } } = await supa.auth.getUser();
-        if (!user) { showError('Kein Nutzer gefunden.'); return; }
-        localStorage.setItem('last_user_id', user.id);
-        localStorage.setItem('offline_allowed', 'true');
+      document.addEventListener('DOMContentLoaded', () => {
+        $('loginBtn')?.addEventListener('click', signIn);
+        $('signupBtn')?.addEventListener('click', signUp);
+        $('email')?.addEventListener('keydown', e => { if (e.key === 'Enter') signIn(e); });
+        $('password')?.addEventListener('keydown', e => { if (e.key === 'Enter') signIn(e); });
 
-        const cloud = await getCloudContacts(supa);
-        const local = getLocalContacts(user.id);
-        if (local.length > 0 && cloud.length === 0) {
-          const doUpload = confirm('Lokale Adressen gefunden. Jetzt in die Cloud hochladen?');
-          if (doUpload) { await uploadLocalToCloud(supa, user.id); }
-        } else if (cloud.length > 0) {
-          setLocalContacts(user.id, cloud);
-        }
-        window.location.href = './index.html';
-      }
-
-      window.addEventListener('DOMContentLoaded', async () => {
-        document.getElementById('loginBtn').addEventListener('click', signIn);
-        document.getElementById('signupBtn').addEventListener('click', signUp);
-        document.getElementById('email').addEventListener('keydown', e => { if (e.key === 'Enter') signIn(); });
-        document.getElementById('password').addEventListener('keydown', e => { if (e.key === 'Enter') signIn(); });
-
-        try{
-          if (!isOnline()) { document.getElementById('offlineMsg').style.display='block'; return; }
-          const supa = await getClient();
-          const { data: { session } } = await supa.auth.getSession();
-          if (session) window.location.href = './index.html';
-        }catch(_e){}
+        (async () => {
+          // Bereits eingeloggt? (nur online prüfen)
+          if (!isOnline()) { const off=$('offlineMsg'); if(off) off.style.display='block'; return; }
+          try{
+            const supabase = await getSupa();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) { window.location.href = './index.html'; }
+          }catch(_){}
+        })();
       });
     })();
   </script>
