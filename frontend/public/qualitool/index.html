@@ -2937,108 +2937,121 @@ async function writeWorkbookAsXlsxAndSave(wb, filename){
     modal.style.display = 'block';
   }
 
-  function importFromExcel(file) {
-    const reader = new FileReader();
+<script>
+// Ersetzt die bestehende importFromExcel-Funktion
+async function importFromExcel(file) {
+  // Sicherstellen, dass XLSX verfügbar ist
+  if (!(await ensureXLSXReady())) {
+    alert('Excel-Bibliothek (XLSX) konnte nicht geladen werden.');
+    return;
+  }
+  if (!file) { alert('Keine Datei gewählt'); return; }
 
-    // Helper: mehrere mögliche Header-Namen erlauben
-    function getField(row, keys) {
-      for (const k of keys) {
-        if (Object.prototype.hasOwnProperty.call(row, k) && row[k] != null) return row[k];
-      }
-      return undefined;
+  const reader = new FileReader();
+
+  // Helper: mehrere mögliche Header-Namen erlauben
+  function getField(row, keys) {
+    for (const k of keys) {
+      if (Object.prototype.hasOwnProperty.call(row, k) && row[k] != null) return row[k];
     }
+    return undefined;
+  }
 
-    function parseBoolean(val) {
-      if (typeof val === 'boolean') return val;
-      if (val == null) return false;
-      const s = String(val).trim().toLowerCase();
-      return ['true','1','ja','j','y','yes','wahr','x'].includes(s);
-    }
+  function parseBoolean(val) {
+    if (typeof val === 'boolean') return val;
+    if (val == null) return false;
+    const s = String(val).trim().toLowerCase();
+    return ['true','1','ja','j','y','yes','wahr','x'].includes(s);
+  }
 
-    function safeParseJSON(val, fallback) {
-      try {
-        if (val == null || val === '') return fallback;
-        if (typeof val !== 'string') return Array.isArray(val) ? val : fallback;
-        return JSON.parse(val);
-      } catch(_e) { return fallback; }
-    }
+  function safeParseJSON(val, fallback) {
+    try {
+      if (val == null || val === '') return fallback;
+      if (typeof val !== 'string') return Array.isArray(val) ? val : fallback;
+      return JSON.parse(val);
+    } catch(_e) { return fallback; }
+  }
 
-    reader.onload = function(e) {
-      try {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, {type: 'array'});
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(firstSheet);
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, {type: 'array'});
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(firstSheet);
 
-        // Nutzerentscheidung: Hinzufügen (OK) oder Überschreiben (Abbrechen)?
-        const shouldAppend = confirm("Möchten Sie die Daten aus der Excel-Datei zu den bestehenden Einträgen hinzufügen?\n\n- OK: Hinzufügen\n- Abbrechen: Bestehende Liste ersetzen");
+      // Nutzerentscheidung: Hinzufügen (OK) oder Überschreiben (Abbrechen)?
+      const shouldAppend = confirm("Möchten Sie die Daten aus der Excel-Datei zu den bestehenden Einträgen hinzufügen?\n\n- OK: Hinzufügen\n- Abbrechen: Bestehende Liste ersetzen");
 
-        // Temporäre Gruppierung nach Adresse
-        const addressMap = new Map();
+      // Temporäre Gruppierung nach Adresse
+      const addressMap = new Map();
 
-        rows.forEach(row => {
-          const plz = getField(row, ['PLZ']);
-          const ort = getField(row, ['Ort']);
-          const strasse = getField(row, ['Straße','Strasse']);
-          const nummer = getField(row, ['Nummer','Nr.']);
-          const zusatz = getField(row, ['Zusatz']) || '';
-          const we = getField(row, ['WE']);
-          const addressKey = `${plz}_${strasse}_${nummer}_${zusatz || ''}`;
+      rows.forEach(row => {
+        const plz = getField(row, ['PLZ']);
+        const ort = getField(row, ['Ort']);
+        const strasse = getField(row, ['Straße','Strasse']);
+        const nummer = getField(row, ['Nummer','Nr.']);
+        const zusatz = getField(row, ['Zusatz']) || '';
+        const we = getField(row, ['WE']);
+        const addressKey = `${plz}_${strasse}_${nummer}_${zusatz || ''}`;
 
-          if (!addressMap.has(addressKey)) {
-            addressMap.set(addressKey, {
-              id: Date.now() + Math.random(),
-              plz, ort, strasse, nummer, zusatz,
-              we,
-              manualCurrentWe: getField(row, ['Aktuelle WE']) || undefined,
-              weCorrections: safeParseJSON(getField(row, ['WE Korrekturen']), []),
-              residents: []
-            });
-          }
-
-          const hasBewohner = getField(row, ['Bewohner']);
-          const statusVal = getField(row, ['Status']);
-          if (hasBewohner || statusVal) {
-            const contact = addressMap.get(addressKey);
-            contact.residents.push({
-              unit: contact.residents.length + 1,
-              name: hasBewohner || '',
-              phone: getField(row, ['Telefon']) || '',
-              status: statusVal || '',
-              notes: getField(row, ['Notizen']) || '',
-              mieter: parseBoolean(getField(row, ['Mieter'])),
-              statusHistory: safeParseJSON(getField(row, ['Statusverlauf','StatusVerlauf']), [])
-            });
-          }
-        });
-
-        const importedContacts = Array.from(addressMap.values());
-
-        if (shouldAppend) {
-          contacts = sortContacts([...(contacts || []), ...importedContacts]);
-        } else {
-          contacts = sortContacts(importedContacts);
+        if (!addressMap.has(addressKey)) {
+          addressMap.set(addressKey, {
+            id: Date.now() + Math.random(),
+            plz, ort, strasse, nummer, zusatz,
+            we,
+            manualCurrentWe: getField(row, ['Aktuelle WE']) || undefined,
+            weCorrections: safeParseJSON(getField(row, ['WE Korrekturen']), []),
+            residents: []
+          });
         }
 
-        saveContacts();
-        updateStreetFilter();
-        renderContacts();
+        const hasBewohner = getField(row, ['Bewohner']);
+        const statusVal = getField(row, ['Status']);
+        if (hasBewohner || statusVal) {
+          const contact = addressMap.get(addressKey);
+          contact.residents.push({
+            unit: contact.residents.length + 1,
+            name: hasBewohner || '',
+            phone: getField(row, ['Telefon']) || '',
+            status: statusVal || '',
+            notes: getField(row, ['Notizen']) || '',
+            mieter: parseBoolean(getField(row, ['Mieter'])),
+            statusHistory: safeParseJSON(getField(row, ['Statusverlauf','StatusVerlauf']), [])
+          });
+        }
+      });
 
-        alert(`Import erfolgreich: ${importedContacts.length} Adressen ${shouldAppend ? 'hinzugefügt' : 'importiert'}`);
+      const importedContacts = Array.from(addressMap.values());
 
-      } catch (err) {
-        console.error('Import failed:', err);
-        alert('Fehler beim Import: ' + err.message);
+      // Bestehende Liste ersetzen oder hinzufügen
+      if (shouldAppend) {
+        window.contacts = (window.contacts || []);
+        window.contacts.push(...importedContacts);
+      } else {
+        window.contacts = importedContacts;
       }
-    };
 
-    reader.onerror = err => {
-      console.error('FileReader error:', err);
-      alert('Fehler beim Lesen der Datei');
-    };
+      // Sortieren, Speichern, Rendern
+      if (typeof sortContacts === 'function') window.contacts = sortContacts(window.contacts);
+      if (typeof saveContacts === 'function') saveContacts();
+      if (typeof updateStreetFilter === 'function') updateStreetFilter();
+      if (typeof renderContacts === 'function') renderContacts();
 
-    reader.readAsArrayBuffer(file);
-  }
+      alert(`Import erfolgreich: ${importedContacts.length} Adressen ${shouldAppend ? 'hinzugefügt' : 'importiert'}`);
+    } catch (err) {
+      console.error('Import failed:', err);
+      alert('Fehler beim Import: ' + (err?.message || err));
+    }
+  };
+
+  reader.onerror = err => {
+    console.error('FileReader error:', err);
+    alert('Fehler beim Lesen der Datei');
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+</script>
 
   async function exportToExcel() {
   if (!(await ensureXLSXReady())) return;
@@ -4631,6 +4644,110 @@ try {
     document.addEventListener('DOMContentLoaded', initNav);
   } else {
     initNav();
+  }
+})();
+</script>
+<script>
+// Sidebar / Section-Navigation: mappt Link-Ziele (#contacts, #import, #add, #stats, #calendar, #recommendations, #pdf-corrections)
+// auf die tatsächlichen Container in der Seite und blendet korrekt um.
+(function(){
+  // Doppelte Initialisierung verhindern
+  if (window.__navFixed) return; window.__navFixed = true;
+
+  function $(sel){ try { return document.querySelector(sel); } catch(_){ return null; } }
+  function $all(sel){ try { return Array.from(document.querySelectorAll(sel)); } catch(_){ return []; } }
+
+  function getSectionsMap(){
+    // Container im DOM erfassen
+    const sections = {
+      contacts: [
+        $('.search-box'),
+        $('.status-filters'),
+        $('.street-filter-container'),
+        $('#contactList') ? $('#contactList').parentElement : null  // parent der Liste
+      ],
+      import: [ $('.import-section') ],
+      add: [ $('.entry-section') ],
+      calendar: [ $('.calendar-section') ],
+      stats: [ $('.statistics-section') ],
+      recommendations: [ $('.visit-recommendation-box') ],
+      'pdf-corrections': [ $('#weCorrectionsSection') ]
+    };
+    // leere Einträge entfernen
+    Object.keys(sections).forEach(k => sections[k] = (sections[k]||[]).filter(Boolean));
+    return sections;
+  }
+
+  function hideAll(sectionsMap){
+    const allEls = new Set();
+    Object.values(sectionsMap).forEach(arr => arr.forEach(el => allEls.add(el)));
+    allEls.forEach(el => { el.style.display = 'none'; });
+  }
+
+  // showSection: Ziel-Bereich anzeigen, Rest verbergen + Active-Status setzen
+  window.showSection = function(sectionId){
+    try{
+      const map = getSectionsMap();
+      hideAll(map);
+      const list = map[sectionId] || [];
+      if (list.length === 0) {
+        // Fallback: Kontakte anzeigen
+        (map.contacts||[]).forEach(el => el.style.display = '');
+      } else {
+        list.forEach(el => el.style.display = '');
+      }
+
+      // Active Link setzen
+      const links = $all('.sidebar-nav a[href^="#"]');
+      links.forEach(a => a.classList && a.classList.remove('active'));
+      links.forEach(a => {
+        const h = (a.getAttribute('href')||'').slice(1);
+        if (h === sectionId) { a.classList && a.classList.add('active'); }
+      });
+    }catch(_){}
+  };
+
+  // navTo: Hash setzen + showSection
+  window.navTo = function(sectionId){
+    try{
+      if (!sectionId) return false;
+      if (location.hash !== '#'+sectionId) history.replaceState(null, '', '#'+sectionId);
+      window.showSection(sectionId);
+      return false; // verhindert default Anchor-Navigation
+    }catch(_){ return false; }
+  };
+
+  function bindSidebar(){
+    const links = $all('.sidebar-nav a[href^="#"]').filter(a => !a.__boundNav);
+    links.forEach(a => {
+      a.__boundNav = true;
+      a.addEventListener('click', (ev) => {
+        try{
+          const target = (a.getAttribute('href')||'').slice(1);
+          if (target) { ev.preventDefault(); window.navTo(target); }
+        }catch(_){}
+      }, false);
+    });
+  }
+
+  function init(){
+    bindSidebar();
+    // Startzustand
+    const start = (location.hash||'').replace('#','') || 'contacts';
+    window.showSection(start);
+  }
+
+  window.addEventListener('hashchange', () => {
+    try {
+      const id = (location.hash||'').replace('#','');
+      if (id) window.navTo(id);
+    } catch(_){}
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
 })();
 </script>
