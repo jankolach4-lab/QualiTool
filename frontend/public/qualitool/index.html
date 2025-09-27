@@ -3087,129 +3087,64 @@ async function importFromExcel(file) {
   reader.readAsArrayBuffer(file);
 }
 </script>
-
+<script>
   async function exportToExcel() {
-  if (!(await ensureXLSXReady())) return;
+    if (!(await ensureXLSXReady())) return;
 
-  const exportData = contacts.map(contact => {
-    if (!contact.residents || contact.residents.length === 0) {
-      return {
+    // Daten für Export vorbereiten
+    const exportData = (window.contacts || []).map(contact => {
+      if (!contact.residents || contact.residents.length === 0) {
+        return {
+          'PLZ': contact.plz,
+          'Ort': contact.ort,
+          'Straße': contact.strasse,
+          'Nummer': contact.nummer,
+          'Zusatz': contact.zusatz,
+          'WE': contact.we,
+          'Bewohner': '',
+          'Telefon': '',
+          'Status': '',
+          'Notizen': '',
+          'Mieter': '',
+          'Statusverlauf': '',
+          'Aktuelle WE': contact.manualCurrentWe || '',
+          'WE Korrekturen': JSON.stringify(contact.weCorrections || [])
+        };
+      }
+      return contact.residents.map(resident => ({
         'PLZ': contact.plz,
         'Ort': contact.ort,
         'Straße': contact.strasse,
         'Nummer': contact.nummer,
         'Zusatz': contact.zusatz,
         'WE': contact.we,
-        'Bewohner': '',
-        'Telefon': '',
-        'Status': '',
-        'Notizen': '',
-        'Mieter': '',
-        'Statusverlauf': '',
+        'Bewohner': resident.name,
+        'Telefon': resident.phone,
+        'Status': resident.status,
+        'Notizen': resident.notes,
+        'Mieter': resident.mieter ? 'true' : 'false',
+        'Statusverlauf': JSON.stringify(resident.statusHistory || []),
         'Aktuelle WE': contact.manualCurrentWe || '',
         'WE Korrekturen': JSON.stringify(contact.weCorrections || [])
-      };
-    }
-    return contact.residents.map(resident => ({
-      'PLZ': contact.plz,
-      'Ort': contact.ort,
-      'Straße': contact.strasse,
-      'Nummer': contact.nummer,
-      'Zusatz': contact.zusatz,
-      'WE': contact.we,
-      'Bewohner': resident.name,
-      'Telefon': resident.phone,
-      'Status': resident.status,
-      'Notizen': resident.notes,
-      'Mieter': resident.mieter ? 'true' : 'false',
-      'Statusverlauf': JSON.stringify(resident.statusHistory || []),
-      'Aktuelle WE': contact.manualCurrentWe || '',
-      'WE Korrekturen': JSON.stringify(contact.weCorrections || [])
-    }));
-  }).flat();
+      }));
+    }).flat();
 
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(exportData);
-  XLSX.utils.book_append_sheet(wb, ws, "Qualifizierungen");
+    // Workbook erstellen
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    XLSX.utils.book_append_sheet(wb, ws, "Qualifizierungen");
 
-  const place = (contacts && contacts[0] && contacts[0].ort) ? String(contacts[0].ort).replace(/\s+/g,'-').toLowerCase() : 'ort';
-  const d = new Date();
-  const pad = n => (n<10?('0'+n):n);
-  const filename = `qualifizierungen_${place}_${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}.xlsx`;
+    // Dateiname
+    const place = (contacts && contacts[0] && contacts[0].ort) ? String(contacts[0].ort).replace(/\s+/g,'-').toLowerCase() : 'ort';
+    const d = new Date(); const pad = n => (n<10?('0'+n):n);
+    const filename = `qualifizierungen_${place}_${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}.xlsx`;
 
-  try {
-    await writeWorkbookAsXlsxAndSave(wb, filename);
-  } catch(err){
-    console.error('exportToExcel failed:', err);
-    alert('Excel-Export fehlgeschlagen: ' + (err?.message || err));
-  }
-}
-    // Native App: über Filesystem + Share teilen
-    if (isNativeApp()) {
-      try {
-        const wbArray = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        const blob = new Blob([wbArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const base64 = await blobToBase64(blob);
-
-        // 1) Falls SAF-Plugin vorhanden, zuerst System-Dialog verwenden
-        const SaveAs = getCapPlugin('SaveAs');
-        if (SaveAs && typeof SaveAs.createDocumentAndWrite === 'function') {
-          try {
-            await SaveAs.createDocumentAndWrite({ filename, mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', base64 });
-            return;
-          } catch(e){
-            if (String(e||'').includes('user_cancelled')) return; // Nutzer hat abgebrochen
-            console.warn('SAF SaveAs fehlgeschlagen, versuche direkten Download/Share:', e);
-          }
-        }
-
-        // 2) Android 10 (API 29): Versuche direkten Download in öffentlichen Ordner
-        try {
-          await saveToDownloadsAndroid(base64, filename, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-          return;
-        } catch(eDown){
-          console.warn('Direkter Download fehlgeschlagen, versuche Share:', eDown?.message||eDown);
-        }
-
-        // 3) Fallback: CACHE + Share-Dialog
-        const Filesystem = getCapPlugin('Filesystem');
-        const Share = getCapPlugin('Share');
-        if (!Filesystem || !Share) throw new Error('Capacitor Plugins nicht verfügbar');
-        await Filesystem.writeFile({ path: filename, data: base64, directory: 'CACHE', recursive: false });
-        const uriRes = await Filesystem.getUri({ path: filename, directory: 'CACHE' });
-        try {
-          // Capacitor 6+: Share unterstützt files + mimeType
-          await Share.share({
-            title: 'Qualis exportieren (Excel)',
-            dialogTitle: 'Datei teilen / speichern',
-            files: [uriRes.uri],
-            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-          });
-        } catch(_e) {
-          // Fallback auf url
-          await Share.share({ title: 'Qualis exportieren (Excel)', url: uriRes.uri, dialogTitle: 'Datei teilen / speichern' });
-        }
-        return;
-
-      } catch (err) {
-        console.warn('Native Excel-Export fehlgeschlagen, Fallback Browser:', err?.message||err);
-        try {
-          const wbArray = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-          const blob = new Blob([wbArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-          triggerDownload(blob, filename);
-        } catch(e) { console.error('Export Fallback fehlgeschlagen:', e); }
-      }
-      return;
-    }
-
-    // Browser: Download via Blob (robust in Preview/iframe)
+    // Speichern/Teilen (nativ) oder Download (Browser)
     try {
-      const wbArray = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      const blob = new Blob([wbArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      triggerDownload(blob, filename);
-    } catch(e) {
-      console.error('Export fehlgeschlagen:', e);
-      alert('Export fehlgeschlagen: '+(e.message||e));
+      await writeWorkbookAsXlsxAndSave(wb, filename);
+    } catch(err){
+      console.error('exportToExcel failed:', err);
+      alert('Excel-Export fehlgeschlagen: ' + (err?.message || err));
     }
   }
 
