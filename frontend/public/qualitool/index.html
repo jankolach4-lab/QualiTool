@@ -3348,6 +3348,25 @@
 })();
 </script>
 
+<script>
+  // Globaler Shim: stellt sicher, dass window.manualDirectSyncNow immer existiert,
+  // auch wenn die echte Implementierung später geladen wird.
+  (function(){
+    if (typeof window.manualDirectSyncNow !== 'function') {
+      window.__mdsn_impl = null;
+      window.manualDirectSyncNow = async function(){
+        for (let i = 0; i < 50; i++) {
+          if (typeof window.__mdsn_impl === 'function') {
+            return await window.__mdsn_impl();
+          }
+          await new Promise(r => setTimeout(r, 100));
+        }
+        throw new Error('manualDirectSyncNow impl missing');
+      };
+    }
+  })();
+</script>
+
 <!-- Sichtbares Sync/Debug Panel -->
 <div id="debugModal" class="modal" style="display:none;">
   <div class="modal-content" style="max-width: 860px; width: 92%; max-height: 80vh; overflow: auto;">
@@ -3476,7 +3495,8 @@
     async function runDirectSyncAndReport(){
       try{
         setPanelStatus('start');
-        const fn = (window && window.manualDirectSyncNow) ? window.manualDirectSyncNow : manualDirectSyncNow;
+        const fn = (window && typeof window.manualDirectSyncNow === 'function') ? window.manualDirectSyncNow : null;
+        if (!fn) { throw new Error('manualDirectSyncNow not available on window'); }
         const ok = await fn();
         setPanelStatus(ok ? 'events_ok' : 'failed');
       }catch(err){ setPanelStatus('error: '+(err&&err.message||err)); }
@@ -3509,15 +3529,36 @@
 
   function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
   async function awaitSupabase(maxMs=10000){
+    // Sofort vorhandenen globalen Client nutzen (z. B. aus login.html), auch wenn supabase-js (CDN) noch nicht geladen ist
+    if (window.supa && !sb) { sb = window.supa; }
+    if (sb) { return sb; }
+
     const start = Date.now();
+    // Falls noch kein globaler Client vorhanden ist, warte auf supabase-js und initialisiere
     while(!(window.supabase && window.supabase.createClient)){
       if (Date.now()-start > maxMs) throw new Error('supabase-js nicht geladen');
       await sleep(100);
+      // während wir warten, könnte login.html bereits window.supa gesetzt haben
+      if (window.supa) { sb = window.supa; return sb; }
     }
-    if (window.supa) { sb = window.supa; return sb; }
     if (!sb) {
-      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }});
-      window.supa = sb;
+      function getCapacitorStorage(){
+        try{
+          const P = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) || null;
+          if (!P) return null;
+          return {
+            getItem: async (key) => { const r = await P.get({ key }); return (r && typeof r.value==='string') ? r.value : null; },
+            setItem: async (key, value) => { await P.set({ key, value: String(value ?? '') }); },
+            removeItem: async (key) => { await P.remove({ key }); }
+          };
+        }catch(e){ return null; }
+      }
+      const capStore = getCapacitorStorage();
+      if (window.supabase && window.supabase.createClient) {
+        sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, storage: capStore || undefined, autoRefreshToken: true, detectSessionInUrl: false }});
+      }
+      if (!sb && window.supa) { sb = window.supa; }
+      if (sb) { window.supa = sb; }
     }
     return sb;
   }
@@ -3605,10 +3646,45 @@
   try { window.enqueueFullContactsSnapshot = enqueueFullContactsSnapshot; } catch(_){ }
 
   // Direkter Sync ohne Queue: Upsert + Events-RPC (2A)
-  try { window.manualDirectSyncNow = manualDirectSyncNow; } catch(_e) {}
+async function manualDirectSyncNow(){
+  const stamp = Date.now();
+  try{
+    localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'start' }));
+    const client = await awaitSupabase();
+    localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'client_ready' }));
+    const { data: { user } } = await client.auth.getUser();
+    localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'got_user', user: (user?{id:user.id,email:user.email}:null) }));
+    if (!user) throw new Error('Keine Session vorhanden');
 
-  async function manualDirectSyncNow(){
-window.manualDirectSyncNow = manualDirectSyncNow;
+    const snapshot = normalizeContacts(readLocalContactsRaw());
+    localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: snapshot.length }));
+
+    // Primär: RPC mit p_user_id
+    try{
+      const { error } = await client.rpc('fn_public_upsert_user_contacts', { p_user_id: user.id, p_contacts: snapshot });
+      if (error) throw error;
+    }catch(e1){
+      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'rpc_upsert_failed', err: String(e1 && e1.message || e1) }));
+      // Fallback: Tabellen-Upsert
+      const { error: e2 } = await client.from('user_contacts').upsert({ user_id: user.id, contacts: snapshot }, { onConflict: 'user_id' });
+      if (e2) throw e2;
+    }
+    localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'upsert_ok' }));
+
+    // Events aus Snapshot erzeugen
+    const { error: e3 } = await client.rpc('fn_log_events_from_contacts_snapshot', { p_user_id: user.id, p_contacts: snapshot });
+    if (e3) throw e3;
+
+    localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'events_ok' }));
+    try { localStorage.removeItem('qt_last_event_err'); } catch(_){}
+    return true;
+  } catch(err){
+    try { localStorage.setItem('qt_last_event_err', JSON.stringify({ t: Date.now(), stage: 'manual_direct_sync', msg: String(err && err.message || err) })); } catch(_){}
+    return false;
+  }
+}
+// Globale Registrierung (überschreibt den Shim nur 1x)
+try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = manualDirectSyncNow; } catch(_){}
     const stamp = Date.now();
     try{
       localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'start' }));
@@ -3621,7 +3697,7 @@ window.manualDirectSyncNow = manualDirectSyncNow;
       localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: snapshot.length }));
       // Upsert über RPC (korrekte Signatur)
       try{
-        const { error } = await client.rpc('fn_public_upsert_user_contacts', { p_contacts: snapshot });
+        const { error } = await client.rpc('fn_public_upsert_user_contacts', { p_user_id: user.id, p_contacts: snapshot });
         if (error) throw error;
       }catch(e1){
         localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'rpc_upsert_failed', err: String(e1&&e1.message||e1) }));
@@ -3683,7 +3759,7 @@ window.manualDirectSyncNow = manualDirectSyncNow;
         } catch (e0) {
           lastErr = e0;
           try {
-            const { error } = await client.rpc('fn_public_upsert_user_contacts', { p_contacts: next.data });
+            const { error } = await client.rpc('fn_public_upsert_user_contacts', { p_user_id: (user && user.id) || null, p_contacts: next.data });
             if (error) throw error;
             ok = true;
           } catch (e1) {
@@ -3797,7 +3873,7 @@ window.manualDirectSyncNow = manualDirectSyncNow;
                 const last = resident && Array.isArray(resident.statusHistory) && resident.statusHistory[resident.statusHistory.length-1];
                 const status = last?.status || resident?.status || '';
                 const occurredAt = last?.date || new Date().toISOString();
-                enqueueStatusEvent({
+                enqueueStatusEvent({ __auto: 'saveResident',
                   plz: (contact.plz||'').toString(),
                   ort: (contact.ort||'').toString(),
                   strasse: (contact.strasse||'').toString(),
@@ -3942,10 +4018,11 @@ window.manualDirectSyncNow = manualDirectSyncNow;
       enqueueContactsSnapshot();
       flushSoon();
       // Danach periodisch versuchen
-      setInterval(flushQueue, 60000); // jede Minute
+      setInterval(flushQueue, 15000); // alle 15s (APK robuster)
       window.addEventListener('online', () => flushQueue());
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) flushQueue(); });
       // Supabase-Client asynchron initialisieren (optional)
-      (async () => { try { await awaitSupabase(); } catch(_){ /* offline ok */ } })();
+      (async () => { try { await awaitSupabase(); flushSoon(); } catch(_){ /* offline ok */ } })();
     }catch(e){ console.warn('Auto-Sync Init (lokal) fehlgeschlagen:', e?.message||e); }
   })();
 })();
