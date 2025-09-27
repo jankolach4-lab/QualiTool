@@ -15,35 +15,7 @@
 <link rel="apple-touch-icon" href="qt-logo.png">
 <link rel="icon" type="image/png" href="qt-logo.png">
 </head>
-// Auto‑Sync Helfer (debounced) – löst manualDirectSyncNow automatisch aus
-let __autoSyncTimer = null;
-let __autoSyncInFlight = false;
 
-function scheduleAutoSync(reason='auto'){
-  try {
-    if (__autoSyncTimer) clearTimeout(__autoSyncTimer);
-    __autoSyncTimer = setTimeout(() => { tryAutoSyncNow(reason); }, 1200);
-  } catch(_) {}
-}
-
-async function tryAutoSyncNow(reason='auto'){
-  if (__autoSyncInFlight) return;
-  try {
-    const client = await awaitSupabase().catch(()=>null);
-    if (!client) return;
-    const online = typeof navigator==='object' ? navigator.onLine : true;
-    if (!online) return;
-    const { data: { user } } = await client.auth.getUser();
-    if (!user) return;
-    __autoSyncInFlight = true;
-    // nutzt dieselbe Logik wie der Button „Synchronisieren“
-    await manualDirectSyncNow();
-  } catch(_) {
-    // still ok – wird beim nächsten Anlass erneut versucht
-  } finally {
-    __autoSyncInFlight = false;
-  }
-}
 <body>
 <script>
   // Früher Redirect zur Login-Seite, falls kein Offline-Flag und kein letzter Nutzer vorhanden.
@@ -4337,6 +4309,122 @@ try {
       }
     });
   }catch(_e){}
+})();
+</script>
+  <script>
+// Auto‑Sync: löst manualDirectSyncNow() automatisch aus (debounced), ohne UI-Button
+(function(){
+  let __autoSyncTimer = null;
+  let __autoSyncInFlight = false;
+
+  function debounceSync(reason){
+    try {
+      if (__autoSyncTimer) clearTimeout(__autoSyncTimer);
+      __autoSyncTimer = setTimeout(() => { void tryAutoSyncNow(reason); }, 800);
+    } catch(_){}
+  }
+
+  async function ensureReady(){
+    try{
+      // Supabase bereit?
+      if (!(window.supabase && window.supabase.createClient) && !window.supa) return false;
+      // Globalen Client verwenden (login.html setzt window.supa)
+      const client = window.supa;
+      if (!client) return false;
+      // Online?
+      const online = typeof navigator==='object' ? navigator.onLine : true;
+      if (!online) return false;
+      // Session?
+      const { data: { user } } = await client.auth.getUser();
+      return !!user;
+    }catch(_){ return false; }
+  }
+
+  async function tryAutoSyncNow(reason){
+    if (__autoSyncInFlight) return;
+    try{
+      const okToSync = await ensureReady();
+      if (!okToSync) return;
+      __autoSyncInFlight = true;
+      if (typeof window.manualDirectSyncNow === 'function') {
+        await window.manualDirectSyncNow();
+      }
+    } catch(_){}
+    finally {
+      __autoSyncInFlight = false;
+    }
+  }
+
+  // 1) Änderungen abfangen: saveContacts / saveResident falls vorhanden "hooken"
+  try{
+    if (typeof window.saveContacts === 'function'){
+      const __origSaveContacts = window.saveContacts;
+      window.saveContacts = function(){
+        const r = __origSaveContacts.apply(this, arguments);
+        try { debounceSync('saveContacts'); } catch(_){}
+        return r;
+      };
+    }
+    if (typeof window.saveResident === 'function'){
+      const __origSaveResident = window.saveResident;
+      window.saveResident = function(){
+        const r = __origSaveResident.apply(this, arguments);
+        try { debounceSync('saveResident'); } catch(_){}
+        return r;
+      };
+    }
+  }catch(_){}
+
+  // 2) UI‑Events: Status‑Select, Notizen, etc.
+  document.addEventListener('change', (e) => {
+    try{
+      const t = e.target;
+      if (!t) return;
+      // Ihre Status‑Selects tragen class="status-select"
+      if (t.classList && t.classList.contains('status-select')) {
+        debounceSync('status_change');
+      }
+    }catch(_){}
+  }, true);
+
+  document.addEventListener('input', (e) => {
+    try{
+      const t = e.target;
+      if (!t) return;
+      // Notes/Telefon/Name lösen einen leicht verzögerten Sync aus
+      if (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT') {
+        debounceSync('input_change');
+      }
+    }catch(_){}
+  }, true);
+
+  // 3) App/Seite wieder im Vordergrund → Sync
+  try {
+    document.addEventListener('visibilitychange', () => {
+      try { if (!document.hidden) debounceSync('visible'); } catch(_){}
+    });
+  } catch(_){}
+
+  // 4) Wieder online → Sync
+  try {
+    window.addEventListener('online', () => { try { debounceSync('online'); } catch(_){ } });
+  } catch(_){}
+
+  // 5) Capacitor App Resume → Sync
+  try {
+    const App = window.Capacitor && window.Capacitor.App;
+    if (App && typeof App.addListener === 'function') {
+      App.addListener('appStateChange', ({ isActive }) => {
+        try { if (isActive) debounceSync('app_resume'); } catch(_){}
+      });
+    }
+  } catch(_){}
+
+  // 6) Failsafe: Intervall-Sync (leicht, damit Batterie geschont wird)
+  try { setInterval(() => debounceSync('interval'), 15000); } catch(_){}
+
+  // 7) Beim Laden einmal vorsichtig anstoßen
+  try { debounceSync('boot'); } catch(_){}
 })();
 </script>
 </body>
