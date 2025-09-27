@@ -4523,5 +4523,116 @@ try {
   try { debounceSync('boot'); } catch(_){}
 })();
 </script>
+<script>
+// Sidebar/Navigation Fallback – greift nur, wenn bestehende navTo/showSection fehlen
+(function(){
+  // Doppelte Initialisierung verhindern
+  if (window.__sidebarFallbackBound) return;
+  window.__sidebarFallbackBound = true;
+
+  function $all(sel){ try { return Array.from(document.querySelectorAll(sel)); } catch(_){ return []; } }
+  function $(sel){ try { return document.querySelector(sel); } catch(_){ return null; } }
+
+  // Fallback showSection: blendet alle Ziel-Sektionen aus, zeigt Ziel an, setzt Active-Status
+  if (typeof window.showSection !== 'function') {
+    window.showSection = function(sectionId){
+      try {
+        if (!sectionId) return;
+
+        // Alle Sektionen, die es wirklich gibt (aus Links ableiten und zusätzlich häufige Section-Container prüfen)
+        const linkTargets = new Set(
+          $all('a[href^="#"]').map(a => (a.getAttribute('href')||'').slice(1)).filter(Boolean)
+        );
+        const knownIds = new Set([
+          ...linkTargets,
+          'contacts','import','add','stats','calendar','recommendations','pdf-corrections','pdfCorrections'
+        ]);
+
+        // Alle tatsächlich vorhandenen Sektion-Elemente sammeln
+        const sectionEls = [];
+        knownIds.forEach(id => { const el = document.getElementById(id); if (el) sectionEls.push(el); });
+
+        // Ausblenden
+        sectionEls.forEach(el => { el.style.display = 'none'; });
+
+        // Einblenden Ziel
+        const target = document.getElementById(sectionId);
+        if (target) target.style.display = '';
+
+        // Active Link setzen
+        const links = $all('nav a[href^="#"], .sidebar a[href^="#"], a.nav-link[href^="#"]');
+        links.forEach(a => a.classList && a.classList.remove('active'));
+        links.forEach(a => {
+          const h = (a.getAttribute('href')||'').slice(1);
+          if (h === sectionId) { a.classList && a.classList.add('active'); }
+        });
+      } catch(_){}
+    };
+  }
+
+  // Fallback navTo: aktualisiert Hash und ruft showSection
+  if (typeof window.navTo !== 'function') {
+    window.navTo = function(sectionId){
+      try {
+        if (!sectionId) return;
+        if (location.hash !== '#'+sectionId) {
+          history.replaceState(null, '', '#'+sectionId);
+        }
+        window.showSection(sectionId);
+      } catch(_){}
+    };
+  }
+
+  // Click-Handler nur einmal binden
+  function bindSidebarClicks(){
+    const links = $all('nav a[href^="#"], .sidebar a[href^="#"], a.nav-link[href^="#"]')
+                  .filter(a => !a.__boundNav);
+    links.forEach(a => {
+      a.__boundNav = true;
+      a.addEventListener('click', function(ev){
+        try {
+          const href = (a.getAttribute('href')||'');
+          if (href.startsWith('#')) {
+            ev.preventDefault();
+            const id = href.slice(1);
+            window.navTo(id);
+          }
+        } catch(_){}
+      }, false);
+    });
+  }
+
+  // Beim Laden initialisieren
+  function initNav(){
+    try{
+      bindSidebarClicks();
+      // Start-Section aus Hash oder Fallback
+      const start = (location.hash||'').replace('#','') || 'contacts';
+      if (document.getElementById(start)) {
+        window.showSection(start);
+      } else {
+        // Falls 'contacts' nicht existiert, versuche ersten Link
+        const firstLink = document.querySelector('nav a[href^="#"], .sidebar a[href^="#"], a.nav-link[href^="#"]');
+        const id = firstLink ? (firstLink.getAttribute('href')||'').slice(1) : null;
+        if (id) window.showSection(id);
+      }
+    } catch(_){}
+  }
+
+  // Auf Hashwechsel reagieren
+  window.addEventListener('hashchange', () => {
+    try {
+      const id = (location.hash||'').replace('#','');
+      if (id) window.navTo(id);
+    } catch(_){}
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initNav);
+  } else {
+    initNav();
+  }
+})();
+</script>
 </body>
 </html>
