@@ -2259,6 +2259,9 @@
       setDisp('.status-filters','none');
       setDisp('.contact-list','none');
       setDisp('.street-filter-container','none');
+      // Auch Inhalte verstecken
+      setDisp('.import-content','none');
+      setDisp('.entry-content','none');
       // Defensive: Nur setzen, wenn Container existiert
       if (document.querySelector('.import-export-buttons')) {
         setDisp('.import-export-buttons','flex');
@@ -2280,22 +2283,30 @@
         case 'import': {
           setDisp('.import-section','block');
           addCls('.import-section','expanded');
+          // Sicherstellen, dass der Import-Inhalt auch sichtbar ist
+          setDisp('.import-content','block');
           break;
         }
         case 'add': {
           setDisp('.entry-section','block');
           addCls('.entry-section','expanded');
+          // Sicherstellen, dass der Inhalt auch sichtbar ist
+          setDisp('.entry-content','block');
           break;
         }
         case 'stats': {
           setDisp('.statistics-section','block');
           const ss = document.getElementById('statusStats'); if (ss) ss.style.display='block';
+          // Sicherstellen, dass Statistik-Inhalte sichtbar sind
+          addCls('.statistics-section','expanded');
           if (typeof updateStatistics==='function') updateStatistics();
           break;
         }
         case 'calendar': {
           setDisp('.calendar-section','block');
           const cal = document.getElementById('calendar'); if (cal) cal.style.display='block';
+          // Sicherstellen, dass Kalender-Sektion erweitert ist
+          addCls('.calendar-section','expanded');
           if (typeof renderCalendar==='function') renderCalendar();
           break;
         }
