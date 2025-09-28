@@ -18,13 +18,13 @@
 
 <body>
 <script>
-  // Früher Redirect zur Login-Seite, falls kein Offline-Flag und kein letzter Nutzer vorhanden.
+  // Verbesserte Offline-Prüfung - nur umleiten wenn definitiv kein Offline-Zugang
   (function(){
     try {
       var offlineAllowed = localStorage.getItem('offline_allowed') === 'true';
       var lastUser = localStorage.getItem('last_user_id');
-      if (!offlineAllowed || !lastUser) {
-        // Falls eine aktive Supabase-Session existiert, leitet login.html ohnehin direkt zurück.
+      // Nur umleiten wenn beide Werte fehlen (nicht nur einer)
+      if (!offlineAllowed && !lastUser) {
         window.location.replace('./login.html');
       }
     } catch (e) { /* ignore */ }
@@ -3220,6 +3220,11 @@ async function importFromExcel(file) {
           const { data: { session } } = await supa.auth.getSession();
           if (!session) { window.location.href = './login.html'; return null; }
           return session.user;
+        }
+        
+        // Fallback: Wenn offline erlaubt und User vorhanden, offline fortfahren
+        if (offlineAllowed && lastUser) {
+          return { id: lastUser };
         }
         
         // Sonst zur Login-Seite leiten
