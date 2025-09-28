@@ -18,13 +18,13 @@
 
 <body>
 <script>
-  // Verbesserte Offline-Prüfung - nur umleiten wenn definitiv kein Offline-Zugang
+  // Früher Redirect zur Login-Seite, falls kein Offline-Flag und kein letzter Nutzer vorhanden.
   (function(){
     try {
       var offlineAllowed = localStorage.getItem('offline_allowed') === 'true';
       var lastUser = localStorage.getItem('last_user_id');
-      // Nur umleiten wenn beide Werte fehlen (nicht nur einer)
-      if (!offlineAllowed && !lastUser) {
+      if (!offlineAllowed || !lastUser) {
+        // Falls eine aktive Supabase-Session existiert, leitet login.html ohnehin direkt zurück.
         window.location.replace('./login.html');
       }
     } catch (e) { /* ignore */ }
@@ -3222,11 +3222,6 @@ async function importFromExcel(file) {
           return session.user;
         }
         
-        // Fallback: Wenn offline erlaubt und User vorhanden, offline fortfahren
-        if (offlineAllowed && lastUser) {
-          return { id: lastUser };
-        }
-        
         // Sonst zur Login-Seite leiten
         window.location.href = './login.html';
         return null;
@@ -3289,6 +3284,11 @@ async function importFromExcel(file) {
           localStorage.setItem('contacts','[]');
         }
       } catch(_e) { localStorage.setItem('contacts','[]'); }
+
+      // Originale Initialisierung: Immer zuerst zur Adressliste (Kontaktliste)
+      showSection('contacts');
+      filterByStatus('all');
+      updateStreetFilter();
 
       // Originale Initialisierung: Immer zuerst zur Adressliste (Kontaktliste)
       showSection('contacts');
