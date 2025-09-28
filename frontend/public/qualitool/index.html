@@ -911,6 +911,11 @@
     font-weight: bold;
   }
 
+  .visit-recommended-now {
+    color: #1a5c1a !important;
+    font-weight: bold;
+  }
+
   .modal {
     display: none;
     position: fixed;
@@ -1899,7 +1904,13 @@
           <div class="unit-info">
             ${contact.residents?.map((resident, index) => {
       const isInactive = resident?.statusHistory?.length > 0 ? Date.now() - resident.statusHistory.sort((a, b) => b.timestamp - a.timestamp)[0].timestamp > 28 * 24 * 60 * 60 * 1000 : !resident?.status;
-      const nameClass = isInactive && getHighestPriorityStatus(resident) !== 'abschluss' ? 'inactive-resident' : '';
+      const isRecommendedNow = isVisitRecommendedNow(resident);
+      let nameClass = '';
+      if (isRecommendedNow) {
+        nameClass = 'visit-recommended-now';
+      } else if (isInactive && getHighestPriorityStatus(resident) !== 'abschluss') {
+        nameClass = 'inactive-resident';
+      }
       return `
               <p>WE${index + 1}: <strong class="${nameClass}">${resident?.name || '-'}${resident?.notes ? '<span style="color: red">*</span>' : ''}</strong>${resident?.mieter ? ' (M)' : ''}${resident?.phone ? ` <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1-2 2a16 16 0 0 1-15 -15a2 2 0 0 1 2 -2"></path></svg>` : ''}</p>
             `;
@@ -2128,6 +2139,28 @@
   function timeToMinutes(timeString) {
     const [hours, minutes] = timeString.split(':').map(Number);
     return hours * 60 + minutes;
+  }
+
+  function isVisitRecommendedNow(resident) {
+    if (!resident.statusHistory || resident.status !== 'nicht-angetroffen') {
+      return false;
+    }
+    
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinutes = currentHour * 60 + now.getMinutes();
+    
+    const lastEntry = resident.statusHistory
+      .filter(entry => entry.status === 'nicht-angetroffen')
+      .sort((a, b) => b.timestamp - a.timestamp)[0];
+    
+    if (!lastEntry) return false;
+    
+    const visitTime = new Date(lastEntry.date);
+    const visitMinutes = visitTime.getHours() * 60 + visitTime.getMinutes();
+    
+    // Empfohlen wenn letzter Besuch nicht zur aktuellen Stunde war
+    return Math.abs(visitMinutes - currentMinutes) > 60; // Nicht in der aktuellen Stunde (+/- 60 Min)
   }
 
   function displayRecommendations(recommendations) {
