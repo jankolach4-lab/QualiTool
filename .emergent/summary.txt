@@ -1,85 +1,91 @@
 <analysis>
-The trajectory details a complex, multi-phase debugging and rebuilding effort for a Capacitor/Supabase application's Admin Dashboard. Initially, the AI engineer struggled with UI rendering issues (Invalid Date, empty KPI tiles) and RPC call failures (404s,  data) due to incorrect function signatures and a misunderstanding of the underlying data sources ( vs. ). A significant hurdle was the confusion regarding the application's deployment environment and which  file represented the actual dashboard. After multiple failed attempts at incremental fixes and a user-initiated rollback, the strategy shifted dramatically. The user explicitly requested a complete rebuild of the dashboard, drawing all data directly from the  JSONB structure and incorporating extensive new functional and design specifications. The AI successfully delivered a comprehensive, new HTML file () designed to fulfill these requirements, including advanced analytics, project projection, and automated holiday detection. A final critical step involved correcting an incorrect Supabase API key in the newly generated code.
+The AI engineer's work involved a challenging transition from a static HTML dashboard to a Next.js application, complicated by persistent issues with Git synchronization and Vercel deployment. Initially, the AI debugged an existing static HTML dashboard, then pivoted to a full Next.js rebuild upon user clarification regarding the desired technology and deployment platform. This migration phase was heavily impacted by the AI's inability to reliably push changes to GitHub from the container, necessitating frequent manual user intervention for file creation and Git operations.
+
+Once a basic Next.js structure was deployed, the core challenge shifted to data integration and display. Row Level Security (RLS) in Supabase was identified as the reason for incomplete data retrieval, which was resolved by creating specific read-only policies. Subsequently, the AI focused on implementing detailed analytics features, clarifying data structures for time-series and status-based analyses, and initiating the development of React components for charts and detailed tables.
 </analysis>
 
 <product_requirements>
-The overall goal is to maintain a Qualifizierungstool (Capacitor Android app for field agents with Supabase backend) and an associated web-based Admin Dashboard for analytics. The dashboard must offer accurate, real-time data on user and project performance, supporting drill-down functionality.
-
-Key requirements for the rebuilt dashboard, as detailed by the user in the latter part of the trajectory, are:
--   **Overall View:** A tabular row displaying total projects, total VPs (Vertriebspartner - sales partners), and total WE (Wohn-Einheiten - residential units).
--   **Project Table:** A table with columns for Project (City), WE count, VP count, direct completions, and a status percentage (completions/total WE). Rows should be clickable to highlight and populate project-specific sections.
--   **Project Tiles/Charts (after selection):**
-    1.  Daily completions for all VPs (bar chart).
-    2.  Daily status changes for all VPs (bar chart).
-    3.  Status breakdown as a pie chart with a legend.
-    4.  Status table showing absolute counts and percentages relative to total project WE.
-    5.  Project duration input (start/end dates) with a projection for future WE completions, considering 5 workdays/week and automatic holiday detection.
--   **VP Table (under project selection):** A table listing VPs within the selected project, showing VP name, their WE count, their completions, completion percentage relative to their own WE, and relative to the total project WE. Rows should be clickable to highlight and populate VP-specific sections.
--   **VP Tiles/Charts (after selection):**
-    1.  Daily direct completions for the VP (bar chart).
-    2.  Daily status changes for the VP (bar chart).
-    3.  Status breakdown as a pie chart with a legend.
-    4.  Status table showing absolute counts and percentages relative to the VP's WE.
-    5.  Hourly activity chart for a selectable day, showing status changes by hour.
-    6.  Summary table: Total status changes, total direct completions, change/completion ratio, WE with status (absolute and percentage), and total WE.
--   **Time Range Selection:** All bar charts should allow selection of 7, 14, 30, 90, and 120 days.
--   **Data Source:** All dashboard data must be derived directly from the  JSONB structure, as  proved unreliable.
--   **Design:** Simple, professional, no loss of information.
+The goal is to maintain a Qualifizierungstool (Android app) and build a robust Admin Dashboard providing real-time analytics. The dashboard must feature:
+- **Overall View:** Total projects, VPs, and residential units (WE).
+- **Project Table:** Tabular data for Project (City), WE, VP count, direct completions, status percentage, and progress bar, with clickable rows for drill-down.
+- **Project Analytics:** Charts for daily completions, daily status changes, status breakdown (pie chart), status table, and a project projection tool with holiday detection.
+- **VP Table:** Lists VPs within a selected project, showing name, WE, completions, and completion percentages, with clickable rows.
+- **VP Analytics:** Charts for daily completions, daily status changes, status breakdown (pie chart), status table, hourly activity, and a summary table.
+- **Time Range:** Selectable periods (7, 14, 30, 90, 120 days) for bar charts.
+- **Data Source:** Primarily  JSONB field in Supabase, supplemented by  for VP names.
+- **Design:** Simple, professional, comprehensive with Admin Dashboard Pro title.
+- **Authentication:** Functional login via  (now ).
 </product_requirements>
 
 <key_technical_concepts>
--   **Frontend:** Vanilla HTML, CSS, JavaScript for a single-page application (SPA).
--   **Backend-as-a-Service (BaaS):** Supabase (PostgreSQL, RPC/PL/pgSQL functions).
--   **Database:** PostgreSQL with  data type for  table (storing nested contact/resident data).
--   **Charting Library:** Chart.js, with .
--   **Date Manipulation:**  for robust date handling.
--   **Deployment:** Vercel (for static HTML/React projects, initially confused with Next.js).
+- **Frontend:** Next.js (React, TypeScript), HTML, CSS (inline styling and ).
+- **Backend-as-a-Service (BaaS):** Supabase (PostgreSQL, Authentication, Row Level Security).
+- **Database:** PostgreSQL with  data type (),  table.
+- **Charting Library:** Chart.js, .
+- **Date Manipulation:** .
+- **Deployment:** Vercel.
 </key_technical_concepts>
 
 <code_architecture>
 
 
--   ****
-    -   **Importance**: The Capacitor Android application's single HTML entry point.
-    -   **Changes Made**: Heavily debugged and reverted to a stable version from  due to AI-introduced regressions. Not the focus of the recent dashboard work.
+-   ****:
+    -   **Importance**: The main dashboard page, serving as the entry point for the core analytics display.
+    -   **Changes Made**: Has undergone significant evolution. Initially contained mock data, then refactored to fetch and process  and  data. Currently being extended to integrate  and  components, processing status history for time-based charts and current status for breakdowns. It contains the primary data fetching and processing logic.
 
--   ****
-    -   **Importance**: The initial Admin Dashboard's HTML file.
-    -   **Changes Made**: Replaced entirely from . Subject to numerous JavaScript edits to fix RPC calls, date formatting, and KPI calculations, which ultimately proved insufficient due to data source issues and repository confusion.
+-   ****:
+    -   **Importance**: Defines the overall HTML structure and includes global CSS and external libraries like Font Awesome.
+    -   **Changes Made**: Updated to include Font Awesome CSS.
 
--   ** (e.g., , )**
-    -   **Importance**: Define Supabase tables and PL/pgSQL RPC functions.
-    -   **Changes Made**: Many functions were rewritten to query  JSONB data instead of  tables.  was created to standardize date formats. However, many RPCs remained problematic or inaccessible, leading to the decision to abandon RPCs for dashboard data.
+-   ****:
+    -   **Importance**: Global CSS styling for the Next.js application.
+    -   **Changes Made**: Contains styling for a professional, responsive dashboard.
 
--   ** and **
-    -   **Importance**: These files were created when the AI mistakenly assumed a React/Next.js setup for the dashboard.
-    -   **Changes Made**:  was created as a React component, and  was modified to include its routes. These changes were discarded once the user clarified the dashboard was a static HTML page.
+-   ****:
+    -   **Importance**: Dedicated login and registration page for user authentication with Supabase.
+    -   **Changes Made**: Created as part of the Next.js migration.
 
--   ****
-    -   **Importance**: This is the most critical new file. It represents the entirely rebuilt Admin Dashboard, incorporating all detailed user requirements, directly consuming data from  JSONB, and intended to be deployed as the main  for the dashboard.
-    -   **Changes Made**: This file was newly created, containing all HTML, CSS, and JavaScript logic to fulfill the comprehensive requirements, including interactive tables, charts, and a project projection module, and updated with the correct Supabase API key.
+-   ****:
+    -   **Importance**: Initializes the Supabase client and defines TypeScript interfaces for data structures.
+    -   **Changes Made**: Updated with interfaces for , , , , and aggregated data types (, ) to support analytics requirements. Fallback values were added for Supabase environment variables.
+
+-   ****:
+    -   **Importance**: Component responsible for rendering project-specific analytical charts and tables.
+    -   **Changes Made**: Created to house charts for daily completions, daily status changes, and status breakdown.
+
+-   ****:
+    -   **Importance**: Displays a table of VPs associated with a selected project.
+    -   **Changes Made**: Created and integrated into the Next.js structure.
+
+-   ** & **:
+    -   **Importance**: Configuration for Next.js and TypeScript.
+    -   **Changes Made**:  was modified to ignore the old  directory to prevent compilation errors from the legacy React app.
+
+-   ****:
+    -   **Importance**: Vercel deployment configuration, including rewrites.
+    -   **Changes Made**: Updated to correct root route redirection to the login page.
 </code_architecture>
 
 <pending_tasks>
--   **Fix WE-Korrekturen Sync**: The issue of WE-Korrekturen (unit corrections) not saving to Supabase was investigated but put on hold early in the process and not revisited.
--   **Implement Excel Export**: This functionality was requested initially and is present in the old  (e.g.,  button) but not explicitly integrated into the new dashboard's requirements or implemented as a full feature.
+-   **Implement Excel Export**: This functionality was requested and existed in the old dashboard.
+-   **Fix WE-Korrekturen Sync**: The issue of WE-Korrekturen (unit corrections) not saving to Supabase.
+-   **Complete Project Analytics**: Implement full charting (daily completions, status changes, status breakdown, status table) based on processed data.
+-   **Implement VP Analytics**: Create charts (daily completions, status changes, status breakdown, hourly activity, summary table) and populate them.
+-   **Implement Project Projection Tool**: Develop start/end date input with holiday detection for completion rate forecasting.
 </pending_tasks>
 
 <current_work>
-Immediately before this summary request, the AI engineer completed the extensive task of rebuilding the Admin Dashboard from scratch. This was necessitated by persistent issues with the previous dashboard, including empty KPI tiles, Invalid Date errors in charts, and fundamentally, RPC functions failing to return data from the  table. The user provided a highly detailed set of requirements for this new dashboard, emphasizing data extraction directly from the  JSONB field.
+Immediately prior to this summary, the AI engineer was deep into implementing the detailed analytics features requested by the user. The primary focus was on extending the data processing logic within  to correctly derive the necessary metrics for project and VP analytics from the  and  Supabase tables, particularly utilizing the  for time-series data and the  field for current breakdowns.
 
-The AI delivered a complete, new HTML file named . This file contains all the necessary HTML structure, CSS styling, and JavaScript logic to:
-1.  Load and process all  data from Supabase.
-2.  Populate a global overview of projects, VPs, and total WE.
-3.  Render interactive project and VP tables.
-4.  Display various project-specific and VP-specific KPIs and charts (daily completions, daily changes, status breakdowns, hourly activity).
-5.  Implement a project projection module that calculates estimated completions based on historical data, project timelines, and automatic detection of German holidays.
-6.  Ensure robust date formatting to prevent Invalid Date errors.
-7.  Include debug functions (, ).
+The AI clarified the data logic with the user:
+1.  **Current Status (for Status-Breakdown):** Use the  field directly for pie charts and tables.
+2.  **StatusHistory (for Time-Based Analytics):** Parse  entries to count daily completions (status abschluss), daily status changes, and hourly VP activity using the Sat Oct  4 16:09:15 UTC 2025 field.
 
-A critical last-minute fix involved correcting the  in the new dashboard's JavaScript, as the AI had inadvertently used an outdated or incorrect key, causing an Invalid API key error upon initial testing. This correction was successfully made and incorporated into the final provided code. The user's most recent action was requesting the complete, copy-ready code, which the AI provided.
+The engineer then implemented the extended data processing and updated the TypeScript interfaces in  to accommodate new aggregated data fields (e.g., , , ).
+
+Following this, the AI began implementing the Chart.js components. Specifically, it created  (to display project-specific charts) and was in the process of creating/integrating  and likely  to display individual VP details and their respective charts. The last action was: Jetzt integriere ich die ProjectAnalytics in die Hauptseite und erstelle die VP-Analytics. indicating the shift from data processing to UI component integration for analytics.
 </current_work>
 
 <optional_next_step>
-The user needs to copy the provided code into their  in the  repository on GitHub and deploy it via Vercel.
+Integrate  into , ensuring all VP-specific charts and tables are correctly displayed and populated with processed data.
 </optional_next_step>
