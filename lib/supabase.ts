@@ -38,6 +38,9 @@ export interface ProjectData {
   completions: number;
   statusCounts: { [status: string]: number };
   dailyStats: { [date: string]: { completions: number; changes: number } };
+  hourlyStats: { [hour: number]: number };
+  totalStatusChanges: number;
+  weWithStatus: number;
 }
 
 export interface VPData {
