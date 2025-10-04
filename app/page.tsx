@@ -101,6 +101,150 @@ export default function Dashboard() {
   }
 
   // Process Data
+  const processRealData = (contacts: UserContact[], directory: { [key: string]: UserDirectory }) => {
+    const projects: { [key: string]: ProjectData } = {}
+    const vps: { [key: string]: VPData } = {}
+    
+    console.log('🔄 Processing real data with enhanced analytics...')
+    
+    contacts.forEach((contactRecord) => {
+      const vpId = contactRecord.user_id
+      const contactsArray = Array.isArray(contactRecord.contacts) ? contactRecord.contacts : []
+      
+      // Get VP name from user directory
+      const userInfo = directory[vpId]
+      const vpName = userInfo?.display_name || userInfo?.email || `VP-${vpId}`
+      
+      contactsArray.forEach(contactItem => {
+        const project = contactItem.ort || 'Unbekannt'
+        const weCount = contactItem.we || 0
+        
+        // Initialize project
+        if (!projects[project]) {
+          projects[project] = {
+            name: project,
+            totalWE: 0,
+            vps: new Set(),
+            completions: 0,
+            statusCounts: {},
+            dailyStats: {},
+            hourlyStats: {},
+            totalStatusChanges: 0,
+            weWithStatus: 0
+          }
+        }
+        
+        // Initialize VP if not exists
+        if (!vps[vpId]) {
+          vps[vpId] = {
+            id: vpId,
+            name: vpName,
+            email: userInfo?.email || '',
+            totalWE: 0,
+            completions: 0,
+            totalChanges: 0,
+            statusCounts: {},
+            dailyStats: {},
+            hourlyStats: {},
+            projects: new Set(),
+            totalStatusChanges: 0,
+            weWithStatus: 0
+          }
+        }
+        
+        // Add associations
+        vps[vpId].projects.add(project)
+        projects[project].vps.add(vpId)
+        
+        // Add WE counts
+        projects[project].totalWE += weCount
+        vps[vpId].totalWE += weCount
+        
+        // Process residents with enhanced analytics
+        const residents = contactItem.residents || {}
+        Object.values(residents).forEach((resident: any) => {
+          
+          // 1. Current Status (for status breakdown)
+          if (resident.status) {
+            // Count current status for project
+            projects[project].statusCounts[resident.status] = 
+              (projects[project].statusCounts[resident.status] || 0) + 1
+            
+            // Count current status for VP
+            vps[vpId].statusCounts[resident.status] = 
+              (vps[vpId].statusCounts[resident.status] || 0) + 1
+            
+            // Count WE with status
+            projects[project].weWithStatus++
+            vps[vpId].weWithStatus++
+            
+            // Count direct completions (current status = "abschluss")
+            if (resident.status === 'abschluss') {
+              projects[project].completions++
+              vps[vpId].completions++
+            }
+          }
+          
+          // 2. StatusHistory (for daily/hourly analytics)
+          if (resident.statusHistory && Array.isArray(resident.statusHistory)) {
+            resident.statusHistory.forEach((historyEntry: any) => {
+              if (historyEntry.date && historyEntry.status) {
+                const date = new Date(historyEntry.date)
+                const dateKey = date.toISOString().split('T')[0] // YYYY-MM-DD
+                const hour = date.getHours()
+                
+                // Initialize daily stats
+                if (!projects[project].dailyStats[dateKey]) {
+                  projects[project].dailyStats[dateKey] = { 
+                    completions: 0, 
+                    statusChanges: 0 
+                  }
+                }
+                if (!vps[vpId].dailyStats[dateKey]) {
+                  vps[vpId].dailyStats[dateKey] = { 
+                    completions: 0, 
+                    statusChanges: 0 
+                  }
+                }
+                
+                // Initialize hourly stats
+                if (!projects[project].hourlyStats[hour]) {
+                  projects[project].hourlyStats[hour] = 0
+                }
+                if (!vps[vpId].hourlyStats[hour]) {
+                  vps[vpId].hourlyStats[hour] = 0
+                }
+                
+                // Count status changes
+                projects[project].dailyStats[dateKey].statusChanges++
+                vps[vpId].dailyStats[dateKey].statusChanges++
+                projects[project].totalStatusChanges++
+                vps[vpId].totalStatusChanges++
+                
+                // Count hourly activity
+                projects[project].hourlyStats[hour]++
+                vps[vpId].hourlyStats[hour]++
+                
+                // Count daily completions (only "abschluss" in statusHistory)
+                if (historyEntry.status === 'abschluss') {
+                  projects[project].dailyStats[dateKey].completions++
+                  vps[vpId].dailyStats[dateKey].completions++
+                }
+              }
+            })
+          }
+        })
+      })
+    })
+    
+    console.log('✅ Enhanced analytics processing complete!')
+    console.log(`   Projects with analytics: ${Object.keys(projects).length}`)
+    console.log(`   VPs with analytics: ${Object.keys(vps).length}`)
+    
+    setProjectsData(projects)
+    setVpsData(vps)
+  }
+
   const processData = () => {
     console.log('🔄 Processing data...')
     const projects: { [key: string]: ProjectData } = {}
@@ -144,7 +288,10 @@ export default function Dashboard() {
             vps: new Set(),
             completions: 0,
             statusCounts: {},
-            dailyStats: {}
+            dailyStats: {},
+            hourlyStats: {},
+            totalStatusChanges: 0,
+            weWithStatus: 0
           }
           console.log(`   🏢 New project: ${project}`)
         }
@@ -160,7 +307,10 @@ export default function Dashboard() {
             totalChanges: 0,
             statusCounts: {},
             dailyStats: {},
-            projects: new Set()
+            hourlyStats: {},
+            projects: new Set(),
+            totalStatusChanges: 0,
+            weWithStatus: 0
           }
           console.log(`   👤 New VP: ${vpName}`)
         }
