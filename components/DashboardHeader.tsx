@@ -12,16 +12,11 @@ export default function DashboardHeader({ onRefresh, onDebug, onLogout }: Dashbo
   return (
     <header className="header">
       <div className="logo">
-        📊 Admin Dashboard Pro
+        <i className="fas fa-chart-line"></i>
+        Admin Dashboard Pro
       </div>
       <div className="controls">
-        <select className="select" id="timeRange" defaultValue="30" style={{
-          padding: '0.5rem 0.75rem',
-          border: '1px solid #d1d5db',
-          borderRadius: '0.5rem',
-          background: 'white',
-          fontSize: '0.875rem'
-        }}>
+        <select className="select" id="timeRange" defaultValue="30">
           <option value="7">7 Tage</option>
           <option value="14">14 Tage</option>
           <option value="30">30 Tage</option>
@@ -29,13 +24,16 @@ export default function DashboardHeader({ onRefresh, onDebug, onLogout }: Dashbo
           <option value="120">120 Tage</option>
         </select>
         <button className="btn btn-primary" onClick={onRefresh}>
-          🔄 Aktualisieren
+          <i className="fas fa-sync-alt"></i>
+          Aktualisieren
         </button>
         <button className="btn btn-secondary" onClick={onDebug}>
-          🐛 Debug
+          <i className="fas fa-bug"></i>
+          Debug
         </button>
         <button className="btn btn-secondary" onClick={onLogout}>
-          🚪 Abmelden
+          <i className="fas fa-sign-out-alt"></i>
+          Abmelden
         </button>
       </div>
     </header>
