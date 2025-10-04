@@ -7,6 +7,8 @@ import { supabase, UserContact, UserDirectory, ProjectData, VPData } from '../li
 import DashboardHeader from '../components/DashboardHeader'
 import OverviewSection from '../components/OverviewSection'
 import ProjectsTable from '../components/ProjectsTable'
+import ProjectAnalytics from '../components/ProjectAnalytics'
+import VPTable from '../components/VPTable'
 import VPTable from '../components/VPTable'
 
 export default function Dashboard() {
