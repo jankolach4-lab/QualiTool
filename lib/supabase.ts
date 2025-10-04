@@ -52,5 +52,8 @@ export interface VPData {
   totalChanges: number;
   statusCounts: { [status: string]: number };
   dailyStats: { [date: string]: { completions: number; changes: number } };
+  hourlyStats: { [hour: number]: number };
   projects: Set<string>;
+  totalStatusChanges: number;
+  weWithStatus: number;
 }
