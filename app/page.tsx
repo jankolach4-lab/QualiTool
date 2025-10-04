@@ -355,14 +355,14 @@ export default function Dashboard() {
             const dateKey = contactRecord.created_at ? contactRecord.created_at.split('T')[0] : null
             if (dateKey) {
               if (!projects[project].dailyStats[dateKey]) {
-                projects[project].dailyStats[dateKey] = { completions: 0, changes: 0 }
+                projects[project].dailyStats[dateKey] = { completions: 0, statusChanges: 0 }
               }
               if (!vps[vpId].dailyStats[dateKey]) {
-                vps[vpId].dailyStats[dateKey] = { completions: 0, changes: 0 }
+                vps[vpId].dailyStats[dateKey] = { completions: 0, statusChanges: 0 }
               }
               
-              projects[project].dailyStats[dateKey].changes++
-              vps[vpId].dailyStats[dateKey].changes++
+              projects[project].dailyStats[dateKey].statusChanges++
+              vps[vpId].dailyStats[dateKey].statusChanges++
               
               if (randomStatus === 'abschluss') {
                 projects[project].dailyStats[dateKey].completions++
