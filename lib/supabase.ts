@@ -37,7 +37,7 @@ export interface ProjectData {
   vps: Set<string>;
   completions: number;
   statusCounts: { [status: string]: number };
-  dailyStats: { [date: string]: { completions: number; changes: number } };
+  dailyStats: { [date: string]: { completions: number; statusChanges: number } };
   hourlyStats: { [hour: number]: number };
   totalStatusChanges: number;
   weWithStatus: number;
@@ -51,7 +51,7 @@ export interface VPData {
   completions: number;
   totalChanges: number;
   statusCounts: { [status: string]: number };
-  dailyStats: { [date: string]: { completions: number; changes: number } };
+  dailyStats: { [date: string]: { completions: number; statusChanges: number } };
   hourlyStats: { [hour: number]: number };
   projects: Set<string>;
   totalStatusChanges: number;
