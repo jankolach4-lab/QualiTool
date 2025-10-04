@@ -310,6 +310,17 @@
       - working: true
         agent: "user"
         comment: "Problem gelöst! Nach mehreren Iterationen mit korrigierten SQL-Spaltennamen und vereinfachter Logik (wie bei anderen funktionierenden User-Funktionen) funktioniert die Zusammenfassung (Mitarbeiter) Tabelle jetzt korrekt und zeigt echte Werte an."
+  - task: "Next.js Dashboard: Project & VP Analytics (Charts + Tabellen)"
+    implemented: true
+    working: false
+    file: "app/app/page.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Projekt-Analytics: Daily Completions, Daily Status Changes, Status-Breakdown + Tabelle implementiert mit globalem Zeitbereich (7/14/30/90/120). VP-Analytics: Daily Completions, Daily Status Changes, Status-Breakdown, Hourly Activity und Summary-Tabelle implementiert. Zeitfilter wird global über Header angewandt. Datenverarbeitung nutzt resident.status (Aktuell) und resident.statusHistory (Zeitachsen)."
   - task: "Admin Dashboard Pro - Vollständige Erweiterung"
     implemented: true
     working: false
