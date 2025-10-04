@@ -10,6 +10,7 @@ import ProjectsTable from '../components/ProjectsTable'
 import ProjectAnalytics from '../components/ProjectAnalytics'
 import VPTable from '../components/VPTable'
 import VPAnalytics from '../components/VPAnalytics'
+import ProjectProjection from '../components/ProjectProjection'
 
 export default function Dashboard() {
   const router = useRouter()
@@ -147,8 +148,7 @@ export default function Dashboard() {
         vps[vpId].totalWE += weCount
 
         const residents = (contactItem as any).residents || {}
-        Object.values(residents as { [key: string]: Resident }).forEach((resident: Resident) => {
-          // 1) Current status for breakdown
+        Object.values(residents as any).forEach((resident: any) => {
           if (resident.status) {
             projects[project].statusCounts[resident.status] = (projects[project].statusCounts[resident.status] || 0) + 1
             vps[vpId].statusCounts[resident.status] = (vps[vpId].statusCounts[resident.status] || 0) + 1
@@ -159,8 +159,6 @@ export default function Dashboard() {
               vps[vpId].completions++
             }
           }
-
-          // 2) StatusHistory for time-based analytics
           if (resident.statusHistory && Array.isArray(resident.statusHistory)) {
             ;(resident.statusHistory as StatusHistoryEntry[]).forEach((historyEntry) => {
               if (historyEntry.date && historyEntry.status) {
@@ -288,6 +286,7 @@ export default function Dashboard() {
               vpsData={vpsData}
               timeRangeDays={timeRangeDays}
             />
+            <ProjectProjection project={projectsData[selectedProject]} />
             <VPTable 
               project={projectsData[selectedProject]}
               vps={vpsData}
