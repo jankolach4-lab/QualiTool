@@ -7,23 +7,24 @@ import { ProjectData, VPData } from '../lib/supabase'
 interface ProjectAnalyticsProps {
   project: ProjectData;
   vpsData: { [key: string]: VPData };
+  timeRangeDays: number;
 }
 
-export default function ProjectAnalytics({ project, vpsData }: ProjectAnalyticsProps) {
+export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: ProjectAnalyticsProps) {
   const dailyCompletionsRef = useRef<HTMLCanvasElement>(null)
   const dailyChangesRef = useRef<HTMLCanvasElement>(null)
   const statusBreakdownRef = useRef<HTMLCanvasElement>(null)
   const chartsRef = useRef<any[]>([])
 
   useEffect(() => {
-    // Cleanup existing charts
     chartsRef.current.forEach(chart => chart?.destroy())
     chartsRef.current = []
 
-    if (typeof window !== 'undefined' && window.Chart) {
+    if (typeof window !== 'undefined' && (window as any).Chart) {
       createCharts()
     }
-  }, [project])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project, timeRangeDays])
 
   const createCharts = () => {
     const Chart = (window as any).Chart
@@ -48,15 +49,13 @@ export default function ProjectAnalytics({ project, vpsData }: ProjectAnalyticsP
           plugins: {
             title: {
               display: true,
-              text: 'Tägliche Abschlüsse - Alle VPs'
+              text: `Tägliche Abschlüsse (letzte ${timeRangeDays} Tage) - Alle VPs`
             }
           },
           scales: {
             y: {
               beginAtZero: true,
-              ticks: {
-                stepSize: 1
-              }
+              ticks: { stepSize: 1 }
             }
           }
         }
@@ -84,15 +83,13 @@ export default function ProjectAnalytics({ project, vpsData }: ProjectAnalyticsP
           plugins: {
             title: {
               display: true,
-              text: 'Tägliche Statusänderungen - Alle VPs'
+              text: `Tägliche Statusänderungen (letzte ${timeRangeDays} Tage) - Alle VPs`
             }
           },
           scales: {
             y: {
               beginAtZero: true,
-              ticks: {
-                stepSize: 1
-              }
+              ticks: { stepSize: 1 }
             }
           }
         }
@@ -128,9 +125,7 @@ export default function ProjectAnalytics({ project, vpsData }: ProjectAnalyticsP
               display: true,
               text: 'Status-Breakdown - Aktueller Stand'
             },
-            legend: {
-              position: 'right'
-            }
+            legend: { position: 'right' }
           }
         }
       })
@@ -138,10 +133,17 @@ export default function ProjectAnalytics({ project, vpsData }: ProjectAnalyticsP
     }
   }
 
+  const isWithinRange = (dateStr: string) => {
+    const date = new Date(dateStr)
+    const cutoff = new Date()
+    cutoff.setHours(0, 0, 0, 0)
+    cutoff.setDate(cutoff.getDate() - (timeRangeDays - 1))
+    return date >= cutoff
+  }
+
   const prepareDailyCompletionsData = () => {
     const dailyStats = project.dailyStats || {}
-    const sortedDates = Object.keys(dailyStats).sort()
-    
+    const sortedDates = Object.keys(dailyStats).sort().filter(isWithinRange)
     return {
       labels: sortedDates.map(date => {
         const d = new Date(date)
@@ -153,8 +155,7 @@ export default function ProjectAnalytics({ project, vpsData }: ProjectAnalyticsP
 
   const prepareDailyStatusChangesData = () => {
     const dailyStats = project.dailyStats || {}
-    const sortedDates = Object.keys(dailyStats).sort()
-    
+    const sortedDates = Object.keys(dailyStats).sort().filter(isWithinRange)
     return {
       labels: sortedDates.map(date => {
         const d = new Date(date)
@@ -168,11 +169,9 @@ export default function ProjectAnalytics({ project, vpsData }: ProjectAnalyticsP
     const statusCounts = project.statusCounts || {}
     const labels = Object.keys(statusCounts)
     const values = Object.values(statusCounts)
-    
     return { labels, values }
   }
 
-  // Calculate status statistics
   const totalWE = project.totalWE || 0
   const weWithStatus = project.weWithStatus || 0
   const weWithoutStatus = totalWE - weWithStatus
@@ -184,16 +183,13 @@ export default function ProjectAnalytics({ project, vpsData }: ProjectAnalyticsP
         <i className="fas fa-chart-bar"></i>
         Projekt Analytics: {project.name}
       </h2>
-      
-      {/* Charts Grid */}
+
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
         gap: '2rem',
         marginBottom: '2rem'
       }}>
-        
-        {/* Daily Completions */}
         <div style={{
           background: 'white',
           padding: '1.5rem',
@@ -203,8 +199,6 @@ export default function ProjectAnalytics({ project, vpsData }: ProjectAnalyticsP
         }}>
           <canvas ref={dailyCompletionsRef} width="400" height="200"></canvas>
         </div>
-        
-        {/* Daily Status Changes */}
         <div style={{
           background: 'white',
           padding: '1.5rem',
@@ -214,8 +208,6 @@ export default function ProjectAnalytics({ project, vpsData }: ProjectAnalyticsP
         }}>
           <canvas ref={dailyChangesRef} width="400" height="200"></canvas>
         </div>
-        
-        {/* Status Breakdown */}
         <div style={{
           background: 'white',
           padding: '1.5rem',
@@ -226,8 +218,7 @@ export default function ProjectAnalytics({ project, vpsData }: ProjectAnalyticsP
           <canvas ref={statusBreakdownRef} width="400" height="200"></canvas>
         </div>
       </div>
-      
-      {/* Status Table */}
+
       <div style={{
         background: 'white',
         padding: '1.5rem',
@@ -238,7 +229,6 @@ export default function ProjectAnalytics({ project, vpsData }: ProjectAnalyticsP
         <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>
           📋 Status-Tabelle
         </h3>
-        
         <div className="table-container">
           <table>
             <thead>
@@ -256,7 +246,7 @@ export default function ProjectAnalytics({ project, vpsData }: ProjectAnalyticsP
                     <span className="badge badge-primary">{count}</span>
                   </td>
                   <td>
-                    <strong>{totalWE > 0 ? Math.round((count / totalWE) * 100) : 0}%</strong>
+                    <strong>{totalWE > 0 ? Math.round(((count as number) / totalWE) * 100) : 0}%</strong>
                   </td>
                 </tr>
               ))}

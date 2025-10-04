@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import * as React from 'react'
 
@@ -6,9 +6,11 @@ interface DashboardHeaderProps {
   onRefresh: () => void;
   onDebug: () => void;
   onLogout: () => void;
+  timeRangeDays: number;
+  onTimeRangeChange: (days: number) => void;
 }
 
-export default function DashboardHeader({ onRefresh, onDebug, onLogout }: DashboardHeaderProps) {
+export default function DashboardHeader({ onRefresh, onDebug, onLogout, timeRangeDays, onTimeRangeChange }: DashboardHeaderProps) {
   return (
     <header className="header">
       <div className="logo">
@@ -16,12 +18,17 @@ export default function DashboardHeader({ onRefresh, onDebug, onLogout }: Dashbo
         Admin Dashboard Pro
       </div>
       <div className="controls">
-        <select className="select" id="timeRange" defaultValue="30">
-          <option value="7">7 Tage</option>
-          <option value="14">14 Tage</option>
-          <option value="30">30 Tage</option>
-          <option value="90">90 Tage</option>
-          <option value="120">120 Tage</option>
+        <select
+          className="select"
+          aria-label="Zeitraum"
+          value={timeRangeDays}
+          onChange={(e) => onTimeRangeChange(Number(e.target.value))}
+        >
+          <option value={7}>7 Tage</option>
+          <option value={14}>14 Tage</option>
+          <option value={30}>30 Tage</option>
+          <option value={90}>90 Tage</option>
+          <option value={120}>120 Tage</option>
         </select>
         <button className="btn btn-primary" onClick={onRefresh}>
           <i className="fas fa-sync-alt"></i>

@@ -12,6 +12,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 })
 
 // Types
+export interface StatusHistoryEntry {
+  date: string; // ISO string
+  status: string;
+}
+
+export interface Resident {
+  status?: string;
+  statusHistory?: StatusHistoryEntry[];
+  [key: string]: any;
+}
+
 export interface UserContact {
   user_id: string;
   contacts: ContactItem[];
@@ -22,13 +33,20 @@ export interface UserContact {
 export interface ContactItem {
   ort: string;
   we: number;
-  residents?: { [key: string]: { status?: string } };
+  residents?: { [key: string]: Resident };
+  [key: string]: any;
 }
 
 export interface UserDirectory {
   user_id: string;
   email: string;
   display_name: string;
+}
+
+export interface TimelineEvent {
+  dateKey: string; // YYYY-MM-DD
+  hour: number; // 0-23
+  status: string;
 }
 
 export interface ProjectData {
@@ -41,6 +59,7 @@ export interface ProjectData {
   hourlyStats: { [hour: number]: number };
   totalStatusChanges: number;
   weWithStatus: number;
+  events?: TimelineEvent[]; // für filterbare Stundenaktivität
 }
 
 export interface VPData {
@@ -56,4 +75,5 @@ export interface VPData {
   projects: Set<string>;
   totalStatusChanges: number;
   weWithStatus: number;
+  events?: TimelineEvent[]; // für filterbare Stundenaktivität
 }
