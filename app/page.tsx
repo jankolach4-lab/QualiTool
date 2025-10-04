@@ -341,7 +341,7 @@ export default function Dashboard() {
           debugInfo += `   Contacts type: ${Array.isArray(record.contacts) ? 'array' : typeof record.contacts}\n`
           debugInfo += `   Contacts length: ${Array.isArray(record.contacts) ? record.contacts.length : 'N/A'}\n`
           if (Array.isArray(record.contacts) && record.contacts.length > 0) {
-            const cities = record.contacts.map(c => c.ort).filter(Boolean)
+            const cities = record.contacts.map((c: any) => c.ort).filter(Boolean)
             debugInfo += `   Cities: ${cities.join(', ')}\n`
           }
           debugInfo += '\n'
