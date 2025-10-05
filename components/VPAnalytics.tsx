@@ -68,7 +68,8 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
         },
         options: {
           responsive: true,
-          plugins: { title: { display: true, text: `Tägliche Abschlüsse (letzte ${timeRangeDays} Tage) - ${vp.name}` } },
+          maintainAspectRatio: false,
+          plugins: { title: { display: true, text: `Tägliche Abschlüsse (letzte ${timeRangeDays} Tage) - ${vp.name}` }, legend: { display: false } },
           scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
       })
@@ -91,14 +92,15 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
         },
         options: {
           responsive: true,
-          plugins: { title: { display: true, text: `Tägliche Statusänderungen (letzte ${timeRangeDays} Tage) - ${vp.name}` } },
+          maintainAspectRatio: false,
+          plugins: { title: { display: true, text: `Tägliche Statusänderungen (letzte ${timeRangeDays} Tage) - ${vp.name}` }, legend: { display: false } },
           scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
       })
       chartsRef.current.push(chart)
     }
 
-    // Reihe 2: restliche Kacheln (Status-Pie + Stundenaktivität)
+    // Reihe 2: drei Kacheln nebeneinander (Status-Pie + Stunden + Summary)
     if (statusBreakdownRef.current) {
       const statusData = prepareStatusBreakdownData()
       const chart = new Chart(statusBreakdownRef.current, {
@@ -121,7 +123,8 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
         },
         options: {
           responsive: true,
-          plugins: { title: { display: true, text: `Status-Breakdown - ${vp.name}` }, legend: { position: 'right' } }
+          maintainAspectRatio: false,
+          plugins: { title: { display: true, text: 'Status-Breakdown' }, legend: { position: 'bottom', labels: { boxWidth: 10 } } }
         }
       })
       chartsRef.current.push(chart)
@@ -144,7 +147,8 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
         },
         options: {
           responsive: true,
-          plugins: { title: { display: true, text: `Stündliche Aktivität – ${titleDay}` } },
+          maintainAspectRatio: false,
+          plugins: { title: { display: true, text: `Stündliche Aktivität – ${titleDay}` }, legend: { display: false } },
           scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
       })
@@ -231,62 +235,61 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
         gap: '1rem',
         marginBottom: '1rem'
       }}>
-        <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <canvas ref={dailyCompletionsRef} width="360" height="160"></canvas>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 240 }}>
+          <canvas ref={dailyCompletionsRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <canvas ref={dailyChangesRef} width="360" height="160"></canvas>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 240 }}>
+          <canvas ref={dailyChangesRef} style={{ width: '100%', height: '100%' }} />
         </div>
       </div>
 
-      {/* Reihe 2: übrige Kacheln (Status-Pie + Stunden) */}
+      {/* Reihe 2: Status-Pie + Stunden + Summary nebeneinander */}
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
         gap: '1rem',
         marginBottom: '1rem'
       }}>
-        <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <canvas ref={statusBreakdownRef} width="360" height="160"></canvas>
+        <div style={{ background: 'white', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260 }}>
+          <canvas ref={statusBreakdownRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <canvas ref={hourlyActivityRef} width="360" height="160"></canvas>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260 }}>
+          <canvas ref={hourlyActivityRef} style={{ width: '100%', height: '100%' }} />
         </div>
-      </div>
-
-      <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-        <h3 style={{ marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>📋 Zusammenfassung</h3>
-        <div className="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Kennzahl</th>
-                <th>Wert</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>WE gesamt</td>
-                <td>{totalWE}</td>
-              </tr>
-              <tr>
-                <td>WE mit Status</td>
-                <td>{weWithStatus} ({statusPercentage}%)</td>
-              </tr>
-              <tr>
-                <td>WE ohne Status</td>
-                <td>{weWithoutStatus}</td>
-              </tr>
-              <tr>
-                <td>Abschlüsse (aktuell)</td>
-                <td><strong>{vp.completions}</strong></td>
-              </tr>
-              <tr>
-                <td>Statusänderungen (gesamt)</td>
-                <td><strong>{vp.totalStatusChanges}</strong></td>
-              </tr>
-            </tbody>
-          </table>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)' }}>
+          <h3 style={{ marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>📋 Zusammenfassung</h3>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Kennzahl</th>
+                  <th>Wert</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>WE gesamt</td>
+                  <td>{totalWE}</td>
+                </tr>
+                <tr>
+                  <td>WE mit Status</td>
+                  <td>{weWithStatus} ({statusPercentage}%)</td>
+                </tr>
+                <tr>
+                  <td>WE ohne Status</td>
+                  <td>{weWithoutStatus}</td>
+                </tr>
+                <tr>
+                  <td>Abschlüsse (aktuell)</td>
+                  <td><strong>{vp.completions}</strong></td>
+                </tr>
+                <tr>
+                  <td>Statusänderungen (gesamt)</td>
+                  <td><strong>{vp.totalStatusChanges}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

@@ -45,11 +45,13 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           plugins: {
             title: {
               display: true,
               text: `Tägliche Abschlüsse (letzte ${timeRangeDays} Tage) - Alle VPs`
-            }
+            },
+            legend: { display: false }
           },
           scales: {
             y: {
@@ -78,11 +80,13 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           plugins: {
             title: {
               display: true,
               text: `Tägliche Statusänderungen (letzte ${timeRangeDays} Tage) - Alle VPs`
-            }
+            },
+            legend: { display: false }
           },
           scales: {
             y: {
@@ -117,12 +121,10 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           plugins: {
-            title: {
-              display: true,
-              text: 'Status-Breakdown - Aktueller Stand'
-            },
-            legend: { position: 'right' }
+            title: { display: true, text: 'Status-Breakdown' },
+            legend: { position: 'bottom', labels: { boxWidth: 10 } }
           }
         }
       })
@@ -188,73 +190,69 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
         gap: '1rem',
         marginBottom: '1rem'
       }}>
-        <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <canvas ref={dailyCompletionsRef} width="360" height="160"></canvas>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 240 }}>
+          <canvas ref={dailyCompletionsRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <canvas ref={dailyChangesRef} width="360" height="160"></canvas>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 240 }}>
+          <canvas ref={dailyChangesRef} style={{ width: '100%', height: '100%' }} />
         </div>
       </div>
 
-      {/* Reihe 2: übrige Kacheln (hier: Status Pie) */}
+      {/* Reihe 2: Status Pie + Status-Tabelle nebeneinander */}
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
         gap: '1rem',
         marginBottom: '1rem'
       }}>
-        <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <canvas ref={statusBreakdownRef} width="360" height="160"></canvas>
+        <div style={{ background: 'white', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260 }}>
+          <canvas ref={statusBreakdownRef} style={{ width: '100%', height: '100%' }} />
         </div>
-      </div>
-      
-      {/* Status-Tabelle */}
-      <div style={{
-        background: 'white',
-        padding: '1rem',
-        borderRadius: '0.5rem',
-        border: '1px solid var(--gray-200)',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-      }}>
-        <h3 style={{ marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>
-          📋 Status-Tabelle
-        </h3>
-        
-        <div className="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Status</th>
-                <th>Anzahl (absolut)</th>
-                <th>Anteil an WE (%)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(project.statusCounts || {}).map(([status, count]) => (
-                <tr key={status}>
-                  <td style={{ fontWeight: 600 }}>{status}</td>
-                  <td>{count}</td>
+        <div style={{
+          background: 'white',
+          padding: '0.75rem',
+          borderRadius: '0.5rem',
+          border: '1px solid var(--gray-200)'
+        }}>
+          <h3 style={{ marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>
+            📋 Status-Tabelle
+          </h3>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Anzahl (absolut)</th>
+                  <th>Anteil an WE (%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(project.statusCounts || {}).map(([status, count]) => (
+                  <tr key={status}>
+                    <td style={{ fontWeight: 600 }}>{status}</td>
+                    <td>{count}</td>
+                    <td>
+                      <strong>{totalWE > 0 ? Math.round(((count as number) / totalWE) * 100) : 0}%</strong>
+                    </td>
+                  </tr>
+                ))}
+                <tr style={{ borderTop: '2px solid var(--gray-200)', fontWeight: 600 }}>
+                  <td>WE mit Status</td>
+                  <td>{weWithStatus}</td>
                   <td>
-                    <strong>{totalWE > 0 ? Math.round(((count as number) / totalWE) * 100) : 0}%</strong>
+                    <strong>{statusPercentage}%</strong>
                   </td>
                 </tr>
-              ))}
-              <tr style={{ borderTop: '2px solid var(--gray-200)', fontWeight: 600 }}>
-                <td>WE mit Status</td>
-                <td>{weWithStatus}</td>
-                <td>
-                  <strong>{statusPercentage}%</strong>
-                </td>
-              </tr>
-              <tr style={{ fontWeight: 600 }}>
-                <td>WE ohne Status</td>
-                <td>{weWithoutStatus}</td>
-                <td>
-                  <strong>{100 - statusPercentage}%</strong>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                <tr style={{ fontWeight: 600 }}>
+                  <td>WE ohne Status</td>
+                  <td>{weWithoutStatus}</td>
+                  <td>
+                    <strong>{100 - statusPercentage}%</strong>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
