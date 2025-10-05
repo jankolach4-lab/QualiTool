@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { VPData } from '../lib/supabase'
 
 interface VPAnalyticsProps {
@@ -16,6 +16,29 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
   const hourlyActivityRef = useRef<HTMLCanvasElement>(null)
   const chartsRef = useRef<any[]>([])
 
+  const [selectedDay, setSelectedDay] = useState<string>('')
+
+  const availableDates = useMemo(() => {
+    const dates = new Set<string>()
+    if (vp.events && Array.isArray(vp.events)) {
+      vp.events.forEach(ev => dates.add(ev.dateKey))
+    } else if (vp.dailyStats) {
+      Object.keys(vp.dailyStats).forEach(d => dates.add(d))
+    }
+    return Array.from(dates).sort()
+  }, [vp])
+
+  useEffect(() => {
+    // Default: neuestes Datum wählen, falls nichts gesetzt
+    if (!selectedDay) {
+      const latest = availableDates[availableDates.length - 1]
+      if (latest) setSelectedDay(latest)
+    } else if (!availableDates.includes(selectedDay)) {
+      const latest = availableDates[availableDates.length - 1]
+      setSelectedDay(latest || '')
+    }
+  }, [availableDates, selectedDay])
+
   useEffect(() => {
     chartsRef.current.forEach(chart => chart?.destroy())
     chartsRef.current = []
@@ -24,7 +47,7 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
       createCharts()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vp, timeRangeDays])
+  }, [vp, timeRangeDays, selectedDay])
 
   const createCharts = () => {
     const Chart = (window as any).Chart
@@ -110,9 +133,10 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
       chartsRef.current.push(chart)
     }
 
-    // 4. Hourly Activity
+    // 4. Hourly Activity (nach ausgewähltem Tag)
     if (hourlyActivityRef.current) {
       const hourlyData = prepareHourlyActivityData()
+      const titleDay = selectedDay ? selectedDay : 'Tag wählen'
       const chart = new Chart(hourlyActivityRef.current, {
         type: 'bar',
         data: {
@@ -127,7 +151,7 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
         },
         options: {
           responsive: true,
-          plugins: { title: { display: true, text: `Stündliche Aktivität (letzte ${timeRangeDays} Tage) - ${vp.name}` } },
+          plugins: { title: { display: true, text: `Stündliche Aktivität – ${titleDay}` } },
           scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
       })
@@ -176,15 +200,16 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
 
   const prepareHourlyActivityData = () => {
     const counts = new Array(24).fill(0)
-    if (vp.events && Array.isArray(vp.events)) {
+    if (vp.events && Array.isArray(vp.events) && vp.events.length > 0) {
+      const day = selectedDay || (vp.events[vp.events.length - 1]?.dateKey)
       vp.events.forEach(ev => {
-        if (isWithinRange(ev.dateKey)) {
+        if (ev.dateKey === day) {
           const h = Math.max(0, Math.min(23, ev.hour || 0))
           counts[h] += 1
         }
       })
     } else if (vp.hourlyStats) {
-      // Fallback: ungefiltert
+      // Fallback (ungefiltert)
       for (let h = 0; h < 24; h++) counts[h] = vp.hourlyStats[h] || 0
     }
     return counts
@@ -202,28 +227,33 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
         VP Analytics: {vp.name}
       </h2>
 
+      <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <label style={{ fontSize: 12, color: 'var(--gray-500)' }}>Tag für stündliche Aktivität:</label>
+        <input className="input" type="date" value={selectedDay} onChange={(e) => setSelectedDay(e.target.value)} />
+      </div>
+
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
-        gap: '2rem',
-        marginBottom: '2rem'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', 
+        gap: '1.25rem',
+        marginBottom: '1rem'
       }}>
-        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <canvas ref={dailyCompletionsRef} width="400" height="200"></canvas>
+        <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+          <canvas ref={dailyCompletionsRef} width="360" height="160"></canvas>
         </div>
-        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <canvas ref={dailyChangesRef} width="400" height="200"></canvas>
+        <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+          <canvas ref={dailyChangesRef} width="360" height="160"></canvas>
         </div>
-        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <canvas ref={statusBreakdownRef} width="400" height="200"></canvas>
+        <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+          <canvas ref={statusBreakdownRef} width="360" height="160"></canvas>
         </div>
-        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <canvas ref={hourlyActivityRef} width="400" height="200"></canvas>
+        <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+          <canvas ref={hourlyActivityRef} width="360" height="160"></canvas>
         </div>
       </div>
 
-      <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>📋 Zusammenfassung</h3>
+      <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+        <h3 style={{ marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>📋 Zusammenfassung</h3>
         <div className="table-container">
           <table>
             <thead>

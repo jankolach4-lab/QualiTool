@@ -13,7 +13,6 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
 
-  // load/save per project (localStorage), keyed by project.name
   React.useEffect(() => {
     const key = `proj_dates_${project.name}`
     const raw = typeof window !== 'undefined' ? localStorage.getItem(key) : null
@@ -40,7 +39,7 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
     persistDates(startDate, v)
   }
 
-  const { forecast, pct, workdaysElapsed, workdaysTotal, dailyRate } = useMemo(() => {
+  const { forecastInt, pct, workdaysElapsed, workdaysTotal, dailyRate } = useMemo(() => {
     const hd = new Holidays('DE') // bundesweite Feiertage
 
     const parse = (s?: string) => (s ? new Date(s + 'T00:00:00') : undefined)
@@ -50,10 +49,10 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
     today.setHours(0, 0, 0, 0)
 
     const isWorkday = (d: Date) => {
-      const day = d.getDay() // 0=So..6=Sa
+      const day = d.getDay()
       if (day === 0 || day === 6) return false
       const iso = d.toISOString().slice(0, 10)
-      return !hd.isHoliday(new Date(iso)) // true wenn kein Feiertag
+      return !hd.isHoliday(new Date(iso))
     }
 
     const countWorkdays = (from: Date, to: Date) => {
@@ -62,17 +61,17 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
       while (d <= to) {
         if (isWorkday(d)) c++
         d.setDate(d.getDate() + 1)
+        d.setHours(0, 0, 0, 0)
       }
       return c
     }
 
-    // Akkumulierte Abschlüsse bisher (aktueller Stand) aus project.completions
     const completionsSoFar = project.completions || 0
 
     let workdaysElapsed = 0
     let workdaysTotal = 0
     let dailyRate = 0
-    let forecast = 0
+    let forecastInt = 0
     let pct = 0
 
     if (sDate && eDate && sDate <= eDate) {
@@ -80,22 +79,17 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
       workdaysElapsed = countWorkdays(sDate, endForElapsed)
       workdaysTotal = countWorkdays(sDate, eDate)
 
-      if (workdaysElapsed > 0) {
-        dailyRate = completionsSoFar / workdaysElapsed
-      } else {
-        dailyRate = 0
-      }
+      dailyRate = workdaysElapsed > 0 ? (completionsSoFar / workdaysElapsed) : 0
 
       const remainingDays = Math.max(0, workdaysTotal - workdaysElapsed)
       const projected = completionsSoFar + dailyRate * remainingDays
-      // Deckelung und Rundung auf 2 Nachkommastellen
       const capped = Math.min(projected, project.totalWE)
-      forecast = Math.round(capped * 100) / 100
+      forecastInt = Math.round(capped) // glatte Zahl
 
-      pct = project.totalWE > 0 ? Math.round((forecast / project.totalWE) * 10000) / 100 : 0
+      pct = project.totalWE > 0 ? Math.round((forecastInt / project.totalWE) * 10000) / 100 : 0
     }
 
-    return { forecast, pct, workdaysElapsed, workdaysTotal, dailyRate }
+    return { forecastInt, pct, workdaysElapsed, workdaysTotal, dailyRate }
   }, [startDate, endDate, project])
 
   return (
@@ -105,7 +99,7 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
         Projekt-Projektion: {project.name}
       </h2>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
         <div>
           <label style={{ fontSize: 12, color: 'var(--gray-500)' }}>Beginn</label>
           <input className="input" type="date" value={startDate} onChange={(e) => handleStartChange(e.target.value)} />
@@ -141,7 +135,7 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
             </tr>
             <tr>
               <td>Prognose Abschlüsse bis Ende</td>
-              <td><strong>{forecast.toFixed(2)}</strong> von {project.totalWE.toLocaleString()}</td>
+              <td><strong>{forecastInt}</strong> von {project.totalWE.toLocaleString()}</td>
             </tr>
             <tr>
               <td>Prognose in % der WE</td>
@@ -151,7 +145,7 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
         </table>
       </div>
 
-      <p style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: '0.75rem' }}>
+      <p style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: '0.5rem' }}>
         Grundlage: 5‑Tage‑Woche (Mo–Fr), bundesweite Feiertage. Prognose basiert auf Durchschnitt seit Projektbeginn.
       </p>
     </div>

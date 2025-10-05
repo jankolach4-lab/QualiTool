@@ -29,7 +29,6 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
   const createCharts = () => {
     const Chart = (window as any).Chart
 
-    // 1. Daily Completions Chart
     if (dailyCompletionsRef.current) {
       const dailyData = prepareDailyCompletionsData()
       const completionsChart = new Chart(dailyCompletionsRef.current, {
@@ -63,7 +62,6 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
       chartsRef.current.push(completionsChart)
     }
 
-    // 2. Daily Status Changes Chart
     if (dailyChangesRef.current) {
       const dailyData = prepareDailyStatusChangesData()
       const changesChart = new Chart(dailyChangesRef.current, {
@@ -97,7 +95,6 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
       chartsRef.current.push(changesChart)
     }
 
-    // 3. Status Breakdown Pie Chart
     if (statusBreakdownRef.current) {
       const statusData = prepareStatusBreakdownData()
       const statusChart = new Chart(statusBreakdownRef.current, {
@@ -107,13 +104,13 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
           datasets: [{
             data: statusData.values,
             backgroundColor: [
-              'rgba(239, 68, 68, 0.8)',   // rot
-              'rgba(245, 158, 11, 0.8)',  // gelb
-              'rgba(59, 130, 246, 0.8)',  // blau
-              'rgba(16, 185, 129, 0.8)',  // grün
-              'rgba(139, 92, 246, 0.8)',  // lila
-              'rgba(236, 72, 153, 0.8)',  // pink
-              'rgba(156, 163, 175, 0.8)'  // grau
+              'rgba(239, 68, 68, 0.8)',
+              'rgba(245, 158, 11, 0.8)',
+              'rgba(59, 130, 246, 0.8)',
+              'rgba(16, 185, 129, 0.8)',
+              'rgba(139, 92, 246, 0.8)',
+              'rgba(236, 72, 153, 0.8)',
+              'rgba(156, 163, 175, 0.8)'
             ],
             borderWidth: 2
           }]
@@ -183,52 +180,53 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
         <i className="fas fa-chart-bar"></i>
         Projekt Analytics: {project.name}
       </h2>
-
+      
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
-        gap: '2rem',
-        marginBottom: '2rem'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', 
+        gap: '1.25rem',
+        marginBottom: '1rem'
       }}>
         <div style={{
           background: 'white',
-          padding: '1.5rem',
-          borderRadius: '0.75rem',
+          padding: '1rem',
+          borderRadius: '0.5rem',
           border: '1px solid var(--gray-200)',
           boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
         }}>
-          <canvas ref={dailyCompletionsRef} width="400" height="200"></canvas>
+          <canvas ref={dailyCompletionsRef} width="360" height="160"></canvas>
         </div>
         <div style={{
           background: 'white',
-          padding: '1.5rem',
-          borderRadius: '0.75rem',
+          padding: '1rem',
+          borderRadius: '0.5rem',
           border: '1px solid var(--gray-200)',
           boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
         }}>
-          <canvas ref={dailyChangesRef} width="400" height="200"></canvas>
+          <canvas ref={dailyChangesRef} width="360" height="160"></canvas>
         </div>
         <div style={{
           background: 'white',
-          padding: '1.5rem',
-          borderRadius: '0.75rem',
+          padding: '1rem',
+          borderRadius: '0.5rem',
           border: '1px solid var(--gray-200)',
           boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
         }}>
-          <canvas ref={statusBreakdownRef} width="400" height="200"></canvas>
+          <canvas ref={statusBreakdownRef} width="360" height="160"></canvas>
         </div>
       </div>
-
+      
       <div style={{
         background: 'white',
-        padding: '1.5rem',
-        borderRadius: '0.75rem',
+        padding: '1rem',
+        borderRadius: '0.5rem',
         border: '1px solid var(--gray-200)',
         boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
       }}>
-        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>
+        <h3 style={{ marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>
           📋 Status-Tabelle
         </h3>
+        
         <div className="table-container">
           <table>
             <thead>
