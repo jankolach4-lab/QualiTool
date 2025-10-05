@@ -9,6 +9,13 @@ interface ProjectsTableProps {
   selectedProject?: string;
 }
 
+function getEffectiveTotalWE(project: ProjectData) {
+  if (typeof window === 'undefined') return project.totalWE
+  const raw = localStorage.getItem(`proj_total_we_${project.name}`)
+  const n = raw ? Number(raw) : NaN
+  return Number.isFinite(n) && n > 0 ? n : project.totalWE
+}
+
 export default function ProjectsTable({ projects, onSelectProject, selectedProject }: ProjectsTableProps) {
   return (
     <div className="section">
@@ -32,8 +39,8 @@ export default function ProjectsTable({ projects, onSelectProject, selectedProje
           <tbody>
             {Object.values(projects).map(project => {
               const vpCount = project.vps.size;
-              const statusPercent = project.totalWE > 0 ? 
-                Math.round((project.completions / project.totalWE) * 100) : 0;
+              const totalWE = getEffectiveTotalWE(project)
+              const statusPercent = totalWE > 0 ? Math.round((project.completions / totalWE) * 100) : 0;
               
               return (
                 <tr 
@@ -42,7 +49,7 @@ export default function ProjectsTable({ projects, onSelectProject, selectedProje
                   className={selectedProject === project.name ? 'selected' : ''}
                 >
                   <td style={{ fontWeight: 600 }}>{project.name}</td>
-                  <td>{project.totalWE.toLocaleString()}</td>
+                  <td>{totalWE.toLocaleString()}</td>
                   <td>{vpCount}</td>
                   <td>{project.completions}</td>
                   <td>

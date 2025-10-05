@@ -10,11 +10,20 @@ interface ProjectAnalyticsProps {
   timeRangeDays: number;
 }
 
+function getEffectiveTotalWE(project: ProjectData) {
+  if (typeof window === 'undefined') return project.totalWE
+  const raw = localStorage.getItem(`proj_total_we_${project.name}`)
+  const n = raw ? Number(raw) : NaN
+  return Number.isFinite(n) && n > 0 ? n : project.totalWE
+}
+
 export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: ProjectAnalyticsProps) {
   const dailyCompletionsRef = useRef<HTMLCanvasElement>(null)
   const dailyChangesRef = useRef<HTMLCanvasElement>(null)
   const statusBreakdownRef = useRef<HTMLCanvasElement>(null)
   const chartsRef = useRef<any[]>([])
+
+  const effectiveTotalWE = getEffectiveTotalWE(project)
 
   useEffect(() => {
     chartsRef.current.forEach(chart => chart?.destroy())
@@ -24,7 +33,7 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
       createCharts()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project, timeRangeDays])
+  }, [project, timeRangeDays, effectiveTotalWE])
 
   const createCharts = () => {
     const Chart = (window as any).Chart
@@ -171,7 +180,7 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
     return { labels, values }
   }
 
-  const totalWE = project.totalWE || 0
+  const totalWE = effectiveTotalWE || 0
   const weWithStatus = project.weWithStatus || 0
   const weWithoutStatus = totalWE - weWithStatus
   const statusPercentage = totalWE > 0 ? Math.round((weWithStatus / totalWE) * 100) : 0
@@ -184,34 +193,22 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
       </h2>
       
       {/* Reihe 1: zwei Kacheln nebeneinander */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', 
-        gap: '1rem',
-        marginBottom: '1rem'
-      }}>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 240 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260 }}>
           <canvas ref={dailyCompletionsRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 240 }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260 }}>
           <canvas ref={dailyChangesRef} style={{ width: '100%', height: '100%' }} />
         </div>
       </div>
 
       {/* Reihe 2: Status Pie + Status-Tabelle nebeneinander (gleiche Höhe) */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-        gap: '1rem',
-        marginBottom: '1rem'
-      }}>
-        <div style={{ background: 'white', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+        <div style={{ background: 'white', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 280 }}>
           <canvas ref={statusBreakdownRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260, overflow: 'auto' }}>
-          <h3 style={{ marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>
-            📋 Status-Tabelle
-          </h3>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 280, overflow: 'auto' }}>
+          <h3 style={{ marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>📋 Status-Tabelle</h3>
           <div className="table-container" style={{ border: 'none' }}>
             <table>
               <thead>
@@ -226,24 +223,18 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
                   <tr key={status}>
                     <td style={{ fontWeight: 600 }}>{status}</td>
                     <td>{count}</td>
-                    <td>
-                      <strong>{totalWE > 0 ? Math.round(((count as number) / totalWE) * 100) : 0}%</strong>
-                    </td>
+                    <td><strong>{totalWE > 0 ? Math.round(((count as number) / totalWE) * 100) : 0}%</strong></td>
                   </tr>
                 ))}
                 <tr style={{ borderTop: '2px solid var(--gray-200)', fontWeight: 600 }}>
                   <td>WE mit Status</td>
                   <td>{weWithStatus}</td>
-                  <td>
-                    <strong>{statusPercentage}%</strong>
-                  </td>
+                  <td><strong>{statusPercentage}%</strong></td>
                 </tr>
                 <tr style={{ fontWeight: 600 }}>
                   <td>WE ohne Status</td>
                   <td>{weWithoutStatus}</td>
-                  <td>
-                    <strong>{100 - statusPercentage}%</strong>
-                  </td>
+                  <td><strong>{100 - statusPercentage}%</strong></td>
                 </tr>
               </tbody>
             </table>

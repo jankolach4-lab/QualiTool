@@ -100,7 +100,7 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
       chartsRef.current.push(chart)
     }
 
-    // Reihe 2: Status-Pie + Stunden + Summary nebeneinander (gleiche Höhe)
+    // Reihe 2: drei Kacheln nebeneinander (gleiche Höhe)
     if (statusBreakdownRef.current) {
       const statusData = prepareStatusBreakdownData()
       const chart = new Chart(statusBreakdownRef.current, {
@@ -229,34 +229,24 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
       </div>
 
       {/* Reihe 1: zwei Kacheln nebeneinander */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', 
-        gap: '1rem',
-        marginBottom: '1rem'
-      }}>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 240 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260 }}>
           <canvas ref={dailyCompletionsRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 240 }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260 }}>
           <canvas ref={dailyChangesRef} style={{ width: '100%', height: '100%' }} />
         </div>
       </div>
 
       {/* Reihe 2: Status-Pie + Stunden + Summary nebeneinander (gleiche Höhe) */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-        gap: '1rem',
-        marginBottom: '1rem'
-      }}>
-        <div style={{ background: 'white', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+        <div style={{ background: 'white', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 280 }}>
           <canvas ref={statusBreakdownRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260 }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 280 }}>
           <canvas ref={hourlyActivityRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260, overflow: 'auto' }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 280, overflow: 'auto' }}>
           <h3 style={{ marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>📋 Zusammenfassung</h3>
           <div className="table-container" style={{ border: 'none' }}>
             <table>
@@ -267,26 +257,11 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>WE gesamt</td>
-                  <td>{totalWE}</td>
-                </tr>
-                <tr>
-                  <td>WE mit Status</td>
-                  <td>{weWithStatus} ({statusPercentage}%)</td>
-                </tr>
-                <tr>
-                  <td>WE ohne Status</td>
-                  <td>{weWithoutStatus}</td>
-                </tr>
-                <tr>
-                  <td>Abschlüsse (aktuell)</td>
-                  <td><strong>{vp.completions}</strong></td>
-                </tr>
-                <tr>
-                  <td>Statusänderungen (gesamt)</td>
-                  <td><strong>{vp.totalStatusChanges}</strong></td>
-                </tr>
+                <tr><td>WE gesamt</td><td>{totalWE}</td></tr>
+                <tr><td>WE mit Status</td><td>{weWithStatus} ({statusPercentage}%)</td></tr>
+                <tr><td>WE ohne Status</td><td>{weWithoutStatus}</td></tr>
+                <tr><td>Abschlüsse (aktuell)</td><td><strong>{vp.completions}</strong></td></tr>
+                <tr><td>Statusänderungen (gesamt)</td><td><strong>{vp.totalStatusChanges}</strong></td></tr>
               </tbody>
             </table>
           </div>
