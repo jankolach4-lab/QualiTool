@@ -7,10 +7,11 @@ import { VPData, VPProjectSlice } from '../lib/supabase'
 interface VPAnalyticsProps {
   vp: VPData;
   projectName: string;
+  projectTotalWE: number;
   timeRangeDays: number;
 }
 
-export default function VPAnalytics({ vp, projectName, timeRangeDays }: VPAnalyticsProps) {
+export default function VPAnalytics({ vp, projectName, projectTotalWE, timeRangeDays }: VPAnalyticsProps) {
   const dailyCompletionsRef = useRef<HTMLCanvasElement>(null)
   const dailyChangesRef = useRef<HTMLCanvasElement>(null)
   const statusBreakdownRef = useRef<HTMLCanvasElement>(null)
@@ -57,10 +58,7 @@ export default function VPAnalytics({ vp, projectName, timeRangeDays }: VPAnalyt
       const dailyData = prepareDailyCompletionsData()
       const chart = new Chart(dailyCompletionsRef.current, {
         type: 'bar',
-        data: {
-          labels: dailyData.labels,
-          datasets: [{ label: 'Tägliche Abschlüsse', data: dailyData.completions, backgroundColor: 'rgba(16, 185, 129, 0.8)', borderColor: 'rgba(16, 185, 129, 1)', borderWidth: 1 }]
-        },
+        data: { labels: dailyData.labels, datasets: [{ label: 'Tägliche Abschlüsse', data: dailyData.completions, backgroundColor: 'rgba(16, 185, 129, 0.8)', borderColor: 'rgba(16, 185, 129, 1)', borderWidth: 1 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: `Tägliche Abschlüsse (letzte ${timeRangeDays} Tage)` }, legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
       })
       chartsRef.current.push(chart)
@@ -70,10 +68,7 @@ export default function VPAnalytics({ vp, projectName, timeRangeDays }: VPAnalyt
       const dailyData = prepareDailyStatusChangesData()
       const chart = new Chart(dailyChangesRef.current, {
         type: 'bar',
-        data: {
-          labels: dailyData.labels,
-          datasets: [{ label: 'Tägliche Statusänderungen', data: dailyData.statusChanges, backgroundColor: 'rgba(37, 99, 235, 0.8)', borderColor: 'rgba(37, 99, 235, 1)', borderWidth: 1 }]
-        },
+        data: { labels: dailyData.labels, datasets: [{ label: 'Tägliche Statusänderungen', data: dailyData.statusChanges, backgroundColor: 'rgba(37, 99, 235, 0.8)', borderColor: 'rgba(37, 99, 235, 1)', borderWidth: 1 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: `Tägliche Statusänderungen (letzte ${timeRangeDays} Tage)` }, legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
       })
       chartsRef.current.push(chart)
@@ -146,7 +141,9 @@ export default function VPAnalytics({ vp, projectName, timeRangeDays }: VPAnalyt
   const totalWE = slice.totalWE || 0
   const weWithStatus = slice.weWithStatus || 0
   const weWithoutStatus = totalWE - weWithStatus
-  const statusPercentage = totalWE > 0 ? Math.round((weWithStatus / totalWE) * 100) : 0
+
+  const shareWEProject = projectTotalWE > 0 ? Math.round((totalWE / projectTotalWE) * 10000) / 100 : 0
+  const shareCompletionsProject = projectTotalWE > 0 ? Math.round((slice.completions / projectTotalWE) * 10000) / 100 : 0
 
   return (
     <div className="section">
@@ -189,10 +186,11 @@ export default function VPAnalytics({ vp, projectName, timeRangeDays }: VPAnalyt
                 </tr>
               </thead>
               <tbody>
-                <tr><td>WE gesamt</td><td>{totalWE}</td></tr>
-                <tr><td>WE mit Status</td><td>{weWithStatus} ({statusPercentage}%)</td></tr>
-                <tr><td>WE ohne Status</td><td>{weWithoutStatus}</td></tr>
+                <tr><td>WE gesamt (VP im Projekt)</td><td>{totalWE}</td></tr>
+                <tr><td>Anteil WE am Projekt</td><td><strong>{shareWEProject.toFixed(2)}%</strong> (von {projectTotalWE.toLocaleString()})</td></tr>
                 <tr><td>Abschlüsse (aktuell)</td><td><strong>{slice.completions}</strong></td></tr>
+                <tr><td>Anteil Abschlüsse am Projekt</td><td><strong>{shareCompletionsProject.toFixed(2)}%</strong></td></tr>
+                <tr><td>WE mit Status</td><td>{weWithStatus}</td></tr>
                 <tr><td>Statusänderungen (gesamt)</td><td><strong>{slice.totalStatusChanges}</strong></td></tr>
               </tbody>
             </table>
