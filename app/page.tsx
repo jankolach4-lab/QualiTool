@@ -263,7 +263,12 @@ export default function Dashboard() {
         )}
 
         {selectedVP && selectedProject && vpsData[selectedVP] && (
-          <VPAnalytics vp={vpsData[selectedVP]} projectName={selectedProject} timeRangeDays={timeRangeDays} />
+          <VPAnalytics 
+            vp={vpsData[selectedVP]} 
+            projectName={selectedProject} 
+            projectTotalWE={(typeof window !== 'undefined' && localStorage.getItem(`proj_total_we_${selectedProject}`)) ? Number(localStorage.getItem(`proj_total_we_${selectedProject}`)) || projectsData[selectedProject].totalWE : projectsData[selectedProject].totalWE}
+            timeRangeDays={timeRangeDays}
+          />
         )}
       </main>
     </div>
