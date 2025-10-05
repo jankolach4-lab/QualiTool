@@ -62,6 +62,17 @@ export interface ProjectData {
   events?: TimelineEvent[]; // für filterbare Stundenaktivität
 }
 
+export interface VPProjectSlice {
+  totalWE: number;
+  completions: number;
+  statusCounts: { [status: string]: number };
+  dailyStats: { [date: string]: { completions: number; statusChanges: number } };
+  hourlyStats: { [hour: number]: number };
+  totalStatusChanges: number;
+  weWithStatus: number;
+  events?: TimelineEvent[];
+}
+
 export interface VPData {
   id: string;
   name: string;
@@ -75,5 +86,6 @@ export interface VPData {
   projects: Set<string>;
   totalStatusChanges: number;
   weWithStatus: number;
-  events?: TimelineEvent[]; // für filterbare Stundenaktivität
+  events?: TimelineEvent[]; // gesamt
+  perProject?: { [projectName: string]: VPProjectSlice };
 }

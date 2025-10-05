@@ -10,8 +10,16 @@ interface VPTableProps {
   selectedVP?: string;
 }
 
+function getEffectiveProjectTotalWE(project: ProjectData) {
+  if (typeof window === 'undefined') return project.totalWE
+  const raw = localStorage.getItem(`proj_total_we_${project.name}`)
+  const n = raw ? Number(raw) : NaN
+  return Number.isFinite(n) && n > 0 ? n : project.totalWE
+}
+
 export default function VPTable({ project, vps, onSelectVP, selectedVP }: VPTableProps) {
-  const projectVPs = Array.from(project.vps).map(vpId => vps[vpId]).filter(Boolean);
+  const projectVPs = Array.from(project.vps).map(vpId => vps[vpId]).filter(Boolean)
+  const effectiveProjectWE = getEffectiveProjectTotalWE(project)
 
   return (
     <div className="section">
@@ -25,16 +33,19 @@ export default function VPTable({ project, vps, onSelectVP, selectedVP }: VPTabl
           <thead>
             <tr>
               <th>VP Name</th>
-              <th>WE</th>
-              <th>Abschlüsse</th>
+              <th>WE (Projekt)</th>
+              <th>Abschlüsse (Projekt)</th>
               <th>% eigene WE</th>
               <th>% Projekt WE</th>
             </tr>
           </thead>
           <tbody>
             {projectVPs.map(vp => {
-              const ownPercent = vp.totalWE > 0 ? Math.round((vp.completions / vp.totalWE) * 100) : 0;
-              const projectPercent = project.totalWE > 0 ? Math.round((vp.completions / project.totalWE) * 100) : 0;
+              const slice = vp.perProject?.[project.name]
+              const sliceWE = slice?.totalWE || 0
+              const sliceCompletions = slice?.completions || 0
+              const ownPercent = sliceWE > 0 ? Math.round((sliceCompletions / sliceWE) * 100) : 0
+              const projectPercent = effectiveProjectWE > 0 ? Math.round((sliceCompletions / effectiveProjectWE) * 100) : 0
               
               return (
                 <tr 
@@ -45,18 +56,18 @@ export default function VPTable({ project, vps, onSelectVP, selectedVP }: VPTabl
                   <td style={{ fontWeight: 600 }}>
                     {vp.name}
                     {vp.email && (
-                      <React.Fragment>
+                      <>
                         <br />
                         <small style={{ color: 'var(--gray-500)' }}>{vp.email}</small>
-                      </React.Fragment>
+                      </>
                     )}
                   </td>
-                  <td><span className="badge badge-primary">{vp.totalWE}</span></td>
-                  <td><span className="badge badge-warning">{vp.completions}</span></td>
+                  <td>{sliceWE}</td>
+                  <td>{sliceCompletions}</td>
                   <td><strong>{ownPercent}%</strong></td>
                   <td><strong>{projectPercent}%</strong></td>
                 </tr>
-              );
+              )
             })}
           </tbody>
         </table>
