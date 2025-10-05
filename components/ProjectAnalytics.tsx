@@ -181,41 +181,34 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
         Projekt Analytics: {project.name}
       </h2>
       
+      {/* Reihe 1: zwei Kacheln nebeneinander */}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', 
-        gap: '1.25rem',
+        gap: '1rem',
         marginBottom: '1rem'
       }}>
-        <div style={{
-          background: 'white',
-          padding: '1rem',
-          borderRadius: '0.5rem',
-          border: '1px solid var(--gray-200)',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-        }}>
+        <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           <canvas ref={dailyCompletionsRef} width="360" height="160"></canvas>
         </div>
-        <div style={{
-          background: 'white',
-          padding: '1rem',
-          borderRadius: '0.5rem',
-          border: '1px solid var(--gray-200)',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-        }}>
+        <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           <canvas ref={dailyChangesRef} width="360" height="160"></canvas>
         </div>
-        <div style={{
-          background: 'white',
-          padding: '1rem',
-          borderRadius: '0.5rem',
-          border: '1px solid var(--gray-200)',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-        }}>
+      </div>
+
+      {/* Reihe 2: übrige Kacheln (hier: Status Pie) */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', 
+        gap: '1rem',
+        marginBottom: '1rem'
+      }}>
+        <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           <canvas ref={statusBreakdownRef} width="360" height="160"></canvas>
         </div>
       </div>
       
+      {/* Status-Tabelle */}
       <div style={{
         background: 'white',
         padding: '1rem',
@@ -240,9 +233,7 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
               {Object.entries(project.statusCounts || {}).map(([status, count]) => (
                 <tr key={status}>
                   <td style={{ fontWeight: 600 }}>{status}</td>
-                  <td>
-                    <span className="badge badge-primary">{count}</span>
-                  </td>
+                  <td>{count}</td>
                   <td>
                     <strong>{totalWE > 0 ? Math.round(((count as number) / totalWE) * 100) : 0}%</strong>
                   </td>
@@ -250,18 +241,14 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
               ))}
               <tr style={{ borderTop: '2px solid var(--gray-200)', fontWeight: 600 }}>
                 <td>WE mit Status</td>
-                <td>
-                  <span className="badge badge-success">{weWithStatus}</span>
-                </td>
+                <td>{weWithStatus}</td>
                 <td>
                   <strong>{statusPercentage}%</strong>
                 </td>
               </tr>
               <tr style={{ fontWeight: 600 }}>
                 <td>WE ohne Status</td>
-                <td>
-                  <span className="badge badge-warning">{weWithoutStatus}</span>
-                </td>
+                <td>{weWithoutStatus}</td>
                 <td>
                   <strong>{100 - statusPercentage}%</strong>
                 </td>

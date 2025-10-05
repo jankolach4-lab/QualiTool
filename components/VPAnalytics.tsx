@@ -29,7 +29,6 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
   }, [vp])
 
   useEffect(() => {
-    // Default: neuestes Datum wählen, falls nichts gesetzt
     if (!selectedDay) {
       const latest = availableDates[availableDates.length - 1]
       if (latest) setSelectedDay(latest)
@@ -52,7 +51,7 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
   const createCharts = () => {
     const Chart = (window as any).Chart
 
-    // 1. Daily Completions
+    // Reihe 1: zwei Kacheln
     if (dailyCompletionsRef.current) {
       const dailyData = prepareDailyCompletionsData()
       const chart = new Chart(dailyCompletionsRef.current, {
@@ -69,16 +68,13 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
         },
         options: {
           responsive: true,
-          plugins: {
-            title: { display: true, text: `Tägliche Abschlüsse (letzte ${timeRangeDays} Tage) - ${vp.name}` }
-          },
+          plugins: { title: { display: true, text: `Tägliche Abschlüsse (letzte ${timeRangeDays} Tage) - ${vp.name}` } },
           scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
       })
       chartsRef.current.push(chart)
     }
 
-    // 2. Daily Status Changes
     if (dailyChangesRef.current) {
       const dailyData = prepareDailyStatusChangesData()
       const chart = new Chart(dailyChangesRef.current, {
@@ -95,16 +91,14 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
         },
         options: {
           responsive: true,
-          plugins: {
-            title: { display: true, text: `Tägliche Statusänderungen (letzte ${timeRangeDays} Tage) - ${vp.name}` }
-          },
+          plugins: { title: { display: true, text: `Tägliche Statusänderungen (letzte ${timeRangeDays} Tage) - ${vp.name}` } },
           scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
       })
       chartsRef.current.push(chart)
     }
 
-    // 3. Status Breakdown Pie
+    // Reihe 2: restliche Kacheln (Status-Pie + Stundenaktivität)
     if (statusBreakdownRef.current) {
       const statusData = prepareStatusBreakdownData()
       const chart = new Chart(statusBreakdownRef.current, {
@@ -133,7 +127,6 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
       chartsRef.current.push(chart)
     }
 
-    // 4. Hourly Activity (nach ausgewähltem Tag)
     if (hourlyActivityRef.current) {
       const hourlyData = prepareHourlyActivityData()
       const titleDay = selectedDay ? selectedDay : 'Tag wählen'
@@ -209,7 +202,6 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
         }
       })
     } else if (vp.hourlyStats) {
-      // Fallback (ungefiltert)
       for (let h = 0; h < 24; h++) counts[h] = vp.hourlyStats[h] || 0
     }
     return counts
@@ -232,10 +224,11 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
         <input className="input" type="date" value={selectedDay} onChange={(e) => setSelectedDay(e.target.value)} />
       </div>
 
+      {/* Reihe 1: zwei Kacheln nebeneinander */}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', 
-        gap: '1.25rem',
+        gap: '1rem',
         marginBottom: '1rem'
       }}>
         <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
@@ -244,6 +237,15 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
         <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           <canvas ref={dailyChangesRef} width="360" height="160"></canvas>
         </div>
+      </div>
+
+      {/* Reihe 2: übrige Kacheln (Status-Pie + Stunden) */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', 
+        gap: '1rem',
+        marginBottom: '1rem'
+      }}>
         <div style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           <canvas ref={statusBreakdownRef} width="360" height="160"></canvas>
         </div>
@@ -265,15 +267,15 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
             <tbody>
               <tr>
                 <td>WE gesamt</td>
-                <td><span className="badge badge-primary">{totalWE}</span></td>
+                <td>{totalWE}</td>
               </tr>
               <tr>
                 <td>WE mit Status</td>
-                <td><span className="badge badge-success">{weWithStatus}</span> ({statusPercentage}%)</td>
+                <td>{weWithStatus} ({statusPercentage}%)</td>
               </tr>
               <tr>
                 <td>WE ohne Status</td>
-                <td><span className="badge badge-warning">{weWithoutStatus}</span></td>
+                <td>{weWithoutStatus}</td>
               </tr>
               <tr>
                 <td>Abschlüsse (aktuell)</td>
