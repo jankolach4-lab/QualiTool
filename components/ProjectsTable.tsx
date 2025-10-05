@@ -42,9 +42,9 @@ export default function ProjectsTable({ projects, onSelectProject, selectedProje
                   className={selectedProject === project.name ? 'selected' : ''}
                 >
                   <td style={{ fontWeight: 600 }}>{project.name}</td>
-                  <td><span className="badge badge-primary">{project.totalWE.toLocaleString()}</span></td>
-                  <td><span className="badge badge-success">{vpCount}</span></td>
-                  <td><span className="badge badge-warning">{project.completions}</span></td>
+                  <td>{project.totalWE.toLocaleString()}</td>
+                  <td>{vpCount}</td>
+                  <td>{project.completions}</td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span style={{ fontWeight: 600 }}>{statusPercent}%</span>
