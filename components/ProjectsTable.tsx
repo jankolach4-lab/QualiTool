@@ -14,7 +14,7 @@ export default function ProjectsTable({ projects, onSelectProject, selectedProje
     <div className="section">
       <h2 className="section-title">
         <i className="fas fa-building"></i>
-        Projekte Übersicht
+        Projektübersicht
       </h2>
       
       <div className="table-container">

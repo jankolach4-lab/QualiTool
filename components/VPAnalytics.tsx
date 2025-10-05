@@ -100,7 +100,7 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
       chartsRef.current.push(chart)
     }
 
-    // Reihe 2: drei Kacheln nebeneinander (Status-Pie + Stunden + Summary)
+    // Reihe 2: Status-Pie + Stunden + Summary nebeneinander (gleiche Höhe)
     if (statusBreakdownRef.current) {
       const statusData = prepareStatusBreakdownData()
       const chart = new Chart(statusBreakdownRef.current, {
@@ -243,7 +243,7 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
         </div>
       </div>
 
-      {/* Reihe 2: Status-Pie + Stunden + Summary nebeneinander */}
+      {/* Reihe 2: Status-Pie + Stunden + Summary nebeneinander (gleiche Höhe) */}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
@@ -256,9 +256,9 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
         <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260 }}>
           <canvas ref={hourlyActivityRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)' }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260, overflow: 'auto' }}>
           <h3 style={{ marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>📋 Zusammenfassung</h3>
-          <div className="table-container">
+          <div className="table-container" style={{ border: 'none' }}>
             <table>
               <thead>
                 <tr>

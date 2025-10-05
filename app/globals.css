@@ -114,14 +114,14 @@ body {
 .overview-item { text-align: center; }
 
 .overview-value {
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: var(--primary);
+  font-size: 1.8rem; /* kleiner und seriöser */
+  font-weight: 700;  /* weniger heavy */
+  color: var(--gray-900); /* neutraler als Primärfarbe */
   margin-bottom: 0.25rem;
 }
 
 .overview-label {
-  font-size: 0.8rem;
+  font-size: 0.75rem; /* etwas kleiner */
   font-weight: 600;
   color: var(--gray-500);
   text-transform: uppercase;
@@ -165,8 +165,8 @@ th {
 
 td { padding: 0.75rem; border-bottom: 1px solid var(--gray-100); font-size: 0.85rem; }
 
-/* Alternierende Zeilenfärbung: 1. Zeile blassblau */
-table tbody tr:nth-child(odd) { background: rgba(37, 99, 235, 0.05); }
+/* Alternierende Zeilenfärbung: 1. Zeile blassblau (etwas dunkler) */
+table tbody tr:nth-child(odd) { background: rgba(37, 99, 235, 0.10); }
 
 table tbody tr:hover { background: var(--gray-50); cursor: pointer; }
 

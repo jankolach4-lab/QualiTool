@@ -198,7 +198,7 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
         </div>
       </div>
 
-      {/* Reihe 2: Status Pie + Status-Tabelle nebeneinander */}
+      {/* Reihe 2: Status Pie + Status-Tabelle nebeneinander (gleiche Höhe) */}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
@@ -208,16 +208,11 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
         <div style={{ background: 'white', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260 }}>
           <canvas ref={statusBreakdownRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{
-          background: 'white',
-          padding: '0.75rem',
-          borderRadius: '0.5rem',
-          border: '1px solid var(--gray-200)'
-        }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260, overflow: 'auto' }}>
           <h3 style={{ marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>
             📋 Status-Tabelle
           </h3>
-          <div className="table-container">
+          <div className="table-container" style={{ border: 'none' }}>
             <table>
               <thead>
                 <tr>
