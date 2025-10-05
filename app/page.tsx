@@ -144,7 +144,8 @@ export default function Dashboard() {
         vpSlice.totalWE += weCount
 
         const residents = (contactItem as any).residents || {}
-        Object.values(residents as any).forEach((resident: Resident) => {
+        const residentList = Object.values(residents || {}) as Resident[]
+        residentList.forEach((resident) => {
           if (resident.status) {
             // Project aggregates
             projects[project].statusCounts[resident.status] = (projects[project].statusCounts[resident.status] || 0) + 1
