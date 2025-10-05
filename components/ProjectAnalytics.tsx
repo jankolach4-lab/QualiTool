@@ -192,22 +192,22 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
         Projekt Analytics: {project.name}
       </h2>
       
-      {/* Reihe 1: zwei Kacheln nebeneinander */}
+      {/* Reihe 1: zwei Kacheln nebeneinander (280px) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260 }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 280 }}>
           <canvas ref={dailyCompletionsRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260 }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 280 }}>
           <canvas ref={dailyChangesRef} style={{ width: '100%', height: '100%' }} />
         </div>
       </div>
 
-      {/* Reihe 2: Status Pie + Status-Tabelle nebeneinander (gleiche Höhe) */}
+      {/* Reihe 2: Status Pie + Status-Tabelle nebeneinander (320px) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-        <div style={{ background: 'white', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 280 }}>
+        <div style={{ background: 'white', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 320 }}>
           <canvas ref={statusBreakdownRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 280, overflow: 'auto' }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 320, overflow: 'auto' }}>
           <h3 style={{ marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>📋 Status-Tabelle</h3>
           <div className="table-container" style={{ border: 'none' }}>
             <table>

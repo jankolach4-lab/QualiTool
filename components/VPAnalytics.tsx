@@ -51,7 +51,7 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
   const createCharts = () => {
     const Chart = (window as any).Chart
 
-    // Reihe 1: zwei Kacheln
+    // Reihe 1: zwei Kacheln (280px)
     if (dailyCompletionsRef.current) {
       const dailyData = prepareDailyCompletionsData()
       const chart = new Chart(dailyCompletionsRef.current, {
@@ -100,7 +100,7 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
       chartsRef.current.push(chart)
     }
 
-    // Reihe 2: drei Kacheln nebeneinander (gleiche Höhe)
+    // Reihe 2: drei Kacheln nebeneinander (320px)
     if (statusBreakdownRef.current) {
       const statusData = prepareStatusBreakdownData()
       const chart = new Chart(statusBreakdownRef.current, {
@@ -228,25 +228,25 @@ export default function VPAnalytics({ vp, timeRangeDays }: VPAnalyticsProps) {
         <input className="input" type="date" value={selectedDay} onChange={(e) => setSelectedDay(e.target.value)} />
       </div>
 
-      {/* Reihe 1: zwei Kacheln nebeneinander */}
+      {/* Reihe 1: zwei Kacheln nebeneinander (280px) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260 }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 280 }}>
           <canvas ref={dailyCompletionsRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 260 }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 280 }}>
           <canvas ref={dailyChangesRef} style={{ width: '100%', height: '100%' }} />
         </div>
       </div>
 
-      {/* Reihe 2: Status-Pie + Stunden + Summary nebeneinander (gleiche Höhe) */}
+      {/* Reihe 2: Status-Pie + Stunden + Summary nebeneinander (320px) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-        <div style={{ background: 'white', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 280 }}>
+        <div style={{ background: 'white', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 320 }}>
           <canvas ref={statusBreakdownRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 280 }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 320 }}>
           <canvas ref={hourlyActivityRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 280, overflow: 'auto' }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 320, overflow: 'auto' }}>
           <h3 style={{ marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>📋 Zusammenfassung</h3>
           <div className="table-container" style={{ border: 'none' }}>
             <table>
