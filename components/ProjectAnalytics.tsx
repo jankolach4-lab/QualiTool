@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { useEffect, useRef } from 'react'
 import { ProjectData, VPData } from '../lib/supabase'
+import { colorForStatus } from '../lib/colors'
 
 interface ProjectAnalyticsProps {
   project: ProjectData;
@@ -10,20 +11,11 @@ interface ProjectAnalyticsProps {
   timeRangeDays: number;
 }
 
-function getEffectiveTotalWE(project: ProjectData) {
-  if (typeof window === 'undefined') return project.totalWE
-  const raw = localStorage.getItem(`proj_total_we_${project.name}`)
-  const n = raw ? Number(raw) : NaN
-  return Number.isFinite(n) && n > 0 ? n : project.totalWE
-}
-
 export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: ProjectAnalyticsProps) {
   const dailyCompletionsRef = useRef<HTMLCanvasElement>(null)
   const dailyChangesRef = useRef<HTMLCanvasElement>(null)
   const statusBreakdownRef = useRef<HTMLCanvasElement>(null)
   const chartsRef = useRef<any[]>([])
-
-  const effectiveTotalWE = getEffectiveTotalWE(project)
 
   useEffect(() => {
     chartsRef.current.forEach(chart => chart?.destroy())
@@ -33,7 +25,7 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
       createCharts()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project, timeRangeDays, effectiveTotalWE])
+  }, [project, timeRangeDays])
 
   const createCharts = () => {
     const Chart = (window as any).Chart
@@ -56,18 +48,10 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            title: {
-              display: true,
-              text: `Tägliche Abschlüsse (letzte ${timeRangeDays} Tage) - Alle VPs`
-            },
+            title: { display: true, text: `Tägliche Abschlüsse (letzte ${timeRangeDays} Tage) - Alle VPs` },
             legend: { display: false }
           },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: { stepSize: 1 }
-            }
-          }
+          scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
       })
       chartsRef.current.push(completionsChart)
@@ -91,18 +75,10 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            title: {
-              display: true,
-              text: `Tägliche Statusänderungen (letzte ${timeRangeDays} Tage) - Alle VPs`
-            },
+            title: { display: true, text: `Tägliche Statusänderungen (letzte ${timeRangeDays} Tage) - Alle VPs` },
             legend: { display: false }
           },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: { stepSize: 1 }
-            }
-          }
+          scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
       })
       chartsRef.current.push(changesChart)
@@ -110,31 +86,21 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
 
     if (statusBreakdownRef.current) {
       const statusData = prepareStatusBreakdownData()
+      const colors = statusData.labels.map(l => colorForStatus(String(l)))
       const statusChart = new Chart(statusBreakdownRef.current, {
         type: 'pie',
         data: {
           labels: statusData.labels,
           datasets: [{
             data: statusData.values,
-            backgroundColor: [
-              'rgba(239, 68, 68, 0.8)',
-              'rgba(245, 158, 11, 0.8)',
-              'rgba(59, 130, 246, 0.8)',
-              'rgba(16, 185, 129, 0.8)',
-              'rgba(139, 92, 246, 0.8)',
-              'rgba(236, 72, 153, 0.8)',
-              'rgba(156, 163, 175, 0.8)'
-            ],
+            backgroundColor: colors,
             borderWidth: 2
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            title: { display: true, text: 'Status-Breakdown' },
-            legend: { position: 'bottom', labels: { boxWidth: 10 } }
-          }
+          plugins: { title: { display: true, text: 'Status-Breakdown' }, legend: { position: 'bottom', labels: { boxWidth: 10 } } }
         }
       })
       chartsRef.current.push(statusChart)
@@ -143,34 +109,20 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
 
   const isWithinRange = (dateStr: string) => {
     const date = new Date(dateStr)
-    const cutoff = new Date()
-    cutoff.setHours(0, 0, 0, 0)
-    cutoff.setDate(cutoff.getDate() - (timeRangeDays - 1))
+    const cutoff = new Date(); cutoff.setHours(0,0,0,0); cutoff.setDate(cutoff.getDate() - (timeRangeDays - 1))
     return date >= cutoff
   }
 
   const prepareDailyCompletionsData = () => {
     const dailyStats = project.dailyStats || {}
     const sortedDates = Object.keys(dailyStats).sort().filter(isWithinRange)
-    return {
-      labels: sortedDates.map(date => {
-        const d = new Date(date)
-        return `${d.getDate()}.${d.getMonth() + 1}`
-      }),
-      completions: sortedDates.map(date => dailyStats[date]?.completions || 0)
-    }
+    return { labels: sortedDates.map(date => { const d = new Date(date); return `${d.getDate()}.${d.getMonth() + 1}` }), completions: sortedDates.map(date => dailyStats[date]?.completions || 0) }
   }
 
   const prepareDailyStatusChangesData = () => {
     const dailyStats = project.dailyStats || {}
     const sortedDates = Object.keys(dailyStats).sort().filter(isWithinRange)
-    return {
-      labels: sortedDates.map(date => {
-        const d = new Date(date)
-        return `${d.getDate()}.${d.getMonth() + 1}`
-      }),
-      statusChanges: sortedDates.map(date => dailyStats[date]?.statusChanges || 0)
-    }
+    return { labels: sortedDates.map(date => { const d = new Date(date); return `${d.getDate()}.${d.getMonth() + 1}` }), statusChanges: sortedDates.map(date => dailyStats[date]?.statusChanges || 0) }
   }
 
   const prepareStatusBreakdownData = () => {
@@ -180,7 +132,7 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
     return { labels, values }
   }
 
-  const totalWE = effectiveTotalWE || 0
+  const totalWE = project.totalWE || 0
   const weWithStatus = project.weWithStatus || 0
   const weWithoutStatus = totalWE - weWithStatus
   const statusPercentage = totalWE > 0 ? Math.round((weWithStatus / totalWE) * 100) : 0
@@ -192,7 +144,6 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
         Projekt Analytics: {project.name}
       </h2>
       
-      {/* Reihe 1: zwei Kacheln nebeneinander (280px) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
         <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 280 }}>
           <canvas ref={dailyCompletionsRef} style={{ width: '100%', height: '100%' }} />
@@ -202,7 +153,6 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
         </div>
       </div>
 
-      {/* Reihe 2: Status Pie + Status-Tabelle nebeneinander (320px) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
         <div style={{ background: 'white', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 320 }}>
           <canvas ref={statusBreakdownRef} style={{ width: '100%', height: '100%' }} />

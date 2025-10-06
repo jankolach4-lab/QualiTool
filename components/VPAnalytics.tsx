@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { VPData, VPProjectSlice } from '../lib/supabase'
+import { colorForStatus } from '../lib/colors'
 
 interface VPAnalyticsProps {
   vp: VPData;
@@ -74,12 +75,13 @@ export default function VPAnalytics({ vp, projectName, projectTotalWE, timeRange
       chartsRef.current.push(chart)
     }
 
-    // Reihe 2: drei Kacheln nebeneinander (320px)
+    // Reihe 2: drei Kacheln nebeneinander (360px)
     if (statusBreakdownRef.current) {
       const statusData = prepareStatusBreakdownData()
+      const colors = statusData.labels.map(l => colorForStatus(String(l)))
       const chart = new Chart(statusBreakdownRef.current, {
         type: 'pie',
-        data: { labels: statusData.labels, datasets: [{ data: statusData.values, backgroundColor: [ 'rgba(239, 68, 68, 0.8)', 'rgba(245, 158, 11, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(16, 185, 129, 0.8)', 'rgba(139, 92, 246, 0.8)', 'rgba(236, 72, 153, 0.8)', 'rgba(156, 163, 175, 0.8)' ], borderWidth: 2 }] },
+        data: { labels: statusData.labels, datasets: [{ data: statusData.values, backgroundColor: colors, borderWidth: 2 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Status-Breakdown' }, legend: { position: 'bottom', labels: { boxWidth: 10 } } } }
       })
       chartsRef.current.push(chart)
