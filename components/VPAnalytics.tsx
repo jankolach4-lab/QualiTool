@@ -42,6 +42,12 @@ export default function VPAnalytics({ vp, projectName, projectTotalWE, timeRange
       const chart = new Chart(statusBreakdownRef.current, { type:'pie', data:{ labels: statusData.labels, datasets:[{ data: statusData.values, backgroundColor: colors, borderWidth:2 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ title:{ display:true, text:'Status-Breakdown' }, legend:{ position:'bottom', labels:{ boxWidth:10 } } } } })
       chartsRef.current.push(chart)
     }
+    if (hourlyActivityRef.current) {
+      const hourlyCounts = prepareHourlyActivityData()
+      const hourLabels = Array.from({ length:24 }, (_,i) => `${i}:00`)
+      const chart = new Chart(hourlyActivityRef.current, { type:'bar', data:{ labels: hourLabels, datasets:[{ label:'Aktivität', data: hourlyCounts, backgroundColor:'rgba(139,92,246,0.8)', borderColor:'rgba(139,92,246,1)', borderWidth:1 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ title:{ display:true, text:`Stündliche Aktivität${selectedDay ? ` (${selectedDay})` : ''}` }, legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1 } } } } })
+      chartsRef.current.push(chart)
+    }
   }
 
   const isWithinRange = (dateStr: string) => { const date = new Date(dateStr); const cutoff = new Date(); cutoff.setHours(0,0,0,0); cutoff.setDate(cutoff.getDate() - (timeRangeDays - 1)); return date >= cutoff }
