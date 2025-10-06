@@ -498,7 +498,70 @@
       } catch(e){ document.getElementById('loading').style.display='none'; showError('Fehler beim Verarbeiten der Excel-Datei: '+(e.message||e)); }
     }
 
-    function displayFailedAddresses(){ const failedDiv=document.getElementById('failedAddresses'); failedDiv.innerHTML = '<h4 style="font-size: 12px; margin: 2px 0;">Nicht geokodierte Adressen</h4>'; failedAddresses.forEach(({index,address})=>{ const full=`${address.Straße} ${address.Nummer}${address.Zusatz?' '+address.Zusatz:''}, ${address.PLZ} ${address.Ort}, Deutschland`; const div=document.createElement('div'); div.className='failed-address'; div.innerHTML = `<p>${full}</p><input type="text" id="lat${index}" placeholder="Breitengrad"><input type="text" id="lon${index}" placeholder="Längengrad"><button onclick="addManualCoordinates(${index})">Hinzufügen</button><button onclick="skipAddress(${index})">Überspringen</button>`; failedDiv.appendChild(div); }); failedDiv.style.display='block'; }
+    function displayFailedAddresses(){ 
+      const failedDiv=document.getElementById('failedAddresses'); 
+      failedDiv.innerHTML = `<h4 style="font-size: 12px; margin: 2px 0; color: #dc2626;">⚠ Nicht geokodierte Adressen (${failedAddresses.length})</h4>
+        <p style="font-size: 11px; color: #6b7280;">Tipp: Prüfen Sie Schreibweise, PLZ und Ort. Manche Adressen sind in OpenStreetMap nicht verfügbar.</p>`; 
+      
+      failedAddresses.forEach(({index,address})=>{ 
+        const full=`${address.Straße} ${address.Nummer}${address.Zusatz?' '+address.Zusatz:''}, ${address.PLZ} ${address.Ort}, Deutschland`; 
+        const div=document.createElement('div'); 
+        div.className='failed-address'; 
+        
+        // Detaillierte Adress-Info
+        let details = '<p style="margin: 2px 0;"><strong>Adresse:</strong> ' + full + '</p>';
+        details += '<p style="font-size: 10px; color: #6b7280; margin: 2px 0;">';
+        details += `PLZ: ${address.PLZ || '❌'} | Ort: ${address.Ort || '❌'} | Straße: ${address.Straße || '❌'} | Nr: ${address.Nummer || '❌'}`;
+        if(address.Zusatz) details += ` | Zusatz: ${address.Zusatz}`;
+        details += `</p>`;
+        
+        div.innerHTML = details + 
+          `<input type="text" id="lat${index}" placeholder="Breitengrad (z.B. 48.1234)" style="font-size: 11px;">
+           <input type="text" id="lon${index}" placeholder="Längengrad (z.B. 11.5678)" style="font-size: 11px;">
+           <button onclick="addManualCoordinates(${index})" style="font-size: 11px;">Hinzufügen</button>
+           <button onclick="retryGeocode(${index})" style="font-size: 11px; background: #f59e0b;">Erneut versuchen</button>
+           <button onclick="skipAddress(${index})" style="font-size: 11px; background: #6b7280;">Überspringen</button>`; 
+        failedDiv.appendChild(div); 
+      }); 
+      failedDiv.style.display='block'; 
+    }
+    
+    async function retryGeocode(index) {
+      const address = addresses[index];
+      const fullAddress = `${address.Straße} ${address.Nummer}${address.Zusatz?' '+address.Zusatz:''}, ${address.PLZ} ${address.Ort}, Deutschland`;
+      document.getElementById('loading').style.display='block';
+      document.getElementById('loading').textContent = `Erneuter Versuch: ${address.Straße} ${address.Nummer}, ${address.Ort}...`;
+      
+      // Clear cache für diese Adresse
+      localStorage.removeItem(`geocode_${fullAddress}`);
+      
+      const success = await geocodeAddress(fullAddress, index);
+      
+      if(success && map) {
+        const we=address.WE; 
+        const color=we===1?colorWE1:we===2?colorWE2:colorWE3; 
+        const marker=L.circleMarker([address.lat,address.lon],{radius:5,color,fillOpacity:0.8}); 
+        marker.bindPopup(createPopupContent(address,index)); 
+        markerClusterGroup.addLayer(marker); 
+        markers[index] = marker; 
+        address.originalColor=color;
+        
+        failedAddresses = failedAddresses.filter(f=>f.index!==index);
+        if(failedAddresses.length===0) {
+          document.getElementById('failedAddresses').style.display='none';
+        } else {
+          displayFailedAddresses();
+        }
+        saveToLocalStorage();
+        updateWohneinheitenCount();
+        showSuccess('Adresse erfolgreich geokodiert!');
+      } else {
+        showError('Geokodierung fehlgeschlagen. Bitte Koordinaten manuell eingeben.');
+      }
+      
+      document.getElementById('loading').style.display='none';
+      document.getElementById('loading').textContent = 'Adressen werden importiert...';
+    }
     function addManualCoordinates(index){ const lat=parseFloat(document.getElementById(`lat${index}`).value); const lon=parseFloat(document.getElementById(`lon${index}`).value); if(isNaN(lat)||isNaN(lon)) return showError('Bitte gültige Koordinaten eingeben.'); const address=addresses[index]; address.lat=lat; address.lon=lon; const we=address.WE; const color=we===1?colorWE1:we===2?colorWE2:colorWE3; const marker=L.circleMarker([lat,lon],{radius:5,color,fillOpacity:0.8}); marker.bindPopup(createPopupContent(address,index)); markerClusterGroup.addLayer(marker); markers[index]=marker; address.originalColor=color; failedAddresses = failedAddresses.filter(f=>f.index!==index); if(failedAddresses.length===0) document.getElementById('failedAddresses').style.display='none'; else displayFailedAddresses(); saveToLocalStorage(); updateWohneinheitenCount(); showSuccess('Koordinaten hinzugefügt.'); }
     function skipAddress(index){ failedAddresses = failedAddresses.filter(f=>f.index!==index); if(failedAddresses.length===0) document.getElementById('failedAddresses').style.display='none'; else displayFailedAddresses(); }
 
