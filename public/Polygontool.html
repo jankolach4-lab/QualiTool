@@ -183,7 +183,51 @@
     function assignEmployeeToAddress(index){ const select = document.getElementById(`assignEmployee${index}`); const employee = select.value; if(!employee) return showError('Bitte einen Mitarbeiter auswählen.'); const polygon = polygons.find(p=>p.employee===employee); if(!polygon) return showError('Kein Polygon für diesen Mitarbeiter gefunden.'); const addr = addresses[index]; const isInside = isPointInPolygon(addr.lat, addr.lon, polygon.layer); if(!isInside) return showError('Adresse liegt nicht im Polygon dieses Mitarbeiters.'); addr.employee = employee; saveToLocalStorage(); showSuccess(`Adresse ${addr.Straße} ${addr.Nummer} wurde ${employee} zugewiesen.`); }
     function editAddress(index){ const addr=addresses[index]; const newPLZ=prompt('Neue PLZ:', addr.PLZ); const newOrt=prompt('Neuer Ort:', addr.Ort); const newStr=prompt('Neue Straße:', addr.Straße); const newNum=prompt('Neue Nummer:', addr.Nummer); const newZus=prompt('Neuer Zusatz:', addr.Zusatz); const newWE=prompt('Neue Wohneinheiten:', addr.WE); if(newPLZ&&newOrt&&newStr&&newNum&&newWE){ addr.PLZ=newPLZ; addr.Ort=newOrt; addr.Straße=newStr; addr.Nummer=newNum; addr.Zusatz=newZus||''; addr.WE=parseInt(newWE)||1; const fullAddress=`${addr.Straße} ${addr.Nummer}${addr.Zusatz?' '+addr.Zusatz:''}, ${addr.PLZ} ${addr.Ort}, Deutschland`; geocodeAddress(fullAddress, index, true); saveToLocalStorage(); } else { showError('Bitte alle Felder ausfüllen.'); } }
 
-    async function geocodeAddress(fullAddress, index, updateMarker=false){ try{ const cached=localStorage.getItem(`geocode_${fullAddress}`); if(cached){ const loc=JSON.parse(cached); addresses[index].lat=loc.lat; addresses[index].lon=loc.lon; if(updateMarker&&markers[index]&&map){ const we=addresses[index].WE; const color=we===1?colorWE1:we===2?colorWE2:colorWE3; markers[index].setLatLng([loc.lat, loc.lon]); markers[index].setStyle({color}); markers[index].bindPopup(createPopupContent(addresses[index], index)); addresses[index].originalColor=color; } return true; } const response=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&limit=1`,{ headers:{'User-Agent':'QualiDashboard-Polygontool/1.0 (contact: info@jl-dashboard.de)'} }); const loc=await response.json(); if(loc.length>0){ addresses[index].lat=parseFloat(loc[0].lat); addresses[index].lon=parseFloat(loc[0].lon); localStorage.setItem(`geocode_${fullAddress}`, JSON.stringify({lat:addresses[index].lat,lon:addresses[index].lon})); if(updateMarker&&markers[index]&&map){ const we=addresses[index].WE; const color=we===1?colorWE1:we===2?colorWE2:colorWE3; markers[index].setLatLng([addresses[index].lat, addresses[index].lon]); markers[index].setStyle({color}); markers[index].bindPopup(createPopupContent(addresses[index], index)); addresses[index].originalColor=color; } return true; } else { return false; } } catch(e){ console.error('Geocode error', e); return false; } }
+    // Hilfsfunktionen für bessere Geokodierung
+    function normGerman(s){ if(!s) return ''; return String(s).toLowerCase().replace(/ß/g,'ss').replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/\./g,' ').replace(/\s+/g,' ').trim(); }
+    function streetVariants(str){ const s = String(str||'').trim(); const base = s.replace(/str\.?\b/gi,'straße').replace(/strasse/gi,'straße'); const ascii = normGerman(base); const alt1 = base.replace(/straße/gi,'strasse'); const alt2 = base.replace(/straße/gi,'str'); return Array.from(new Set([base, alt1, alt2, ascii])); }
+    function pickBestCandidate(cands, street, plz, hnr){ if(!Array.isArray(cands)||cands.length===0) return null; const ns = normGerman(street); const nh = String(hnr||'').trim(); let best = null; let bestScore = -1; for(const c of cands){ let sc=0; const addr=c.address||{}; if(addr.postcode && String(addr.postcode).trim()===String(plz).trim()) sc+=3; if(addr.road && normGerman(addr.road).includes(ns)) sc+=3; if(addr.house_number && String(addr.house_number).trim()===nh) sc+=2; if(c.importance) sc+=c.importance; if(sc>bestScore){ best=c; bestScore=sc; } } return best || cands[0]; }
+
+    async function geocodeAddress(fullAddress, index, updateMarker=false){
+      try{
+        const cached=localStorage.getItem(`geocode_${fullAddress}`);
+        if(cached){ const loc=JSON.parse(cached); addresses[index].lat=loc.lat; addresses[index].lon=loc.lon; if(updateMarker&&markers[index]&&map){ const we=addresses[index].WE; const color=we===1?colorWE1:we===2?colorWE2:colorWE3; markers[index].setLatLng([loc.lat, loc.lon]); markers[index].setStyle({color}); markers[index].bindPopup(createPopupContent(addresses[index], index)); addresses[index].originalColor=color; } return true; }
+        const a = addresses[index] || {}; const plz = (a.PLZ||'').toString().replace(/[^0-9]/g,''); const ort = (a.Ort||'').toString().trim(); const str = (a.Straße||'').toString().trim(); const hnr = (a.Nummer||'').toString().trim(); const zus = (a.Zusatz||'').toString().trim();
+        const streetLineFull = `${str} ${hnr}${zus? ' '+zus: ''}`.trim();
+        const streetLineNoZus = `${str} ${hnr}`.trim();
+        const streetOnly = `${str}`.trim();
+        const variants = [streetLineFull, streetLineNoZus, ...streetVariants(str).map(v=>`${v} ${hnr}`.trim()), streetOnly];
+
+        const headers = { 'User-Agent':'QualiDashboard-Polygontool/1.0 (contact: info@jl-dashboard.de)' };
+        let found = null;
+
+        // 1) Strukturierte Suche mit limit=5 und Filter
+        for(const v of variants){
+          const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=de&accept-language=de&street=${encodeURIComponent(v)}&city=${encodeURIComponent(ort)}&postalcode=${encodeURIComponent(plz||'')}`;
+          const resp = await fetch(url, { headers });
+          const arr = await resp.json();
+          if(Array.isArray(arr) && arr.length>0){ found = pickBestCandidate(arr, str, plz, hnr); if(found) break; }
+        }
+        // 2) Fallback: Freitext (q)
+        if(!found){
+          const qVariants = [ `${str} ${hnr}, ${plz} ${ort}, Deutschland`, `${str}, ${plz} ${ort}, Deutschland`, `${str} ${hnr}, ${ort}, Deutschland` ];
+          for(const q of qVariants){
+            const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=de&accept-language=de&q=${encodeURIComponent(q)}`;
+            const resp = await fetch(url, { headers });
+            const arr = await resp.json();
+            if(Array.isArray(arr) && arr.length>0){ found = pickBestCandidate(arr, str, plz, hnr); if(found) break; }
+          }
+        }
+
+        if(found){
+          addresses[index].lat = parseFloat(found.lat); addresses[index].lon = parseFloat(found.lon);
+          localStorage.setItem(`geocode_${fullAddress}`, JSON.stringify({ lat: addresses[index].lat, lon: addresses[index].lon }));
+          if(updateMarker&&markers[index]&&map){ const we=addresses[index].WE; const color=we===1?colorWE1:we===2?colorWE2:colorWE3; markers[index].setLatLng([addresses[index].lat, addresses[index].lon]); markers[index].setStyle({color}); markers[index].bindPopup(createPopupContent(addresses[index], index)); addresses[index].originalColor=color; }
+          return true;
+        }
+        return false;
+      } catch(e){ console.error('Geocode error', e); return false; }
+    }
 
     // === Toleranter Excel-Import ===
     function normalizeHeader(h){ if(!h) return ''; let s=String(h).trim().toLowerCase(); s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); // diacritics raus
