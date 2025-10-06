@@ -3,7 +3,7 @@
 import * as React from 'react'
 import Holidays from 'date-holidays'
 import { useMemo, useState } from 'react'
-import { ProjectData } from '../lib/supabase'
+import { ProjectData, supabase } from '../lib/supabase'
 
 interface ProjectProjectionProps { project: ProjectData }
 
@@ -14,17 +14,10 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
   const [stateCode, setStateCode] = useState<string>('')
 
   React.useEffect(() => {
-    // robustes Laden: kombinierter Key + Einzelkeys
     const datesKey = `proj_dates_${project.name}`
     const raw = typeof window !== 'undefined' ? localStorage.getItem(datesKey) : null
-    if (raw) {
-      try { const parsed = JSON.parse(raw); if (parsed.startDate) setStartDate(parsed.startDate); if (parsed.endDate) setEndDate(parsed.endDate) } catch {}
-    } else {
-      const s = localStorage.getItem(`proj_start_${project.name}`)
-      const e = localStorage.getItem(`proj_end_${project.name}`)
-      if (s) setStartDate(s)
-      if (e) setEndDate(e)
-    }
+    if (raw) { try { const parsed = JSON.parse(raw); if (parsed.startDate) setStartDate(parsed.startDate); if (parsed.endDate) setEndDate(parsed.endDate) } catch {} }
+    else { const s = localStorage.getItem(`proj_start_${project.name}`); const e = localStorage.getItem(`proj_end_${project.name}`); if (s) setStartDate(s); if (e) setEndDate(e) }
     const weKey = `proj_total_we_${project.name}`
     const storedWE = typeof window !== 'undefined' ? localStorage.getItem(weKey) : null
     if (storedWE) setManualTotalWE(storedWE)
@@ -33,20 +26,34 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
     if (storedState !== null) setStateCode(storedState)
   }, [project.name])
 
+  const upsertSettings = async (s: string, e: string, weStr: string, state: string) => {
+    try {
+      const total = weStr ? Number(weStr) : null
+      const payload: any = { project_name: project.name, start_date: s || null, end_date: e || null, total_we: total && total > 0 ? total : null, state_code: state || null }
+      const { error } = await supabase.from('project_settings').upsert(payload, { onConflict: 'project_name' })
+      if (error) console.warn('project_settings upsert error', error.message)
+    } catch (err) {
+      console.warn('project_settings upsert failed', (err as Error).message)
+    }
+  }
+
   const persistDates = (s: string, e: string) => {
     const key = `proj_dates_${project.name}`
     localStorage.setItem(key, JSON.stringify({ startDate: s, endDate: e }))
     localStorage.setItem(`proj_start_${project.name}`, s || '')
     localStorage.setItem(`proj_end_${project.name}`, e || '')
+    upsertSettings(s, e, manualTotalWE, stateCode)
   }
   const persistManualWE = (val: string) => {
     const weKey = `proj_total_we_${project.name}`
     if (val && Number(val) > 0) localStorage.setItem(weKey, val)
     else localStorage.removeItem(weKey)
+    upsertSettings(startDate, endDate, val, stateCode)
   }
   const persistState = (code: string) => {
     const stKey = `proj_state_${project.name}`
     localStorage.setItem(stKey, code)
+    upsertSettings(startDate, endDate, manualTotalWE, code)
   }
 
   const handleStartChange = (v: string) => { setStartDate(v); persistDates(v, endDate) }
@@ -57,11 +64,9 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
   const effectiveTotalWE = useMemo(() => { const n = Number(manualTotalWE); return Number.isFinite(n) && n > 0 ? n : project.totalWE }, [manualTotalWE, project.totalWE])
 
   const { forecastInt, pct, workdaysElapsed, workdaysTotal, dailyRate } = useMemo(() => {
-    let hd: Holidays
-    try { hd = stateCode ? new Holidays('DE', stateCode.toLowerCase()) : new Holidays('DE') } catch { hd = new Holidays('DE') }
+    let hd: Holidays; try { hd = stateCode ? new Holidays('DE', stateCode.toLowerCase()) : new Holidays('DE') } catch { hd = new Holidays('DE') }
     const parse = (s?: string) => (s ? new Date(s + 'T00:00:00') : undefined)
-    const sDate = parse(startDate)
-    const eDate = parse(endDate)
+    const sDate = parse(startDate); const eDate = parse(endDate)
     const today = new Date(); today.setHours(0,0,0,0)
     const isWorkday = (d: Date) => { const day=d.getDay(); if(day===0||day===6) return false; return !hd.isHoliday(d) }
     const countWorkdays = (from: Date, to: Date) => { const d=new Date(from); let c=0; while(d<=to){ if(isWorkday(d)) c++; d.setDate(d.getDate()+1); d.setHours(0,0,0,0) } return c }
