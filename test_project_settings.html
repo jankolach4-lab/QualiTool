@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Project Settings</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h1>Test Project Settings Tabelle</h1>
+  <div id="output" style="font-family: monospace; white-space: pre-wrap;"></div>
+  
+  <script>
+    const supabaseUrl = 'https://whigasnqcvjkilkmbfld.supabase.co'
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc'
+    
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey)
+    const output = document.getElementById('output')
+    
+    async function test() {
+      output.textContent = 'Testing Supabase connection...\n\n'
+      
+      // Check auth
+      const { data: { session } } = await supabase.auth.getSession()
+      output.textContent += `🔐 Authentifizierung: ${session ? '✅ Eingeloggt als ' + session.user.email : '❌ Nicht eingeloggt'}\n\n`
+      
+      if (!session) {
+        output.textContent += '⚠️ Sie müssen eingeloggt sein, um die Tabelle zu testen.\n'
+        output.textContent += 'Bitte zuerst auf /login gehen und sich anmelden.\n'
+        return
+      }
+      
+      // Try to read from project_settings
+      output.textContent += '📖 Versuche project_settings zu lesen...\n'
+      const { data: readData, error: readError } = await supabase
+        .from('project_settings')
+        .select('*')
+      
+      if (readError) {
+        output.textContent += `❌ Fehler beim Lesen: ${readError.message}\n`
+        output.textContent += `   Code: ${readError.code}\n`
+        output.textContent += `   Details: ${readError.details}\n`
+        output.textContent += `   Hint: ${readError.hint}\n\n`
+        
+        if (readError.code === '42P01') {
+          output.textContent += '⚠️ Die Tabelle "project_settings" existiert NICHT in Supabase!\n'
+          output.textContent += '   Bitte führen Sie das SQL-Script aus, um die Tabelle zu erstellen.\n'
+        } else if (readError.code === 'PGRST301') {
+          output.textContent += '⚠️ RLS-Policy blockiert den Zugriff!\n'
+          output.textContent += '   Die Tabelle existiert, aber RLS verhindert das Lesen.\n'
+        }
+      } else {
+        output.textContent += `✅ Lesen erfolgreich! ${readData.length} Einträge gefunden.\n`
+        if (readData.length > 0) {
+          output.textContent += '\n📋 Vorhandene Einträge:\n'
+          readData.forEach(row => {
+            output.textContent += `   - ${row.project_name}: Start=${row.start_date}, Ende=${row.end_date}, WE=${row.total_we}, Staat=${row.state_code}\n`
+          })
+        }
+        output.textContent += '\n'
+      }
+      
+      // Try to insert a test entry
+      output.textContent += '✍️ Versuche Test-Eintrag zu schreiben...\n'
+      const testEntry = {
+        project_name: 'TEST_PROJECT_' + Date.now(),
+        start_date: '2025-01-01',
+        end_date: '2025-12-31',
+        total_we: 100,
+        state_code: 'BY'
+      }
+      
+      const { data: insertData, error: insertError } = await supabase
+        .from('project_settings')
+        .upsert(testEntry, { onConflict: 'project_name' })
+        .select()
+      
+      if (insertError) {
+        output.textContent += `❌ Fehler beim Schreiben: ${insertError.message}\n`
+        output.textContent += `   Code: ${insertError.code}\n`
+        output.textContent += `   Details: ${insertError.details}\n`
+        output.textContent += `   Hint: ${insertError.hint}\n\n`
+        
+        if (insertError.code === 'PGRST301') {
+          output.textContent += '⚠️ RLS-Policy blockiert das Schreiben!\n'
+          output.textContent += '   Die Tabelle existiert, aber RLS verhindert das Schreiben.\n'
+        }
+      } else {
+        output.textContent += `✅ Schreiben erfolgreich!\n`
+        output.textContent += `   Test-Projekt "${testEntry.project_name}" wurde gespeichert.\n`
+      }
+    }
+    
+    test()
+  </script>
+</body>
+</html>
