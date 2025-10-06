@@ -167,15 +167,15 @@ export default function VPAnalytics({ vp, projectName, projectTotalWE, timeRange
         </div>
       </div>
 
-      {/* Reihe 2: Status-Pie + Stunden + Summary nebeneinander (320px) */}
+      {/* Reihe 2: Status-Pie + Stunden + Summary nebeneinander (360px) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-        <div style={{ background: 'white', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 320 }}>
+        <div style={{ background: 'white', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 360 }}>
           <canvas ref={statusBreakdownRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 320 }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 360 }}>
           <canvas ref={hourlyActivityRef} style={{ width: '100%', height: '100%' }} />
         </div>
-        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 320, overflow: 'auto' }}>
+        <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', height: 360 }}>
           <h3 style={{ marginBottom: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>📋 Zusammenfassung</h3>
           <div className="table-container" style={{ border: 'none' }}>
             <table>
