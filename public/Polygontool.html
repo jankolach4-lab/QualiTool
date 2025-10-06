@@ -208,11 +208,16 @@
       } catch(e){ console.warn('getCityBias error', e); return null; }
     }
 
-    async function geocodeAddress(fullAddress, index, updateMarker=false){
+    async function geocodeAddress(fullAddress, index, updateMarker=false, retryCount=0){
+      const MAX_RETRIES = 2;
       try{
         const cached=localStorage.getItem(`geocode_${fullAddress}`);
         if(cached){ const loc=JSON.parse(cached); addresses[index].lat=loc.lat; addresses[index].lon=loc.lon; if(updateMarker&&markers[index]&&map){ const we=addresses[index].WE; const color=we===1?colorWE1:we===2?colorWE2:colorWE3; markers[index].setLatLng([loc.lat, loc.lon]); markers[index].setStyle({color}); markers[index].bindPopup(createPopupContent(addresses[index], index)); addresses[index].originalColor=color; } return true; }
         const a = addresses[index] || {}; const plz = (a.PLZ||'').toString().replace(/[^0-9]/g,''); const ort = (a.Ort||'').toString().trim(); const str = (a.Straße||'').toString().trim(); const hnr = (a.Nummer||'').toString().trim(); const zus = (a.Zusatz||'').toString().trim();
+        
+        // Log für Debugging
+        console.log(`[Geocode #${index}] Versuche: ${str} ${hnr}, ${plz} ${ort}${retryCount > 0 ? ` (Retry ${retryCount})` : ''}`);
+        
         const streetLineFull = `${str} ${hnr}${zus? ' '+zus: ''}`.trim();
         const streetLineNoZus = `${str} ${hnr}`.trim();
         const streetOnly = `${str}`.trim();
@@ -221,26 +226,77 @@
         const headers = { 'User-Agent':'QualiDashboard-Polygontool/1.0 (contact: info@jl-dashboard.de)' };
         let found = null;
 
-        // 1) Strukturierte Suche mit limit=5, optionaler Stadt-Viewbox-Bias
+        // 1) Strukturierte Suche mit limit=10 (erhöht von 5), optionaler Stadt-Viewbox-Bias
         const bias = await getCityBias(plz, ort);
         for(const v of variants){
-          let url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=de&accept-language=de&street=${encodeURIComponent(v)}&city=${encodeURIComponent(ort)}&postalcode=${encodeURIComponent(plz||'')}`;
+          let url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=10&countrycodes=de&accept-language=de&street=${encodeURIComponent(v)}&city=${encodeURIComponent(ort)}&postalcode=${encodeURIComponent(plz||'')}`;
           if(bias){
             url += `&viewbox=${bias.west},${bias.north},${bias.east},${bias.south}&bounded=1`;
           }
-          const resp = await fetch(url, { headers });
-          const arr = await resp.json();
-          if(Array.isArray(arr) && arr.length>0){ found = pickBestCandidate(arr, str, plz, hnr); if(found) break; }
+          try {
+            const resp = await fetch(url, { headers });
+            if (!resp.ok) {
+              console.warn(`[Geocode #${index}] HTTP ${resp.status} für ${v}`);
+              continue;
+            }
+            const arr = await resp.json();
+            if(Array.isArray(arr) && arr.length>0){ 
+              found = pickBestCandidate(arr, str, plz, hnr); 
+              if(found) {
+                console.log(`[Geocode #${index}] ✓ Gefunden via strukturiert: ${v}`);
+                break; 
+              }
+            }
+          } catch(e) {
+            console.warn(`[Geocode #${index}] Fehler bei strukturierter Suche: ${e.message}`);
+          }
+          await sleep(150); // Kurze Pause zwischen Varianten
         }
-        // 2) Fallback: Freitext (q) mit Bias
+        
+        // 2) Fallback: Freitext (q) mit mehr Varianten
         if(!found){
-          const qVariants = [ `${str} ${hnr}, ${plz} ${ort}, Deutschland`, `${str}, ${plz} ${ort}, Deutschland`, `${str} ${hnr}, ${ort}, Deutschland` ];
+          const qVariants = [ 
+            `${str} ${hnr}, ${plz} ${ort}, Deutschland`,
+            `${str} ${hnr}, ${ort}, Deutschland`,
+            `${str}, ${plz} ${ort}, Deutschland`,
+            `${plz} ${ort}, ${str} ${hnr}`,
+            `${ort}, ${str} ${hnr}`
+          ];
           for(const q of qVariants){
-            let url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=de&accept-language=de&q=${encodeURIComponent(q)}`;
-            if(bias){ url += `&viewbox=${bias.west},${bias.north},${bias.east},${bias.south}&bounded=1`; }
+            let url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=10&countrycodes=de&accept-language=de&q=${encodeURIComponent(q)}`;
+            if(bias){ url += `&viewbox=${bias.west},${bias.north},${bias.east},${bias.south}`; } // bounded=1 entfernt für mehr Flexibilität
+            try {
+              const resp = await fetch(url, { headers });
+              if (!resp.ok) continue;
+              const arr = await resp.json();
+              if(Array.isArray(arr) && arr.length>0){ 
+                found = pickBestCandidate(arr, str, plz, hnr); 
+                if(found) {
+                  console.log(`[Geocode #${index}] ✓ Gefunden via Freitext: ${q}`);
+                  break; 
+                }
+              }
+            } catch(e) {
+              console.warn(`[Geocode #${index}] Fehler bei Freitext-Suche: ${e.message}`);
+            }
+            await sleep(150);
+          }
+        }
+        
+        // 3) Letzte Chance: Nur Stadt + PLZ für ungefähre Position
+        if(!found && plz && ort){
+          const fallbackQ = `${plz} ${ort}, Deutschland`;
+          const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&countrycodes=de&accept-language=de&q=${encodeURIComponent(fallbackQ)}`;
+          try {
             const resp = await fetch(url, { headers });
             const arr = await resp.json();
-            if(Array.isArray(arr) && arr.length>0){ found = pickBestCandidate(arr, str, plz, hnr); if(found) break; }
+            if(Array.isArray(arr) && arr.length>0){ 
+              found = arr[0];
+              console.log(`[Geocode #${index}] ⚠ Nur Stadt gefunden (ungenau): ${fallbackQ}`);
+              addresses[index].geocodeApproximate = true; // Markierung für ungenaue Geokodierung
+            }
+          } catch(e) {
+            console.warn(`[Geocode #${index}] Fehler bei Stadt-Fallback: ${e.message}`);
           }
         }
 
@@ -250,8 +306,30 @@
           if(updateMarker&&markers[index]&&map){ const we=addresses[index].WE; const color=we===1?colorWE1:we===2?colorWE2:colorWE3; markers[index].setLatLng([addresses[index].lat, addresses[index].lon]); markers[index].setStyle({color}); markers[index].bindPopup(createPopupContent(addresses[index], index)); addresses[index].originalColor=color; }
           return true;
         }
+        
+        // Retry bei Fehler
+        if(retryCount < MAX_RETRIES) {
+          console.log(`[Geocode #${index}] Retry nach 2 Sekunden...`);
+          await sleep(2000);
+          return await geocodeAddress(fullAddress, index, updateMarker, retryCount + 1);
+        }
+        
+        console.error(`[Geocode #${index}] ✗ FAILED nach ${retryCount + 1} Versuchen: ${fullAddress}`);
         return false;
-      } catch(e){ console.error('Geocode error', e); return false; }
+      } catch(e){ 
+        console.error(`[Geocode #${index}] Exception:`, e);
+        // Retry bei Exception
+        if(retryCount < MAX_RETRIES) {
+          await sleep(2000);
+          return await geocodeAddress(fullAddress, index, updateMarker, retryCount + 1);
+        }
+        return false; 
+      }
+    }
+    
+    // Sleep helper
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     // === Toleranter Excel-Import ===
