@@ -22,10 +22,35 @@ body {
   line-height: 1.5;
 }
 
-.header { background: white; border-bottom: 2px solid var(--gray-200); padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); position: sticky; top: 0; z-index: 100; }
-.logo { font-size: 1.5rem; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; }
-.controls { display: flex; gap: 0.5rem; align-items: center; }
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: white;
+  border-bottom: 2px solid var(--gray-200);
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* Controls rechts */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
 
+/* zentrierter Marken-Schriftzug */
+.brand-centered {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--primary);
+  letter-spacing: 0.2px;
+}
+.brand-centered img { display: block; filter: drop-shadow(0 1px 0 rgba(0,0,0,0.08)); }
+
+.controls { display: flex; gap: 0.5rem; align-items: center; }
 .select, .input { padding: 0.4rem 0.6rem; border: 1px solid var(--gray-300); border-radius: 0.5rem; background: white; font-size: 0.85rem; }
 .btn { padding: 0.4rem 0.7rem; border: none; border-radius: 0.5rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.4rem; }
 .btn-primary { background: var(--primary); color: white; }
@@ -47,15 +72,16 @@ body {
 
 table { width: 100%; border-collapse: collapse; }
 th { background: var(--gray-50); padding: 0.75rem; text-align: left; font-size: 0.7rem; font-weight: 700; color: var(--gray-700); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid var(--gray-200); }
+
 td { padding: 0.75rem; border-bottom: 1px solid var(--gray-100); font-size: 0.85rem; }
 
-/* Alternierende Zeilenfärbung: 1. Zeile blassblau (etwas dunkler) */
+/* Alternierende Zeilenfärbung */
 table tbody tr:nth-child(odd) { background: rgba(37, 99, 235, 0.10); }
+
 table tbody tr:hover { background: var(--gray-50); cursor: pointer; }
 
 tr.selected { background: rgba(37, 99, 235, 0.12); border-left: 4px solid var(--primary); }
 
-/* Entferne farbige Zahlen-Badges */
 .badge, .badge-success, .badge-warning, .badge-primary { background: transparent !important; color: inherit !important; padding: 0 !important; border-radius: 0; }
 
 .alert { padding: 0.75rem; border-radius: 0.5rem; margin-bottom: 0.75rem; }
@@ -72,4 +98,9 @@ tr.selected { background: rgba(37, 99, 235, 0.12); border-left: 4px solid var(--
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-@media (max-width: 768px) { .main { padding: 0.75rem; } .overview-grid { grid-template-columns: 1fr; gap: 0.75rem; } .controls { flex-direction: column; gap: 0.4rem; } }
+@media (max-width: 768px) {
+  .main { padding: 0.75rem; }
+  .overview-grid { grid-template-columns: 1fr; gap: 0.75rem; }
+  .controls { gap: 0.4rem; }
+  .brand-centered { font-size: 1.05rem; }
+}

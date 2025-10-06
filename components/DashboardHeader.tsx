@@ -13,10 +13,13 @@ interface DashboardHeaderProps {
 export default function DashboardHeader({ onRefresh, onDebug, onLogout, timeRangeDays, onTimeRangeChange }: DashboardHeaderProps) {
   return (
     <header className="header">
-      <div className="logo">
-        <i className="fas fa-chart-line"></i>
-        Admin Dashboard Pro
+      {/* zentrierte Marke */}
+      <div className="brand-centered" aria-label="Admin Dashboard Pro">
+        <img src="/brand-icon.svg" alt="Logo" width={22} height={22} />
+        <span>Admin Dashboard Pro</span>
       </div>
+
+      {/* rechte Steuerleiste */}
       <div className="controls">
         <a
           className="btn btn-secondary"
