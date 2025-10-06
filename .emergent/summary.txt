@@ -1,91 +1,112 @@
 <analysis>
-The AI engineer's work involved a challenging transition from a static HTML dashboard to a Next.js application, complicated by persistent issues with Git synchronization and Vercel deployment. Initially, the AI debugged an existing static HTML dashboard, then pivoted to a full Next.js rebuild upon user clarification regarding the desired technology and deployment platform. This migration phase was heavily impacted by the AI's inability to reliably push changes to GitHub from the container, necessitating frequent manual user intervention for file creation and Git operations.
-
-Once a basic Next.js structure was deployed, the core challenge shifted to data integration and display. Row Level Security (RLS) in Supabase was identified as the reason for incomplete data retrieval, which was resolved by creating specific read-only policies. Subsequently, the AI focused on implementing detailed analytics features, clarifying data structures for time-series and status-based analyses, and initiating the development of React components for charts and detailed tables.
+The previous AI engineer successfully transformed a static dashboard into a Next.js application, integrating Supabase for data and authentication. Key challenges included initial Git/Vercel synchronization, resolved by user intervention. Data integration involved handling Supabase RLS and processing  and  for complex analytics. The AI developed comprehensive Project and VP Analytics, including various charts and tables, clarifying data logic for current status and history. Significant effort was dedicated to refining UI/UX based on user feedback (layout, typography, card sizes, table styling). The Projection Tool was implemented with holiday calculations and manual WE input. A  was integrated for geocoding, which required extensive debugging and improvement for Excel import robustness and geocoding accuracy. Finally, project settings persistence was moved from  to Supabase, necessitating a new  table and RLS policies. The trajectory shows a methodical approach to feature development and iterative refinement.
 </analysis>
 
 <product_requirements>
-The goal is to maintain a Qualifizierungstool (Android app) and build a robust Admin Dashboard providing real-time analytics. The dashboard must feature:
-- **Overall View:** Total projects, VPs, and residential units (WE).
-- **Project Table:** Tabular data for Project (City), WE, VP count, direct completions, status percentage, and progress bar, with clickable rows for drill-down.
-- **Project Analytics:** Charts for daily completions, daily status changes, status breakdown (pie chart), status table, and a project projection tool with holiday detection.
-- **VP Table:** Lists VPs within a selected project, showing name, WE, completions, and completion percentages, with clickable rows.
-- **VP Analytics:** Charts for daily completions, daily status changes, status breakdown (pie chart), status table, hourly activity, and a summary table.
-- **Time Range:** Selectable periods (7, 14, 30, 90, 120 days) for bar charts.
-- **Data Source:** Primarily  JSONB field in Supabase, supplemented by  for VP names.
-- **Design:** Simple, professional, comprehensive with Admin Dashboard Pro title.
-- **Authentication:** Functional login via  (now ).
+The Qualifizierungstool admin dashboard provides real-time analytics for projects and VPs. It needs:
+-   **Overall View:** Total projects, VPs, and residential units (WE).
+-   **Project Table:** Details for Project (City), WE, VP count, completions, status percentage, progress bar; clickable rows. Alternating row colors, no colored badges.
+-   **Project Analytics:** Charts for daily completions, daily status changes, status breakdown (pie chart with unique colors for each status), status table. Initial daily charts side-by-side, status breakdown next to status table. All charts/tables are dynamic based on selected time range.
+-   **Project Projection Tool:** Input for start/end dates, manual total WE, and federal state (Bundesland) for holiday-aware completion forecasting. Forecast capped at total WE, displayed as whole number for completions, 2 decimals for percentage.
+-   **VP Table:** Lists VPs for selected project, showing name, WE (project-specific), completions (project-specific), completion percentages (project-specific); clickable rows. Alternating row colors, no colored badges.
+-   **VP Analytics:** Charts for daily completions, daily status changes, status breakdown (pie chart with unique colors), hourly activity (with day selector within the card, defaults to current day), summary table. Initial daily charts side-by-side, status breakdown, hourly activity, and summary side-by-side.
+-   **Time Range:** Selectable periods (7, 14, 30, 90, 120 days) for bar charts.
+-   **Data Source:**  JSONB field and  from Supabase.
+-   **Design:** Professional Admin Dashboard Pro title (left-aligned with cards, with an icon). Compact layout with specific card heights (Row 1: 280px, Row 2: 320-360px), Inter font.
+-   **Authentication:** Functional login via . Admin whitelist functionality is a deferred consideration.
+-   **External Tool Integration:** Polygontool linked from dashboard header, opens in new tab, for geocoding addresses and managing polygons. The tool needs robust Excel import (flexible headers, WE default to 1) and improved geocoding (structured search, viewbox bias, street variations). Polygon coloring on map must accurately reflect  status.
+-   **Persistence:** Project settings (start/end dates, manual total WE, federal state) must persist in Supabase.
 </product_requirements>
 
 <key_technical_concepts>
-- **Frontend:** Next.js (React, TypeScript), HTML, CSS (inline styling and ).
-- **Backend-as-a-Service (BaaS):** Supabase (PostgreSQL, Authentication, Row Level Security).
-- **Database:** PostgreSQL with  data type (),  table.
-- **Charting Library:** Chart.js, .
-- **Date Manipulation:** .
-- **Deployment:** Vercel.
+-   **Frontend:** Next.js (React, TypeScript), HTML, CSS (), Chart.js with .
+-   **BaaS:** Supabase (PostgreSQL, Authentication, Row Level Security).
+-   **Database:** PostgreSQL with  (), ,  tables.
+-   **Date/Time:** , .
+-   **Deployment:** Vercel.
 </key_technical_concepts>
 
 <code_architecture>
 
 
 -   ****:
-    -   **Importance**: The main dashboard page, serving as the entry point for the core analytics display.
-    -   **Changes Made**: Has undergone significant evolution. Initially contained mock data, then refactored to fetch and process  and  data. Currently being extended to integrate  and  components, processing status history for time-based charts and current status for breakdowns. It contains the primary data fetching and processing logic.
+    -   **Importance**: The main dashboard page, entry point for analytics.
+    -   **Changes**: Refactored to fetch , , and . Integrates , , and conditionally . Contains core data processing logic, including  slicing for VPs and  defaulting to 1. TypeScript casting for  fixed a build error.
 
 -   ****:
-    -   **Importance**: Defines the overall HTML structure and includes global CSS and external libraries like Font Awesome.
-    -   **Changes Made**: Updated to include Font Awesome CSS.
+    -   **Importance**: Defines overall HTML structure.
+    -   **Changes**: Updated to include Google Fonts (Inter) for a more serious typography.
 
 -   ****:
-    -   **Importance**: Global CSS styling for the Next.js application.
-    -   **Changes Made**: Contains styling for a professional, responsive dashboard.
+    -   **Importance**: Global CSS styling.
+    -   **Changes**: Styling for professional, responsive dashboard, including compact elements, alternating row colors (darker pale blue), header adjustments for title/KPIs, and consistent card heights.
 
 -   ****:
-    -   **Importance**: Dedicated login and registration page for user authentication with Supabase.
-    -   **Changes Made**: Created as part of the Next.js migration.
+    -   **Importance**: Login/registration page.
+    -   **Changes**: Read for analysis, but no direct functional code changes related to new login issues (diagnostics provided to user).
 
 -   ****:
-    -   **Importance**: Initializes the Supabase client and defines TypeScript interfaces for data structures.
-    -   **Changes Made**: Updated with interfaces for , , , , and aggregated data types (, ) to support analytics requirements. Fallback values were added for Supabase environment variables.
+    -   **Importance**: Header with navigation and filters.
+    -   **Changes**: Title Admin Dashboard Pro moved to left-aligned with cards, new  added, Polygontool button added, linking to  (opens in new tab). KPI numbers typography made smaller and neutral.
 
 -   ****:
-    -   **Importance**: Component responsible for rendering project-specific analytical charts and tables.
-    -   **Changes Made**: Created to house charts for daily completions, daily status changes, and status breakdown.
+    -   **Importance**: Displays project-specific charts and tables.
+    -   **Changes**: Layout adjusted for daily charts side-by-side (Row 1: 280px), status breakdown next to status table (Row 2: 320px), uniform status-based colors for pie charts, uses manual  for percentages, badges removed.
 
 -   ****:
-    -   **Importance**: Displays a table of VPs associated with a selected project.
-    -   **Changes Made**: Created and integrated into the Next.js structure.
-
--   ** & **:
-    -   **Importance**: Configuration for Next.js and TypeScript.
-    -   **Changes Made**:  was modified to ignore the old  directory to prevent compilation errors from the legacy React app.
+    -   **Importance**: New component for project forecasting.
+    -   **Changes**: Implemented for start/end dates, manual , federal state selection. Forecast calculation based on 5-day week and state-specific holidays. Forecast completions as whole number, percentage 2 decimals. Data stored/retrieved from  and  (Supabase).
 
 -   ****:
-    -   **Importance**: Vercel deployment configuration, including rewrites.
-    -   **Changes Made**: Updated to correct root route redirection to the login page.
+    -   **Importance**: Table of projects.
+    -   **Changes**: Alternating row coloring implemented, badges removed, uses manual  for WE column, status percentage, and progress bar.
+
+-   ****:
+    -   **Importance**: Displays VP-specific charts and tables.
+    -   **Changes**: Layout adjusted for daily charts side-by-side (Row 1: 280px), status breakdown, hourly activity (with date selector in card, defaults to current day), and summary table side-by-side (Row 2: 360px). Uses project-specific data ( slices), manual  for project percentages, uniform status-based colors, badges removed. Card height increased to 360px for Row 2 to prevent summary scrollbar.
+
+-   ****:
+    -   **Importance**: Table of VPs within a project.
+    -   **Changes**: Columns now display project-specific WE, completions, percentages, reflecting the  slicing.
+
+-   ****:
+    -   **Importance**: New utility file for consistent color assignment.
+    -   **Changes**: Created to provide a  function with predefined colors for common statuses and hash-based HSL for others, ensuring unique colors in pie charts.
+
+-   ****:
+    -   **Importance**: Supabase client, type definitions.
+    -   **Changes**: Updated with interfaces for  to support Supabase persistence. Implements  defaulting to 1 for .
+
+-   ****:
+    -   **Importance**: Hosts the geocoding and polygon tool.
+    -   **Changes**: Initially an  to external URL, then fully embedded locally. Improved Excel import (flexible column aliases, header autodetect, WE default to 1). Enhanced geocoding (structured search, viewbox bias, street variations, candidate scoring). Fixed point-in-polygon logic (swapped lat/lng).
+
+-   ****:
+    -   **Changes**:  added.
+
+-   **Supabase Schema ( table - user-executed SQL)**:
+    -   **Importance**: Stores project-specific settings persistently.
+    -   **Schema**:  (PK), , , , , . RLS policies proposed for read/write access.
 </code_architecture>
 
 <pending_tasks>
--   **Implement Excel Export**: This functionality was requested and existed in the old dashboard.
--   **Fix WE-Korrekturen Sync**: The issue of WE-Korrekturen (unit corrections) not saving to Supabase.
--   **Complete Project Analytics**: Implement full charting (daily completions, status changes, status breakdown, status table) based on processed data.
--   **Implement VP Analytics**: Create charts (daily completions, status changes, status breakdown, hourly activity, summary table) and populate them.
--   **Implement Project Projection Tool**: Develop start/end date input with holiday detection for completion rate forecasting.
+-   **Implement Excel Export**: Deferred to the end.
+-   **Fix WE-Korrekturen Sync**: Deferred to later.
+-   **Admin User Management**: Admin whitelist RLS setup and optional client-side checks for the  table. The option to implement an Invite by Email feature within the dashboard.
+-   **Projection Tool Enhancements**: Optional UI hint for manual WE, Bundesland selection persistence in Supabase, alternative rate models for projection (e.g., moving average), or a small badge with forecast on project card.
+-   **Polygontool Enhancements**: Further geocoding improvements for difficult addresses or integration of a second geocoding provider (e.g., OpenCage) with an API key. Consider standard behavior for points exactly on the polygon boundary.
 </pending_tasks>
 
 <current_work>
-Immediately prior to this summary, the AI engineer was deep into implementing the detailed analytics features requested by the user. The primary focus was on extending the data processing logic within  to correctly derive the necessary metrics for project and VP analytics from the  and  Supabase tables, particularly utilizing the  for time-series data and the  field for current breakdowns.
+Immediately prior to this summary, the AI engineer focused on implementing Supabase persistence for project-specific settings, including start/end dates, manual total WE, and federal state code. This involved preparing the client-side logic to fetch and upsert data to a new  table in Supabase, while also maintaining  synchronization for existing components.
 
-The AI clarified the data logic with the user:
-1.  **Current Status (for Status-Breakdown):** Use the  field directly for pie charts and tables.
-2.  **StatusHistory (for Time-Based Analytics):** Parse  entries to count daily completions (status abschluss), daily status changes, and hourly VP activity using the Sat Oct  4 16:09:15 UTC 2025 field.
-
-The engineer then implemented the extended data processing and updated the TypeScript interfaces in  to accommodate new aggregated data fields (e.g., , , ).
-
-Following this, the AI began implementing the Chart.js components. Specifically, it created  (to display project-specific charts) and was in the process of creating/integrating  and likely  to display individual VP details and their respective charts. The last action was: Jetzt integriere ich die ProjectAnalytics in die Hauptseite und erstelle die VP-Analytics. indicating the shift from data processing to UI component integration for analytics.
+Concurrently, the AI refined several UI/UX aspects:
+-   The Admin Dashboard Pro title was precisely left-aligned with the content cards.
+-   The date selection field for hourly VP activity was integrated directly into its respective card within  and now defaults to the current day.
+-   The AI also provided the complete SQL block for the user to create the  table in Supabase, along with detailed explanations on RLS policies (for authenticated users or an existing ), ensuring the user understands how to correctly enable read/write access for the new table without affecting existing database structures.
+The SQL provided is a ready-to-run script for table creation, trigger for , and policies for authenticated users, with commented-out options for .
 </current_work>
 
 <optional_next_step>
-Integrate  into , ensuring all VP-specific charts and tables are correctly displayed and populated with processed data.
+The next step is to test the newly implemented Supabase persistence for project settings by deploying the application and verifying that values persist after page reloads.
 </optional_next_step>
