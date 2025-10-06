@@ -397,17 +397,39 @@
           // Sanity: Mindestfelder müssen befüllt sein
           if(obj.PLZ||obj.Ort||obj.Straße||obj.Nummer){ addresses.push(obj); }
         }
-        // Geokodierung batched
-        let geocodedCount=0; const batchSize=10;
-        for(let i=0;i<addresses.length;i+=batchSize){
-          const batch = addresses.slice(i, i+batchSize);
-          const promises = batch.map((address, j)=>{
-            const fullAddress = `${address.Straße} ${address.Nummer}${address.Zusatz?' '+address.Zusatz:''}, ${address.PLZ} ${address.Ort}, Deutschland`;
-            return geocodeAddress(fullAddress, i+j).then(success=>{ if(success && map){ const we=address.WE; const color=we===1?colorWE1:we===2?colorWE2:colorWE3; const marker=L.circleMarker([address.lat,address.lon],{radius:5,color,fillOpacity:0.8}); marker.bindPopup(createPopupContent(address,i+j)); markerClusterGroup.addLayer(marker); markers.push(marker); address.originalColor=color; geocodedCount++; } else { failedAddresses.push({ index:i+j, address }); } });
-          });
-          await Promise.all(promises);
-          await new Promise(res=>setTimeout(res,1100));
+        // Geokodierung sequentiell (stabiler als parallel)
+        let geocodedCount=0;
+        console.log(`[Import] Starte Geokodierung von ${addresses.length} Adressen...`);
+        
+        for(let i=0; i<addresses.length; i++){
+          const address = addresses[i];
+          const fullAddress = `${address.Straße} ${address.Nummer}${address.Zusatz?' '+address.Zusatz:''}, ${address.PLZ} ${address.Ort}, Deutschland`;
+          
+          // Update loading message
+          document.getElementById('loading').textContent = `Geokodiere ${i+1}/${addresses.length}: ${address.Straße} ${address.Nummer}, ${address.Ort}...`;
+          
+          const success = await geocodeAddress(fullAddress, i);
+          
+          if(success && map){ 
+            const we=address.WE; 
+            const color=we===1?colorWE1:we===2?colorWE2:colorWE3; 
+            const marker=L.circleMarker([address.lat,address.lon],{radius:5,color,fillOpacity:0.8}); 
+            marker.bindPopup(createPopupContent(address,i)); 
+            markerClusterGroup.addLayer(marker); 
+            markers.push(marker); 
+            address.originalColor=color; 
+            geocodedCount++; 
+          } else { 
+            console.warn(`[Import] Failed: ${fullAddress}`);
+            failedAddresses.push({ index:i, address }); 
+          }
+          
+          // Längere Pause zwischen Anfragen (Nominatim rate limit: 1 request/second)
+          await sleep(1200);
         }
+        
+        console.log(`[Import] Fertig: ${geocodedCount}/${addresses.length} erfolgreich geokodiert, ${failedAddresses.length} fehlgeschlagen`);
+        document.getElementById('loading').textContent = 'Adressen werden importiert...';
         if(failedAddresses.length>0) displayFailedAddresses();
         if(markers.length>0 && map){ map.fitBounds(markerClusterGroup.getBounds()); showSuccess(`Adressimport abgeschlossen: ${geocodedCount} Adressen auf der Karte.`); } else { showError('Keine Adressen konnten geokodiert werden.'); }
         saveToLocalStorage(); updateWohneinheitenCount(); document.getElementById('loading').style.display='none';
