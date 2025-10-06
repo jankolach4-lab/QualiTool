@@ -348,7 +348,25 @@
     function applyCustomColors(){ colorWE1=document.getElementById('colorWE1').value; colorWE2=document.getElementById('colorWE2').value; colorWE3=document.getElementById('colorWE3').value; addresses.forEach((addr,i)=>{ if(markers[i]){ const we=addr.WE; const color=we===1?colorWE1:we===2?colorWE2:colorWE3; addr.originalColor=color; const isInsideAny=polygons.some(p=>isPointInPolygon(addr.lat, addr.lon, p.layer)); if(!isInsideAny) markers[i].setStyle({color}); }}); saveToLocalStorage(); }
     function clearLocalStorage(){ localStorage.removeItem('addresses'); localStorage.removeItem('employees'); localStorage.removeItem('polygons'); addresses=[]; employees=[]; polygons=[]; markerClusterGroup.clearLayers(); markers=[]; drawnItems.clearLayers(); updateEmployeeSelect(); updatePolygonSelect(); updateWohneinheitenCount(); document.getElementById('failedAddresses').style.display='none'; }
 
-    function isPointInPolygon(lat,lng,polygon){ try{ const point=L.latLng(lat,lng); const polyPoints=polygon.getLatLngs()[0]; const bounds=L.polygon(polyPoints).getBounds(); if(!bounds.contains(point)) return false; let inside=false; for(let i=0,j=polyPoints.length-1;i<polyPoints.length;j=i++){ const xi=polyPoints[i].lat, yi=polyPoints[i].lng; const xj=polyPoints[j].lat, yj=polyPoints[j].lng; const intersect=((yi>lng)!==(yj>lng)) && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi); if(intersect) inside=!inside; } return inside; } catch(e){ console.error('PointInPolygon error', e); return false; } }
+    function isPointInPolygon(lat,lng,polygon){
+      try{
+        // Use standard ray-casting with x=lng, y=lat
+        const point = L.latLng(lat,lng);
+        const rings = polygon.getLatLngs();
+        const polyPoints = Array.isArray(rings[0]) ? rings[0] : rings; // handle simple polygon
+        const bounds = L.polygon(polyPoints).getBounds();
+        if(!bounds.contains(point)) return false;
+        const x = lng; const y = lat;
+        let inside=false;
+        for(let i=0,j=polyPoints.length-1;i<polyPoints.length;j=i++){
+          const xi = polyPoints[i].lng, yi = polyPoints[i].lat; // x=lng, y=lat
+          const xj = polyPoints[j].lng, yj = polyPoints[j].lat;
+          const intersect = ((yi>y)!==(yj>y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+          if(intersect) inside = !inside;
+        }
+        return inside;
+      }catch(e){ console.error('PointInPolygon error', e); return false; }
+    }
 
     function updateWohneinheitenCount(){ const polygonId=document.getElementById('polygonSelect').value; const selectedPolygon=polygons.find(p=>p.polygonId===polygonId); if(!selectedPolygon){ document.getElementById('weCount').textContent='Wohneinheiten im Polygon: 0'; addresses.forEach((addr,i)=>{ if(markers[i]&&addr.originalColor) markers[i].setStyle({color:addr.originalColor}); }); return; } const coords=selectedPolygon.layer.getLatLngs()[0]; if(!coords||coords.length<3) return showError('Ungültiges Polygon: Mindestens 3 Punkte erforderlich.'); let totalWE=0; addresses.forEach((addr,i)=>{ if(addr.lat&&addr.lon){ const isInside=isPointInPolygon(addr.lat, addr.lon, selectedPolygon.layer); if(isInside){ totalWE += (Number.isFinite(addr.WE)?addr.WE:1); if(markers[i]) markers[i].setStyle({color:'#FF0000'}); } else { if(markers[i]&&addr.originalColor) markers[i].setStyle({color:addr.originalColor}); } } }); document.getElementById('weCount').textContent = `Wohneinheiten im Polygon: ${totalWE}`; }
 
