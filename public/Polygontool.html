@@ -368,7 +368,27 @@
       }catch(e){ console.error('PointInPolygon error', e); return false; }
     }
 
-    function updateWohneinheitenCount(){ const polygonId=document.getElementById('polygonSelect').value; const selectedPolygon=polygons.find(p=>p.polygonId===polygonId); if(!selectedPolygon){ document.getElementById('weCount').textContent='Wohneinheiten im Polygon: 0'; addresses.forEach((addr,i)=>{ if(markers[i]&&addr.originalColor) markers[i].setStyle({color:addr.originalColor}); }); return; } const coords=selectedPolygon.layer.getLatLngs()[0]; if(!coords||coords.length<3) return showError('Ungültiges Polygon: Mindestens 3 Punkte erforderlich.'); let totalWE=0; addresses.forEach((addr,i)=>{ if(addr.lat&&addr.lon){ const isInside=isPointInPolygon(addr.lat, addr.lon, selectedPolygon.layer); if(isInside){ totalWE += (Number.isFinite(addr.WE)?addr.WE:1); if(markers[i]) markers[i].setStyle({color:'#FF0000'}); } else { if(markers[i]&&addr.originalColor) markers[i].setStyle({color:addr.originalColor}); } } }); document.getElementById('weCount').textContent = `Wohneinheiten im Polygon: ${totalWE}`; }
+    function updateWohneinheitenCount(){
+      const polygonId=document.getElementById('polygonSelect').value;
+      const selectedPolygon=polygons.find(p=>p.polygonId===polygonId);
+      if(!selectedPolygon){
+        document.getElementById('weCount').textContent='Wohneinheiten im Polygon: 0';
+        addresses.forEach((addr,i)=>{ if(markers[i]&&addr.originalColor) markers[i].setStyle({color:addr.originalColor}); });
+        return;
+      }
+      const rings = selectedPolygon.layer.getLatLngs();
+      const coords = Array.isArray(rings[0]) ? rings[0] : rings;
+      if(!coords||coords.length<3) return showError('Ungültiges Polygon: Mindestens 3 Punkte erforderlich.');
+      let totalWE=0;
+      addresses.forEach((addr,i)=>{
+        if(addr.lat&&addr.lon){
+          const inside=isPointInPolygon(addr.lat, addr.lon, selectedPolygon.layer);
+          if(markers[i]) markers[i].setStyle({color: inside ? '#FF0000' : (addr.originalColor||'#000')});
+          if(inside){ totalWE += (Number.isFinite(addr.WE)?addr.WE:1); }
+        }
+      });
+      document.getElementById('weCount').textContent = `Wohneinheiten im Polygon: ${totalWE}`;
+    }
 
     function testCSVExport(){ const dummy=[ {PLZ:'10115',Ort:'Berlin',Straße:'Hauptstraße',Nummer:'1',Zusatz:'A',WE:5}, {PLZ:'80331',Ort:'München',Straße:'Bahnhofstraße',Nummer:'10',Zusatz:'',WE:3} ]; exportAsCSV(dummy,'Test_Adressen.csv'); }
     function exportAsCSV(data, filename){ try{ const headers=['PLZ','Ort','Straße','Nummer','Zusatz','WE']; const esc=v=>{ if(v==null) return ''; return '"'+String(v).replace(/"/g,'""').replace(/\n/g,' ')+'"'; }; const csv=[ headers.join(','), ...data.map(r=>headers.map(h=>esc(r[h])).join(',')) ].join('\n'); const ta=document.getElementById('csvOutput'); ta.value=csv; ta.style.display='block'; const BOM='\uFEFF'; const blob=new Blob([BOM+csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const link=document.createElement('a'); link.href=url; link.download=filename; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); } catch(e){ showError('Fehler beim CSV-Export: '+(e.message||e)); } }
