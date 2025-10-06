@@ -81,13 +81,13 @@ export default function VPAnalytics({ vp, projectName, projectTotalWE, timeRange
         <div style={{ background:'white', padding:'0.5rem', borderRadius:'0.5rem', border:'1px solid var(--gray-200)', height:360 }}>
           <canvas ref={statusBreakdownRef} style={{ width:'100%', height:'100%' }} />
         </div>
-        <div style={{ background:'white', padding:'0.75rem', borderRadius:'0.5rem', border:'1px solid var(--gray-200)', height:360, display:'flex', flexDirection:'column' }}>
+        <div style={{ background:'white', padding:'0.75rem', borderRadius:'0.5rem', border:'1px solid var(--gray-200)', height:360, display:'flex', flexDirection:'column', overflow:'hidden' }}>
           <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', marginBottom:'0.5rem' }}>
             <label style={{ fontSize:12, color:'var(--gray-500)' }}>Tag:</label>
             <input className="input" type="date" value={selectedDay} onChange={(e)=>setSelectedDay(e.target.value)} style={{ maxWidth:180 }} />
           </div>
-          <div style={{ flex:1 }}>
-            <canvas ref={hourlyActivityRef} style={{ width:'100%', height:'100%' }} />
+          <div style={{ flex:1, minHeight:0, position:'relative' }}>
+            <canvas ref={hourlyActivityRef} style={{ width:'100%', height:'100%', maxHeight:'100%' }} />
           </div>
         </div>
         <div style={{ background:'white', padding:'0.75rem', borderRadius:'0.5rem', border:'1px solid var(--gray-200)', height:360, overflow:'auto' }}>
