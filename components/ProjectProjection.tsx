@@ -9,14 +9,36 @@ interface ProjectProjectionProps {
   project: ProjectData;
 }
 
+// Bundesländer-Auswahl (Code → Label)
+const STATES: { code: string; label: string }[] = [
+  { code: '', label: 'Bundesweit' },
+  { code: 'BW', label: 'Baden‑Württemberg' },
+  { code: 'BY', label: 'Bayern' },
+  { code: 'BE', label: 'Berlin' },
+  { code: 'BB', label: 'Brandenburg' },
+  { code: 'HB', label: 'Bremen' },
+  { code: 'HH', label: 'Hamburg' },
+  { code: 'HE', label: 'Hessen' },
+  { code: 'MV', label: 'Mecklenburg‑Vorpommern' },
+  { code: 'NI', label: 'Niedersachsen' },
+  { code: 'NW', label: 'Nordrhein‑Westfalen' },
+  { code: 'RP', label: 'Rheinland‑Pfalz' },
+  { code: 'SL', label: 'Saarland' },
+  { code: 'SN', label: 'Sachsen' },
+  { code: 'ST', label: 'Sachsen‑Anhalt' },
+  { code: 'SH', label: 'Schleswig‑Holstein' },
+  { code: 'TH', label: 'Thüringen' },
+]
+
 export default function ProjectProjection({ project }: ProjectProjectionProps) {
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
   const [manualTotalWE, setManualTotalWE] = useState<string>('')
+  const [stateCode, setStateCode] = useState<string>('') // Bundesland-Code
 
   React.useEffect(() => {
-    const key = `proj_dates_${project.name}`
-    const raw = typeof window !== 'undefined' ? localStorage.getItem(key) : null
+    const datesKey = `proj_dates_${project.name}`
+    const raw = typeof window !== 'undefined' ? localStorage.getItem(datesKey) : null
     if (raw) {
       try {
         const parsed = JSON.parse(raw)
@@ -27,6 +49,10 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
     const weKey = `proj_total_we_${project.name}`
     const storedWE = typeof window !== 'undefined' ? localStorage.getItem(weKey) : null
     if (storedWE) setManualTotalWE(storedWE)
+
+    const stKey = `proj_state_${project.name}`
+    const storedState = typeof window !== 'undefined' ? localStorage.getItem(stKey) : null
+    if (storedState !== null) setStateCode(storedState)
   }, [project.name])
 
   const persistDates = (s: string, e: string) => {
@@ -40,9 +66,15 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
     else localStorage.removeItem(weKey)
   }
 
+  const persistState = (code: string) => {
+    const stKey = `proj_state_${project.name}`
+    localStorage.setItem(stKey, code)
+  }
+
   const handleStartChange = (v: string) => { setStartDate(v); persistDates(v, endDate) }
   const handleEndChange = (v: string) => { setEndDate(v); persistDates(startDate, v) }
   const handleManualWEChange = (v: string) => { setManualTotalWE(v); persistManualWE(v) }
+  const handleStateChange = (v: string) => { setStateCode(v); persistState(v) }
 
   const effectiveTotalWE = useMemo(() => {
     const n = Number(manualTotalWE)
@@ -50,7 +82,13 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
   }, [manualTotalWE, project.totalWE])
 
   const { forecastInt, pct, workdaysElapsed, workdaysTotal, dailyRate } = useMemo(() => {
-    const hd = new Holidays('DE')
+    // Holidays: bundesweit oder bundeslandspezifisch
+    let hd: Holidays
+    try {
+      hd = stateCode ? new Holidays('DE', stateCode.toLowerCase()) : new Holidays('DE')
+    } catch {
+      hd = new Holidays('DE')
+    }
 
     const parse = (s?: string) => (s ? new Date(s + 'T00:00:00') : undefined)
     const sDate = parse(startDate)
@@ -59,8 +97,8 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
 
     const isWorkday = (d: Date) => {
       const day = d.getDay(); if (day === 0 || day === 6) return false
-      const iso = d.toISOString().slice(0,10)
-      return !hd.isHoliday(new Date(iso))
+      // hd.isHoliday akzeptiert Date; wenn Region gesetzt ist, wird diese berücksichtigt
+      return !hd.isHoliday(d)
     }
 
     const countWorkdays = (from: Date, to: Date) => {
@@ -89,7 +127,7 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
     }
 
     return { forecastInt, pct, workdaysElapsed, workdaysTotal, dailyRate }
-  }, [startDate, endDate, project.completions, effectiveTotalWE])
+  }, [startDate, endDate, project.completions, effectiveTotalWE, stateCode])
 
   return (
     <div className="section">
@@ -110,6 +148,14 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
         <div>
           <label style={{ fontSize: 12, color: 'var(--gray-500)' }}>Gesamt‑WE (manuell)</label>
           <input className="input" type="number" min={0} step={1} placeholder={`${project.totalWE}`} value={manualTotalWE} onChange={(e) => handleManualWEChange(e.target.value)} />
+        </div>
+        <div>
+          <label style={{ fontSize: 12, color: 'var(--gray-500)' }}>Bundesland</label>
+          <select className="select" value={stateCode} onChange={(e) => handleStateChange(e.target.value)}>
+            {STATES.map(s => (
+              <option key={s.code || 'DE'} value={s.code}>{s.label}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -147,7 +193,7 @@ export default function ProjectProjection({ project }: ProjectProjectionProps) {
       </div>
 
       <p style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: '0.5rem' }}>
-        Grundlage: 5‑Tage‑Woche (Mo–Fr), bundesweite Feiertage. Prognose basiert auf Durchschnitt seit Projektbeginn.
+        Grundlage: 5‑Tage‑Woche (Mo–Fr), Feiertage gemäß Auswahl (Bundesweit oder Bundesland).
       </p>
     </div>
   )
