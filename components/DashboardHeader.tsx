@@ -18,6 +18,17 @@ export default function DashboardHeader({ onRefresh, onDebug, onLogout, timeRang
         Admin Dashboard Pro
       </div>
       <div className="controls">
+        <a
+          className="btn btn-secondary"
+          href="https://jl-dashboard.de/Polygontool.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Polygontool in neuem Tab öffnen"
+          title="Polygontool"
+        >
+          <i className="fas fa-draw-polygon"></i>
+          Polygontool
+        </a>
         <select
           className="select"
           aria-label="Zeitraum"
