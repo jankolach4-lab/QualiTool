@@ -20,7 +20,7 @@ export default function DashboardHeader({ onRefresh, onDebug, onLogout, timeRang
       <div className="controls">
         <a
           className="btn btn-secondary"
-          href="https://jl-dashboard.de/Polygontool.html"
+          href="/Polygontool.html"
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Polygontool in neuem Tab öffnen"
