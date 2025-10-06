@@ -221,18 +221,23 @@
         const headers = { 'User-Agent':'QualiDashboard-Polygontool/1.0 (contact: info@jl-dashboard.de)' };
         let found = null;
 
-        // 1) Strukturierte Suche mit limit=5 und Filter
+        // 1) Strukturierte Suche mit limit=5, optionaler Stadt-Viewbox-Bias
+        const bias = await getCityBias(plz, ort);
         for(const v of variants){
-          const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=de&accept-language=de&street=${encodeURIComponent(v)}&city=${encodeURIComponent(ort)}&postalcode=${encodeURIComponent(plz||'')}`;
+          let url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=de&accept-language=de&street=${encodeURIComponent(v)}&city=${encodeURIComponent(ort)}&postalcode=${encodeURIComponent(plz||'')}`;
+          if(bias){
+            url += `&viewbox=${bias.west},${bias.north},${bias.east},${bias.south}&bounded=1`;
+          }
           const resp = await fetch(url, { headers });
           const arr = await resp.json();
           if(Array.isArray(arr) && arr.length>0){ found = pickBestCandidate(arr, str, plz, hnr); if(found) break; }
         }
-        // 2) Fallback: Freitext (q)
+        // 2) Fallback: Freitext (q) mit Bias
         if(!found){
           const qVariants = [ `${str} ${hnr}, ${plz} ${ort}, Deutschland`, `${str}, ${plz} ${ort}, Deutschland`, `${str} ${hnr}, ${ort}, Deutschland` ];
           for(const q of qVariants){
-            const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=de&accept-language=de&q=${encodeURIComponent(q)}`;
+            let url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=de&accept-language=de&q=${encodeURIComponent(q)}`;
+            if(bias){ url += `&viewbox=${bias.west},${bias.north},${bias.east},${bias.south}&bounded=1`; }
             const resp = await fetch(url, { headers });
             const arr = await resp.json();
             if(Array.isArray(arr) && arr.length>0){ found = pickBestCandidate(arr, str, plz, hnr); if(found) break; }
