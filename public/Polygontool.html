@@ -188,6 +188,26 @@
     function streetVariants(str){ const s = String(str||'').trim(); const base = s.replace(/str\.?\b/gi,'straße').replace(/strasse/gi,'straße'); const ascii = normGerman(base); const alt1 = base.replace(/straße/gi,'strasse'); const alt2 = base.replace(/straße/gi,'str'); return Array.from(new Set([base, alt1, alt2, ascii])); }
     function pickBestCandidate(cands, street, plz, hnr){ if(!Array.isArray(cands)||cands.length===0) return null; const ns = normGerman(street); const nh = String(hnr||'').trim(); let best = null; let bestScore = -1; for(const c of cands){ let sc=0; const addr=c.address||{}; if(addr.postcode && String(addr.postcode).trim()===String(plz).trim()) sc+=3; if(addr.road && normGerman(addr.road).includes(ns)) sc+=3; if(addr.house_number && String(addr.house_number).trim()===nh) sc+=2; if(c.importance) sc+=c.importance; if(sc>bestScore){ best=c; bestScore=sc; } } return best || cands[0]; }
 
+    // Stadt-Cache für Bias (Viewbox)
+    const cityBiasCache = {};
+    async function getCityBias(plz, ort){
+      try{
+        const key = `${plz}|${ort}`.toLowerCase();
+        if(cityBiasCache[key]) return cityBiasCache[key];
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&countrycodes=de&accept-language=de&city=${encodeURIComponent(ort)}&postalcode=${encodeURIComponent(plz||'')}`;
+        const resp = await fetch(url, { headers: { 'User-Agent':'QualiDashboard-Polygontool/1.0 (contact: info@jl-dashboard.de)' } });
+        const arr = await resp.json();
+        if(Array.isArray(arr) && arr.length>0){
+          const bb = arr[0].boundingbox; // [south, north, west, east]
+          if(bb && bb.length===4){
+            const viewbox = { west: Number(bb[2]), south: Number(bb[0]), east: Number(bb[3]), north: Number(bb[1]) };
+            cityBiasCache[key] = viewbox; return viewbox;
+          }
+        }
+        cityBiasCache[key] = null; return null;
+      } catch(e){ console.warn('getCityBias error', e); return null; }
+    }
+
     async function geocodeAddress(fullAddress, index, updateMarker=false){
       try{
         const cached=localStorage.getItem(`geocode_${fullAddress}`);
