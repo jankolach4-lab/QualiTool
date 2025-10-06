@@ -186,7 +186,69 @@
     // Hilfsfunktionen für bessere Geokodierung
     function normGerman(s){ if(!s) return ''; return String(s).toLowerCase().replace(/ß/g,'ss').replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/\./g,' ').replace(/\s+/g,' ').trim(); }
     function streetVariants(str){ const s = String(str||'').trim(); const base = s.replace(/str\.?\b/gi,'straße').replace(/strasse/gi,'straße'); const ascii = normGerman(base); const alt1 = base.replace(/straße/gi,'strasse'); const alt2 = base.replace(/straße/gi,'str'); return Array.from(new Set([base, alt1, alt2, ascii])); }
-    function pickBestCandidate(cands, street, plz, hnr){ if(!Array.isArray(cands)||cands.length===0) return null; const ns = normGerman(street); const nh = String(hnr||'').trim(); let best = null; let bestScore = -1; for(const c of cands){ let sc=0; const addr=c.address||{}; if(addr.postcode && String(addr.postcode).trim()===String(plz).trim()) sc+=3; if(addr.road && normGerman(addr.road).includes(ns)) sc+=3; if(addr.house_number && String(addr.house_number).trim()===nh) sc+=2; if(c.importance) sc+=c.importance; if(sc>bestScore){ best=c; bestScore=sc; } } return best || cands[0]; }
+    function pickBestCandidate(cands, street, plz, hnr){ 
+      if(!Array.isArray(cands)||cands.length===0) return null; 
+      const ns = normGerman(street); 
+      const nh = String(hnr||'').trim().toLowerCase();
+      let best = null; 
+      let bestScore = -1; 
+      
+      for(const c of cands){ 
+        let sc=0; 
+        const addr=c.address||{}; 
+        
+        // PLZ match (sehr wichtig)
+        if(addr.postcode && String(addr.postcode).trim()===String(plz).trim()) {
+          sc+=5;
+        } else if(plz && addr.postcode && String(addr.postcode).startsWith(String(plz).substring(0,3))) {
+          // Partial PLZ match (erste 3 Ziffern)
+          sc+=2;
+        }
+        
+        // Straßenname match (sehr wichtig)
+        if(addr.road) {
+          const roadNorm = normGerman(addr.road);
+          if(roadNorm === ns) {
+            sc+=5; // Exakte Übereinstimmung
+          } else if(roadNorm.includes(ns) || ns.includes(roadNorm)) {
+            sc+=3; // Teilübereinstimmung
+          }
+        }
+        
+        // Hausnummer match (extrem wichtig)
+        if(addr.house_number) {
+          const hnNorm = String(addr.house_number).trim().toLowerCase();
+          if(hnNorm === nh) {
+            sc+=10; // Exakte Hausnummer ist sehr wichtig
+          } else if(nh && (hnNorm.startsWith(nh) || nh.startsWith(hnNorm))) {
+            sc+=4; // Partial match (z.B. "12" vs "12a")
+          }
+        }
+        
+        // Importance Score (sekundär)
+        if(c.importance) {
+          sc += c.importance * 2;
+        }
+        
+        // Typ-Bonus (building oder house bevorzugen)
+        if(c.type === 'house' || c.type === 'building' || c.type === 'residential') {
+          sc += 2;
+        }
+        
+        if(sc > bestScore){ 
+          best=c; 
+          bestScore=sc; 
+        } 
+      } 
+      
+      // Nur zurückgeben wenn Score > 5 (sonst zu ungenau)
+      if(bestScore >= 5) {
+        return best;
+      }
+      
+      // Fallback: nehme ersten Treffer nur wenn keine bessere Alternative
+      return cands[0];
+    }
 
     // Stadt-Cache für Bias (Viewbox)
     const cityBiasCache = {};
