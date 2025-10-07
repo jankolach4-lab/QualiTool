@@ -209,17 +209,29 @@ export default function ProjectMap() {
   }
 
   const geocodeAddress = async (address: any): Promise<{ lat: number; lon: number } | null> => {
-    const fullAddress = `${address.strasse} ${address.hausnummer}, ${address.plz} ${address.ort}, Deutschland`
+    // Normalize address for consistent cache key
+    const normalizeStr = (s: string) => s.toString().trim().toLowerCase().replace(/\s+/g, ' ')
+    const strasse = normalizeStr(address.strasse)
+    const hausnummer = normalizeStr(address.hausnummer)
+    const plz = normalizeStr(address.plz)
+    const ort = normalizeStr(address.ort)
     
-    // Check cache
-    const cached = localStorage.getItem(`geocode_${fullAddress}`)
+    const cacheKey = `geocode_${strasse}_${hausnummer}_${plz}_${ort}`
+    
+    // Check localStorage cache first
+    const cached = localStorage.getItem(cacheKey)
     if (cached) {
       try {
-        return JSON.parse(cached)
+        const coords = JSON.parse(cached)
+        console.log(`[Cache HIT] ${address.strasse} ${address.hausnummer}, ${address.ort}`)
+        return coords
       } catch (e) {
         console.warn('Cache parse error:', e)
+        localStorage.removeItem(cacheKey) // Remove corrupt cache
       }
     }
+
+    console.log(`[Cache MISS] Geocoding: ${address.strasse} ${address.hausnummer}, ${address.ort}`)
 
     // Geocode with Nominatim
     try {
@@ -229,19 +241,28 @@ export default function ProjectMap() {
         headers: { 'User-Agent': 'QualifizierungsDashboard/1.0' }
       })
 
-      if (!response.ok) return null
+      if (!response.ok) {
+        console.warn(`[Geocode] HTTP ${response.status} for ${address.strasse}`)
+        return null
+      }
 
       const results = await response.json()
       if (results && results.length > 0) {
         const result = results[0]
         const coords = { lat: parseFloat(result.lat), lon: parseFloat(result.lon) }
         
-        // Cache result
-        localStorage.setItem(`geocode_${fullAddress}`, JSON.stringify(coords))
+        // Cache result in localStorage
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(coords))
+          console.log(`[Cache SAVE] ${address.strasse} ${address.hausnummer} → ${coords.lat}, ${coords.lon}`)
+        } catch (e) {
+          console.warn('Cache save error (quota?)', e)
+        }
         
         return coords
       }
 
+      console.warn(`[Geocode] No results for ${address.strasse} ${address.hausnummer}, ${address.ort}`)
       return null
     } catch (err) {
       console.error('Geocoding error:', err)
