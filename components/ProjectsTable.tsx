@@ -46,22 +46,44 @@ export default function ProjectsTable({ projects, onSelectProject, selectedProje
               return (
                 <tr 
                   key={project.name}
-                  onClick={() => onSelectProject(project.name)}
                   className={selectedProject === project.name ? 'selected' : ''}
                 >
-                  <td style={{ fontWeight: 600 }}>{project.name}</td>
-                  <td>{totalWE.toLocaleString()}</td>
-                  <td>{vpCount}</td>
-                  <td>{project.completions}</td>
-                  <td>
+                  <td style={{ fontWeight: 600, cursor: 'pointer' }} onClick={() => onSelectProject(project.name)}>{project.name}</td>
+                  <td onClick={() => onSelectProject(project.name)} style={{ cursor: 'pointer' }}>{totalWE.toLocaleString()}</td>
+                  <td onClick={() => onSelectProject(project.name)} style={{ cursor: 'pointer' }}>{vpCount}</td>
+                  <td onClick={() => onSelectProject(project.name)} style={{ cursor: 'pointer' }}>{project.completions}</td>
+                  <td onClick={() => onSelectProject(project.name)} style={{ cursor: 'pointer' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span style={{ fontWeight: 600 }}>{statusPercent}%</span>
                     </div>
                   </td>
-                  <td>
+                  <td onClick={() => onSelectProject(project.name)} style={{ cursor: 'pointer' }}>
                     <div className="progress-bar">
                       <div className="progress-fill" style={{ width: `${statusPercent}%` }}></div>
                     </div>
+                  </td>
+                  <td>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(`/map?project=${encodeURIComponent(project.name)}`, '_blank');
+                      }}
+                      style={{
+                        padding: '0.25rem 0.5rem',
+                        fontSize: '0.875rem',
+                        background: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '0.25rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem'
+                      }}
+                      title="Abschlüsse-Karte öffnen"
+                    >
+                      🗺️ Karte
+                    </button>
                   </td>
                 </tr>
               );
