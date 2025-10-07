@@ -250,7 +250,12 @@ export default function ProjectMap() {
 
     // Geocode with Nominatim
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=de&accept-language=de&street=${encodeURIComponent(address.strasse + ' ' + address.hausnummer)}&city=${encodeURIComponent(address.ort)}&postalcode=${encodeURIComponent(address.plz)}`
+      const streetWithNumber = `${address.strasse} ${address.hausnummer}`.trim()
+      console.log(`[Geocode] Full address string: "${streetWithNumber}, ${address.plz} ${address.ort}"`)
+      
+      const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=de&accept-language=de&street=${encodeURIComponent(streetWithNumber)}&city=${encodeURIComponent(address.ort)}&postalcode=${encodeURIComponent(address.plz)}`
+      
+      console.log(`[Geocode] API URL: ${url}`)
       
       const response = await fetch(url, {
         headers: { 'User-Agent': 'QualifizierungsDashboard/1.0' }
