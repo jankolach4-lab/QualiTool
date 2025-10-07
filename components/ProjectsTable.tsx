@@ -34,6 +34,7 @@ export default function ProjectsTable({ projects, onSelectProject, selectedProje
               <th>Abschlüsse</th>
               <th>Status %</th>
               <th>Fortschritt</th>
+              <th>Karte</th>
             </tr>
           </thead>
           <tbody>
