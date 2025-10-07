@@ -75,6 +75,13 @@ export default function ProjectMap() {
       // Filter addresses with completions for this project
       const completionStatuses = ['abschluss', 'abschluss-vp-anderer', 'online-abschluss', 'ts-abschluss']
       const addressesToMap: any[] = []
+      const debugStats = {
+        totalContacts: 0,
+        projectContacts: 0,
+        totalResidents: 0,
+        matchingResidents: 0,
+        statusBreakdown: {} as any
+      }
 
       ;(contacts || []).forEach(userContact => {
         const userId = userContact.user_id
@@ -82,22 +89,39 @@ export default function ProjectMap() {
         const contactList = userContact.contacts || []
 
         contactList.forEach((contact: any) => {
-          const ort = contact.ort || ''
-          if (ort !== projectName) return // Only this project
+          debugStats.totalContacts++
+          
+          const ort = (contact.ort || contact.Ort || '').toString().trim()
+          const projectNameNorm = (projectName || '').toString().trim()
+          
+          // Flexible matching: exact or case-insensitive
+          if (ort.toLowerCase() !== projectNameNorm.toLowerCase()) return
+          
+          debugStats.projectContacts++
 
           const residents = contact.residents || {}
           Object.keys(residents).forEach(resKey => {
-            const resident = residents[resKey]
-            const status = resident.status || ''
+            debugStats.totalResidents++
             
-            if (completionStatuses.includes(status)) {
+            const resident = residents[resKey]
+            const status = (resident.status || '').toString().trim().toLowerCase()
+            
+            // Track all statuses
+            debugStats.statusBreakdown[status] = (debugStats.statusBreakdown[status] || 0) + 1
+            
+            // Check if status matches (case-insensitive)
+            const isMatch = completionStatuses.some(cs => cs.toLowerCase() === status)
+            
+            if (isMatch) {
+              debugStats.matchingResidents++
+              
               addressesToMap.push({
-                plz: contact.plz || '',
-                ort: contact.ort || '',
-                strasse: contact.strasse || contact.straße || '',
-                hausnummer: contact.hausnummer || contact.hnr || '',
-                zusatz: contact.adresszusatz || '',
-                we: contact.we || 1,
+                plz: contact.plz || contact.PLZ || '',
+                ort: contact.ort || contact.Ort || '',
+                strasse: contact.strasse || contact.straße || contact.Straße || contact.Strasse || '',
+                hausnummer: contact.hausnummer || contact.hnr || contact.Hausnummer || contact.Nummer || '',
+                zusatz: contact.adresszusatz || contact.Zusatz || '',
+                we: contact.we || contact.WE || 1,
                 status: status,
                 vpName: vpName,
                 residentKey: resKey
@@ -107,7 +131,9 @@ export default function ProjectMap() {
         })
       })
 
-      console.log(`[Map] Gefunden: ${addressesToMap.length} Adressen mit Abschlüssen für ${projectName}`)
+      console.log(`[Map] Debug Stats für ${projectName}:`, debugStats)
+      console.log(`[Map] Gefunden: ${addressesToMap.length} Adressen mit Abschlüssen`)
+      console.log(`[Map] Status-Verteilung:`, debugStats.statusBreakdown)
       
       // Initialize map
       initializeMap(addressesToMap)
