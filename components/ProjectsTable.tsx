@@ -62,7 +62,7 @@ export default function ProjectsTable({ projects, onSelectProject, selectedProje
                       <div className="progress-fill" style={{ width: `${statusPercent}%` }}></div>
                     </div>
                   </td>
-                  <td>
+                  <td style={{ textAlign: 'center' }}>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -70,19 +70,27 @@ export default function ProjectsTable({ projects, onSelectProject, selectedProje
                       }}
                       style={{
                         padding: '0.25rem 0.5rem',
-                        fontSize: '0.875rem',
-                        background: '#3b82f6',
-                        color: 'white',
-                        border: 'none',
+                        fontSize: '1rem',
+                        background: 'transparent',
+                        color: '#6b7280',
+                        border: '1px solid #e5e7eb',
                         borderRadius: '0.25rem',
                         cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.25rem'
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#f3f4f6';
+                        e.currentTarget.style.color = '#374151';
+                        e.currentTarget.style.borderColor = '#d1d5db';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = '#6b7280';
+                        e.currentTarget.style.borderColor = '#e5e7eb';
                       }}
                       title="Abschlüsse-Karte öffnen"
                     >
-                      🗺️ Karte
+                      🗺️
                     </button>
                   </td>
                 </tr>
