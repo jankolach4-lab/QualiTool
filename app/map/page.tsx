@@ -149,6 +149,29 @@ export default function ProjectMap() {
       console.log(`[Map] Gefunden: ${addressesToMap.length} Adressen mit Abschlüssen`)
       console.log(`[Map] Status-Verteilung:`, debugStats.statusBreakdown)
       
+      // DEBUG: Log raw contact structure to find where house numbers are
+      if (contacts && contacts.length > 0) {
+        const sampleContact = contacts.find(c => {
+          const contactList = c.contacts || []
+          return contactList.some((contact: any) => {
+            const ort = (contact.ort || contact.Ort || '').toString().trim()
+            return ort.toLowerCase() === (projectName || '').toLowerCase()
+          })
+        })
+        
+        if (sampleContact) {
+          console.log('🔍 [DEBUG] Sample Contact Structure:', sampleContact)
+          const projectContact = (sampleContact.contacts || []).find((c: any) => {
+            const ort = (c.ort || c.Ort || '').toString().trim()
+            return ort.toLowerCase() === (projectName || '').toLowerCase()
+          })
+          if (projectContact) {
+            console.log('🔍 [DEBUG] Sample Project Contact:', projectContact)
+            console.log('🔍 [DEBUG] Available keys in contact:', Object.keys(projectContact))
+          }
+        }
+      }
+      
       // Deduplicate addresses (same address, different residents should still show)
       // but log for debugging
       const uniqueAddresses = new Set(addressesToMap.map(a => `${a.strasse}|${a.hausnummer}|${a.plz}|${a.ort}`))
