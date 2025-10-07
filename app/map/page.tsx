@@ -314,7 +314,7 @@ export default function ProjectMap() {
     let processedGroups = 0
 
     // Process each unique address
-    for (const [locationKey, groupedAddresses] of addressGroups) {
+    for (const [locationKey, groupedAddresses] of Array.from(addressGroups.entries())) {
       processedGroups++
       setGeocodeProgress({ current: processedGroups, total: addressGroups.size })
       
