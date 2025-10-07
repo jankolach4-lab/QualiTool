@@ -142,6 +142,19 @@ export default function ProjectMap() {
       const uniqueAddresses = new Set(addressesToMap.map(a => `${a.strasse}|${a.hausnummer}|${a.plz}|${a.ort}`))
       console.log(`[Map] Eindeutige Adressen: ${uniqueAddresses.size}`)
       
+      // Set debug info for UI
+      let debugText = `📊 Gefundene Daten für "${projectName}":\n`
+      debugText += `- Gesamt Kontakte: ${debugStats.totalContacts}\n`
+      debugText += `- Kontakte in ${projectName}: ${debugStats.projectContacts}\n`
+      debugText += `- Gesamt Residents: ${debugStats.totalResidents}\n`
+      debugText += `- Abschlüsse gefunden: ${debugStats.matchingResidents}\n`
+      debugText += `- Eindeutige Adressen: ${uniqueAddresses.size}\n\n`
+      debugText += `📋 Status-Verteilung:\n`
+      Object.entries(debugStats.statusBreakdown).forEach(([status, count]) => {
+        debugText += `  • ${status}: ${count}\n`
+      })
+      setDebugInfo(debugText)
+      
       if (addressesToMap.length === 0) {
         console.warn(`[Map] Keine Adressen gefunden! Prüfen Sie:`)
         console.warn(`- Projektname stimmt: "${projectName}"`)
