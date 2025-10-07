@@ -19,6 +19,8 @@ export default function ProjectMap() {
   const [error, setError] = useState('')
   const [geocoding, setGeocoding] = useState(false)
   const [geocodeProgress, setGeocodeProgress] = useState({ current: 0, total: 0 })
+  const [debugInfo, setDebugInfo] = useState<string>('')
+  const [cacheStats, setCacheStats] = useState({ hits: 0, misses: 0 })
   const mapRef = useRef<any>(null)
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
