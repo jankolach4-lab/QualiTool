@@ -117,7 +117,7 @@ export default function ProjectMap() {
             if (isMatch) {
               debugStats.matchingResidents++
               
-              addressesToMap.push({
+              const addrObj = {
                 plz: contact.plz || contact.PLZ || '',
                 ort: contact.ort || contact.Ort || '',
                 strasse: contact.strasse || contact.straße || contact.Straße || contact.Strasse || '',
@@ -127,7 +127,19 @@ export default function ProjectMap() {
                 status: status,
                 vpName: vpName,
                 residentKey: resKey
-              })
+              }
+              
+              // Debug: Log first few addresses to check structure
+              if (addressesToMap.length < 3) {
+                console.log(`[Address ${addressesToMap.length + 1}]`, {
+                  strasse: addrObj.strasse,
+                  hausnummer: addrObj.hausnummer,
+                  plz: addrObj.plz,
+                  ort: addrObj.ort
+                })
+              }
+              
+              addressesToMap.push(addrObj)
             }
           })
         })
