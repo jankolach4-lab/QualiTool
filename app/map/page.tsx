@@ -293,12 +293,25 @@ export default function ProjectMap() {
     setGeocodeProgress({ current: 0, total: addresses.length })
 
     let successCount = 0
+    let cacheHits = 0
+    let cacheMisses = 0
 
     for (let i = 0; i < addresses.length; i++) {
       const address = addresses[i]
       setGeocodeProgress({ current: i + 1, total: addresses.length })
 
+      // Check if it's a cache hit or miss
+      const normalizeStr = (s: string) => s.toString().trim().toLowerCase().replace(/\s+/g, ' ')
+      const cacheKey = `geocode_${normalizeStr(address.strasse)}_${normalizeStr(address.hausnummer)}_${normalizeStr(address.plz)}_${normalizeStr(address.ort)}`
+      const wasCached = !!localStorage.getItem(cacheKey)
+      
       const coords = await geocodeAddress(address)
+      
+      if (wasCached && coords) {
+        cacheHits++
+      } else if (!wasCached && coords) {
+        cacheMisses++
+      }
       
       if (coords) {
         // Determine color based on status
@@ -335,11 +348,14 @@ export default function ProjectMap() {
         successCount++
       }
 
-      // Rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1200))
+      // Rate limiting - nur für neue Geocoding-Anfragen
+      if (!wasCached) {
+        await new Promise(resolve => setTimeout(resolve, 1200))
+      }
     }
 
     setGeocoding(false)
+    setCacheStats({ hits: cacheHits, misses: cacheMisses })
     
     // Fit map to markers
     if (markersRef.current.length > 0) {
@@ -348,6 +364,7 @@ export default function ProjectMap() {
     }
 
     console.log(`[Map] ${successCount}/${addresses.length} Adressen erfolgreich geokodiert`)
+    console.log(`[Cache] Hits: ${cacheHits}, Misses: ${cacheMisses}, Rate: ${((cacheHits/(cacheHits+cacheMisses))*100).toFixed(1)}%`)
   }
 
   const goBack = () => {
