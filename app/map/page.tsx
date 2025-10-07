@@ -290,22 +290,40 @@ export default function ProjectMap() {
     
     const L = (window as any).L
     setGeocoding(true)
-    setGeocodeProgress({ current: 0, total: addresses.length })
 
-    let successCount = 0
     let cacheHits = 0
     let cacheMisses = 0
-
-    for (let i = 0; i < addresses.length; i++) {
-      const address = addresses[i]
-      setGeocodeProgress({ current: i + 1, total: addresses.length })
-
-      // Check if it's a cache hit or miss
+    
+    // Group addresses by unique location
+    const addressGroups = new Map<string, any[]>()
+    
+    for (const address of addresses) {
       const normalizeStr = (s: string) => s.toString().trim().toLowerCase().replace(/\s+/g, ' ')
-      const cacheKey = `geocode_${normalizeStr(address.strasse)}_${normalizeStr(address.hausnummer)}_${normalizeStr(address.plz)}_${normalizeStr(address.ort)}`
+      const locationKey = `${normalizeStr(address.strasse)}_${normalizeStr(address.hausnummer)}_${normalizeStr(address.plz)}_${normalizeStr(address.ort)}`
+      
+      if (!addressGroups.has(locationKey)) {
+        addressGroups.set(locationKey, [])
+      }
+      addressGroups.get(locationKey)!.push(address)
+    }
+    
+    console.log(`[Map] Gruppiere ${addresses.length} Abschlüsse in ${addressGroups.size} eindeutige Adressen`)
+    
+    setGeocodeProgress({ current: 0, total: addressGroups.size })
+    
+    let processedGroups = 0
+
+    // Process each unique address
+    for (const [locationKey, groupedAddresses] of addressGroups) {
+      processedGroups++
+      setGeocodeProgress({ current: processedGroups, total: addressGroups.size })
+      
+      const firstAddress = groupedAddresses[0]
+      const normalizeStr = (s: string) => s.toString().trim().toLowerCase().replace(/\s+/g, ' ')
+      const cacheKey = `geocode_${locationKey}`
       const wasCached = !!localStorage.getItem(cacheKey)
       
-      const coords = await geocodeAddress(address)
+      const coords = await geocodeAddress(firstAddress)
       
       if (wasCached && coords) {
         cacheHits++
@@ -314,38 +332,91 @@ export default function ProjectMap() {
       }
       
       if (coords) {
-        // Determine color based on status
-        let color = '#10b981' // Default green
-        if (address.status === 'online-abschluss' || address.status === 'ts-abschluss') {
-          color = '#3b82f6' // Blue
-        }
+        // Count by status type
+        const greenCount = groupedAddresses.filter(a => 
+          a.status === 'abschluss' || a.status === 'abschluss-vp-anderer'
+        ).length
+        const blueCount = groupedAddresses.filter(a => 
+          a.status === 'online-abschluss' || a.status === 'ts-abschluss'
+        ).length
+        
+        // Determine dominant color and size
+        let color = greenCount >= blueCount ? '#10b981' : '#3b82f6'
+        const totalCount = groupedAddresses.length
+        const radius = totalCount === 1 ? 6 : Math.min(6 + totalCount * 1.5, 20)
 
-        // Create marker
+        // Create marker with size based on count
         const marker = L.circleMarker([coords.lat, coords.lon], {
-          radius: 6,
+          radius: radius,
           fillColor: color,
           color: '#fff',
-          weight: 1,
+          weight: 2,
           opacity: 1,
-          fillOpacity: 0.8
+          fillOpacity: 0.7
         }).addTo(mapInstanceRef.current)
 
-        // Popup content
-        const popupContent = `
-          <div style="font-size: 13px;">
-            <strong>${address.strasse} ${address.hausnummer}</strong><br>
-            ${address.plz} ${address.ort}<br>
-            <hr style="margin: 4px 0;">
-            <strong>VP:</strong> ${address.vpName}<br>
-            <strong>Status:</strong> ${address.status}<br>
-            <strong>WE:</strong> ${address.we}<br>
-            <strong>Wohnung:</strong> ${address.residentKey}
-          </div>
+        // Add label with count if > 1
+        if (totalCount > 1) {
+          const divIcon = L.divIcon({
+            className: 'marker-label',
+            html: `<div style="
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              background: white;
+              color: ${color};
+              font-weight: bold;
+              font-size: 11px;
+              width: ${radius * 1.5}px;
+              height: ${radius * 1.5}px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border: 2px solid ${color};
+              pointer-events: none;
+            ">${totalCount}</div>`,
+            iconSize: [radius * 2, radius * 2],
+            iconAnchor: [radius, radius]
+          })
+          
+          L.marker([coords.lat, coords.lon], { icon: divIcon }).addTo(mapInstanceRef.current)
+        }
+
+        // Build popup with all residents at this address
+        let popupContent = `
+          <div style="font-size: 13px; max-height: 300px; overflow-y: auto;">
+            <strong style="font-size: 14px;">${firstAddress.strasse} ${firstAddress.hausnummer}</strong><br>
+            <span style="color: #6b7280;">${firstAddress.plz} ${firstAddress.ort}</span>
+            <hr style="margin: 8px 0; border: none; border-top: 1px solid #e5e7eb;">
+            <div style="margin-bottom: 4px;">
+              <strong>Abschlüsse:</strong> ${totalCount}
+              ${greenCount > 0 ? `<span style="color: #10b981;"> • ${greenCount} Standard</span>` : ''}
+              ${blueCount > 0 ? `<span style="color: #3b82f6;"> • ${blueCount} Online/TS</span>` : ''}
+            </div>
+            <hr style="margin: 8px 0; border: none; border-top: 1px solid #e5e7eb;">
         `
         
-        marker.bindPopup(popupContent)
+        // List all residents
+        groupedAddresses.forEach((addr, idx) => {
+          const statusColor = (addr.status === 'online-abschluss' || addr.status === 'ts-abschluss') ? '#3b82f6' : '#10b981'
+          popupContent += `
+            <div style="margin: 6px 0; padding: 6px; background: #f9fafb; border-radius: 4px; border-left: 3px solid ${statusColor};">
+              <div style="font-weight: 600;">Wohnung ${addr.residentKey}</div>
+              <div style="font-size: 12px; color: #6b7280;">
+                VP: ${addr.vpName}<br>
+                Status: ${addr.status}<br>
+                WE: ${addr.we}
+              </div>
+            </div>
+          `
+        })
+        
+        popupContent += '</div>'
+        
+        marker.bindPopup(popupContent, { maxWidth: 300 })
         markersRef.current.push(marker)
-        successCount++
       }
 
       // Rate limiting - nur für neue Geocoding-Anfragen
@@ -363,8 +434,8 @@ export default function ProjectMap() {
       mapInstanceRef.current.fitBounds(group.getBounds().pad(0.1))
     }
 
-    console.log(`[Map] ${successCount}/${addresses.length} Adressen erfolgreich geokodiert`)
-    console.log(`[Cache] Hits: ${cacheHits}, Misses: ${cacheMisses}, Rate: ${((cacheHits/(cacheHits+cacheMisses))*100).toFixed(1)}%`)
+    console.log(`[Map] ${addressGroups.size} eindeutige Adressen mit ${addresses.length} Abschlüssen geokodiert`)
+    console.log(`[Cache] Hits: ${cacheHits}, Misses: ${cacheMisses}, Rate: ${cacheHits > 0 ? ((cacheHits/(cacheHits+cacheMisses))*100).toFixed(1) : 0}%`)
   }
 
   const goBack = () => {
