@@ -294,11 +294,13 @@ export default function ProjectMap() {
     let cacheHits = 0
     let cacheMisses = 0
     
-    // Group addresses by unique location
+    // Group addresses ONLY by exact same location (Straße + Hausnummer + PLZ)
+    // Multiple residents in same building will be grouped
     const addressGroups = new Map<string, any[]>()
     
     for (const address of addresses) {
       const normalizeStr = (s: string) => s.toString().trim().toLowerCase().replace(/\s+/g, ' ')
+      // Include hausnummer in key to ensure each house number is separate
       const locationKey = `${normalizeStr(address.strasse)}_${normalizeStr(address.hausnummer)}_${normalizeStr(address.plz)}_${normalizeStr(address.ort)}`
       
       if (!addressGroups.has(locationKey)) {
@@ -308,6 +310,7 @@ export default function ProjectMap() {
     }
     
     console.log(`[Map] Gruppiere ${addresses.length} Abschlüsse in ${addressGroups.size} eindeutige Adressen`)
+    console.log(`[Map] Beispiele:`, Array.from(addressGroups.keys()).slice(0, 3))
     
     setGeocodeProgress({ current: 0, total: addressGroups.size })
     
