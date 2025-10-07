@@ -121,7 +121,7 @@ export default function ProjectMap() {
                 plz: contact.plz || contact.PLZ || '',
                 ort: contact.ort || contact.Ort || '',
                 strasse: contact.strasse || contact.straße || contact.Straße || contact.Strasse || '',
-                hausnummer: contact.hausnummer || contact.hnr || contact.Hausnummer || contact.Nummer || '',
+                hausnummer: contact.nummer || contact.Nummer || contact.hausnummer || contact.hnr || '',
                 zusatz: contact.adresszusatz || contact.Zusatz || '',
                 we: contact.we || contact.WE || 1,
                 status: status,
