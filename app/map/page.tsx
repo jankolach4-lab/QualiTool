@@ -4,11 +4,16 @@ import * as React from 'react'
 import { useEffect, useState, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase, UserContact, UserDirectory } from '../../lib/supabase'
+import Head from 'next/head'
 
 export default function ProjectMap() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const projectName = searchParams.get('project')
+  
+  useEffect(() => {
+    document.title = 'Kartenansicht Dashboard'
+  }, [])
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
