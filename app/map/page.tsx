@@ -135,6 +135,18 @@ export default function ProjectMap() {
       console.log(`[Map] Gefunden: ${addressesToMap.length} Adressen mit Abschlüssen`)
       console.log(`[Map] Status-Verteilung:`, debugStats.statusBreakdown)
       
+      // Deduplicate addresses (same address, different residents should still show)
+      // but log for debugging
+      const uniqueAddresses = new Set(addressesToMap.map(a => `${a.strasse}|${a.hausnummer}|${a.plz}|${a.ort}`))
+      console.log(`[Map] Eindeutige Adressen: ${uniqueAddresses.size}`)
+      
+      if (addressesToMap.length === 0) {
+        console.warn(`[Map] Keine Adressen gefunden! Prüfen Sie:`)
+        console.warn(`- Projektname stimmt: "${projectName}"`)
+        console.warn(`- Verfügbare Status: ${Object.keys(debugStats.statusBreakdown).join(', ')}`)
+        console.warn(`- Erwartet: abschluss, abschluss-vp-anderer, online-abschluss, ts-abschluss`)
+      }
+      
       // Initialize map
       initializeMap(addressesToMap)
       
