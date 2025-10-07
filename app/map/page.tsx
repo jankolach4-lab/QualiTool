@@ -386,8 +386,8 @@ export default function ProjectMap() {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div style={{ background: 'white', padding: '1rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
+      <div style={{ background: 'white', padding: '1rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ flex: 1 }}>
           <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600 }}>
             🗺️ Abschlüsse-Karte: {projectName}
           </h1>
@@ -401,13 +401,29 @@ export default function ProjectMap() {
               Online-Abschluss / TS-Abschluss
             </span>
           </div>
+          {cacheStats.hits + cacheStats.misses > 0 && (
+            <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.25rem' }}>
+              💾 Cache: {cacheStats.hits} Treffer, {cacheStats.misses} neu geladen
+              {cacheStats.hits > 0 && ` (${((cacheStats.hits/(cacheStats.hits+cacheStats.misses))*100).toFixed(0)}% aus Cache)`}
+            </div>
+          )}
         </div>
-        <button 
-          onClick={goBack}
-          style={{ padding: '0.5rem 1rem', background: '#6b7280', color: 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', fontSize: '0.875rem' }}
-        >
-          ← Zurück zum Dashboard
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+          {debugInfo && (
+            <button
+              onClick={() => alert(debugInfo)}
+              style={{ padding: '0.5rem 1rem', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', fontSize: '0.875rem' }}
+            >
+              📊 Debug-Info
+            </button>
+          )}
+          <button 
+            onClick={goBack}
+            style={{ padding: '0.5rem 1rem', background: '#6b7280', color: 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', fontSize: '0.875rem' }}
+          >
+            ← Zurück
+          </button>
+        </div>
       </div>
 
       {/* Loading overlay */}
