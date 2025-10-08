@@ -4142,6 +4142,34 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   }
   try { window.updateSyncIndicator = updateSyncIndicator; } catch(_){}
   
+  // Manuelle Sync-Funktion für den Sync-Button
+  async function manualSync() {
+    console.log('[Manual Sync] User triggered manual sync');
+    updateSyncIndicator('syncing');
+    
+    try {
+      // Force full snapshot
+      enqueueFullContactsSnapshot();
+      
+      // Immediate flush
+      await flushQueue();
+      
+      // Status update
+      updateSyncIndicator('success');
+      
+      // User Feedback
+      alert('✓ Synchronisation erfolgreich abgeschlossen!');
+      
+      return false; // Prevent default link behavior
+    } catch(e) {
+      console.error('[Manual Sync] Failed:', e);
+      updateSyncIndicator('error');
+      alert('⚠ Synchronisation fehlgeschlagen. Bitte prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.');
+      return false;
+    }
+  }
+  try { window.manualSync = manualSync; } catch(_){}
+  
   // Periodischer Heartbeat-Sync (alle 60 Sekunden als Failsafe)
   setInterval(() => {
     const timeSinceLastSync = Date.now() - lastSyncAttempt;
