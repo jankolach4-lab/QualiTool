@@ -4039,22 +4039,86 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     flushTimer = setTimeout(flushQueue, 500);
   }
 
-  // scheduleAutoSync: Debounced Auto-Sync nach Änderungen
+  // scheduleAutoSync: Debounced Auto-Sync nach Änderungen mit Retry
   let autoSyncTimer = null;
+  let lastSyncAttempt = 0;
+  let syncRetryCount = 0;
+  const MAX_SYNC_RETRIES = 3;
+  
   function scheduleAutoSync(reason){
     console.log('[AutoSync] Scheduled from:', reason);
     if (autoSyncTimer) clearTimeout(autoSyncTimer);
-    autoSyncTimer = setTimeout(() => {
+    autoSyncTimer = setTimeout(async () => {
       console.log('[AutoSync] Executing...');
+      lastSyncAttempt = Date.now();
+      
       try {
         enqueueFullContactsSnapshot();
-        flushQueue();
+        await flushQueue();
+        syncRetryCount = 0; // Reset bei Erfolg
+        updateSyncIndicator('success');
+        console.log('[AutoSync] ✓ Success');
       } catch(e) {
         console.error('[AutoSync] Failed:', e);
+        syncRetryCount++;
+        updateSyncIndicator('error');
+        
+        // Retry mit exponentieller Backoff
+        if (syncRetryCount <= MAX_SYNC_RETRIES) {
+          const retryDelay = Math.min(5000 * Math.pow(2, syncRetryCount - 1), 30000);
+          console.log(`[AutoSync] Retry ${syncRetryCount}/${MAX_SYNC_RETRIES} in ${retryDelay}ms`);
+          setTimeout(() => scheduleAutoSync('retry'), retryDelay);
+        } else {
+          console.error('[AutoSync] Max retries reached, will try again on next change');
+          syncRetryCount = 0;
+        }
       }
     }, 2000); // 2 Sekunden Debounce
   }
   try { window.scheduleAutoSync = scheduleAutoSync; } catch(_){}
+  
+  // Sync-Status-Indikator im UI
+  function updateSyncIndicator(status) {
+    try {
+      let indicator = document.getElementById('syncStatusIndicator');
+      if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'syncStatusIndicator';
+        indicator.style.cssText = 'position:fixed;top:10px;right:10px;padding:8px 12px;border-radius:6px;font-size:12px;z-index:9999;transition:all 0.3s;box-shadow:0 2px 8px rgba(0,0,0,0.15);';
+        document.body.appendChild(indicator);
+      }
+      
+      if (status === 'syncing') {
+        indicator.style.background = '#3b82f6';
+        indicator.style.color = 'white';
+        indicator.innerHTML = '🔄 Synchronisiere...';
+        indicator.style.display = 'block';
+      } else if (status === 'success') {
+        indicator.style.background = '#10b981';
+        indicator.style.color = 'white';
+        indicator.innerHTML = '✓ Synchronisiert';
+        indicator.style.display = 'block';
+        setTimeout(() => { indicator.style.display = 'none'; }, 2000);
+      } else if (status === 'error') {
+        indicator.style.background = '#ef4444';
+        indicator.style.color = 'white';
+        indicator.innerHTML = '⚠ Sync-Fehler (versuche erneut...)';
+        indicator.style.display = 'block';
+        setTimeout(() => { indicator.style.display = 'none'; }, 5000);
+      }
+    } catch(_) {}
+  }
+  try { window.updateSyncIndicator = updateSyncIndicator; } catch(_){}
+  
+  // Periodischer Heartbeat-Sync (alle 60 Sekunden als Failsafe)
+  setInterval(() => {
+    const timeSinceLastSync = Date.now() - lastSyncAttempt;
+    // Nur wenn länger als 55 Sekunden her und Kontakte vorhanden
+    if (timeSinceLastSync > 55000 && contacts && contacts.length > 0) {
+      console.log('[Heartbeat] Periodic sync triggered');
+      scheduleAutoSync('heartbeat');
+    }
+  }, 60000);
 
   // 8) Auto-Initialisierung (lokale Teile sofort, Supabase parallel)
   (function initLocal(){
