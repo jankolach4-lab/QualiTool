@@ -3090,12 +3090,22 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  // MOBILE/CAPACITOR: deviceready event support
+  function initializeApp() {
+    console.log('[Init] Application initializing...');
+    
+    // Force initial section display (contacts)
+    setTimeout(() => {
+      console.log('[Init] Setting initial section to contacts');
+      showSection('contacts');
+    }, 100);
+    
     // Hardening: stelle sicher, dass Import-Sektion initial klickbar ist und Buttons sichtbar werden
     try {
       const h3 = document.querySelector('.import-section h3');
       if (h3) {
         h3.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); toggleImportSection(); }, { passive:false });
+        h3.addEventListener('touchstart', (e)=>{ e.preventDefault(); e.stopPropagation(); toggleImportSection(); }, { passive:false });
       }
       const section = document.querySelector('.import-section');
       if (section && section.classList.contains('expanded')) {
