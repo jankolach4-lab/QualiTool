@@ -4162,7 +4162,23 @@ try {
   });
 
   // Wenn Netzwerk wieder online ist
-  window.addEventListener('online', () => { try { scheduleAutoSync('online'); } catch(_){} });
+  // Online/Offline Event-Handler mit sofortigem Sync bei Wiederverbindung
+  window.addEventListener('online', () => { 
+    console.log('[Network] Connection restored - triggering immediate sync');
+    try { 
+      updateSyncIndicator('syncing');
+      enqueueFullContactsSnapshot(); 
+      flushQueue();
+      scheduleAutoSync('online'); 
+    } catch(e) {
+      console.error('[Network] Sync on reconnect failed:', e);
+    }
+  });
+  
+  window.addEventListener('offline', () => {
+    console.warn('[Network] Connection lost - sync paused');
+    try { updateSyncIndicator('error'); } catch(_) {}
+  });
 
   // Capacitor App‑Resume (Android/iOS)
   const App = window.Capacitor && window.Capacitor.App;
