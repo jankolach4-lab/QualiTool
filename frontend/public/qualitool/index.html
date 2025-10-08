@@ -3096,19 +3096,50 @@
     // Defensive: Event-Delegation auf der Sidebar, falls einzelne Links nicht binden
     const sidebar = document.querySelector('.sidebar');
     if (sidebar) {
+      // Sicherstellen, dass Sidebar immer klickbar ist
+      sidebar.style.pointerEvents = 'auto';
+      sidebar.style.zIndex = '999';
+      
       sidebar.addEventListener('click', function(e){
+        console.log('[QT Sidebar] Click detected on:', e.target);
         const a = e.target.closest && e.target.closest('a[href^="#"]');
-        if (!a) return;
+        if (!a) {
+          console.log('[QT Sidebar] No link found, checking for SVG...');
+          // Fallback: Wenn auf SVG/Icon geklickt wurde
+          const listItem = e.target.closest('li');
+          if (listItem) {
+            const link = listItem.querySelector('a');
+            if (link) {
+              const sectionId = (link.getAttribute('href')||'').slice(1);
+              console.log('[QT Sidebar] Section from li:', sectionId);
+              if (sectionId) {
+                e.preventDefault();
+                e.stopPropagation();
+                showSection(sectionId);
+                return;
+              }
+            }
+          }
+          return;
+        }
         e.preventDefault();
+        e.stopPropagation();
         const sectionId = (a.getAttribute('href')||'').slice(1);
+        console.log('[QT Sidebar] Section from link:', sectionId);
         if (sectionId) showSection(sectionId);
-      }, { passive: false });
+      }, { passive: false, capture: true });
     }
 
     document.querySelectorAll('.sidebar-nav a').forEach(link => {
+      // Sicherstellen, dass Links klickbar sind
+      link.style.pointerEvents = 'auto';
+      link.style.cursor = 'pointer';
+      
       link.addEventListener('click', function(e) {
         e.preventDefault();
+        e.stopPropagation();
         const sectionId = (this.getAttribute('href')||'').replace('#', '');
+        console.log('[QT Sidebar Link] Click on section:', sectionId);
         if (!sectionId) return;
         showSection(sectionId);
       }, { passive: false });
