@@ -3603,6 +3603,7 @@
   function normalizeContacts(raw){
     const arr = Array.isArray(raw) ? raw : [];
     return arr.map(c => ({
+      id: c.id || Date.now() + Math.random(), // WICHTIG: ID beibehalten oder generieren
       plz: (c.plz||'').toString().trim(),
       ort: (c.ort||'').toString().trim(),
       strasse: (c.strasse||'').toString().trim(),
