@@ -3100,15 +3100,18 @@
     if (initial) {
       try { showSection(initial); } catch(e) { console.warn('init hash failed', e); }
     }
-    // Defensive: Event-Delegation auf der Sidebar, falls einzelne Links nicht binden
+    // MOBILE/NATIVE APP FIX: Touch + Click Events für Sidebar
     const sidebar = document.querySelector('.sidebar');
     if (sidebar) {
       // Sicherstellen, dass Sidebar immer klickbar ist
       sidebar.style.pointerEvents = 'auto';
       sidebar.style.zIndex = '999';
+      sidebar.style.webkitTapHighlightColor = 'transparent';
       
-      sidebar.addEventListener('click', function(e){
-        console.log('[QT Sidebar] Click detected on:', e.target);
+      // Unified handler für Click UND Touch
+      function handleSidebarInteraction(e) {
+        console.log('[QT Sidebar] Interaction detected, type:', e.type, 'target:', e.target);
+        
         const a = e.target.closest && e.target.closest('a[href^="#"]');
         if (!a) {
           console.log('[QT Sidebar] No link found, checking for SVG...');
@@ -3134,22 +3137,32 @@
         const sectionId = (a.getAttribute('href')||'').slice(1);
         console.log('[QT Sidebar] Section from link:', sectionId);
         if (sectionId) showSection(sectionId);
-      }, { passive: false, capture: true });
+      }
+      
+      // Beide Events registrieren (Touch für Mobile, Click für Desktop)
+      sidebar.addEventListener('touchstart', handleSidebarInteraction, { passive: false, capture: true });
+      sidebar.addEventListener('click', handleSidebarInteraction, { passive: false, capture: true });
     }
 
     document.querySelectorAll('.sidebar-nav a').forEach(link => {
       // Sicherstellen, dass Links klickbar sind
       link.style.pointerEvents = 'auto';
       link.style.cursor = 'pointer';
+      link.style.webkitTapHighlightColor = 'transparent';
+      link.style.webkitTouchCallout = 'none';
       
-      link.addEventListener('click', function(e) {
+      function handleLinkInteraction(e) {
         e.preventDefault();
         e.stopPropagation();
         const sectionId = (this.getAttribute('href')||'').replace('#', '');
-        console.log('[QT Sidebar Link] Click on section:', sectionId);
+        console.log('[QT Sidebar Link] Interaction on section:', sectionId, 'type:', e.type);
         if (!sectionId) return;
         showSection(sectionId);
-      }, { passive: false });
+      }
+      
+      // Beide Events für jeden Link
+      link.addEventListener('touchstart', handleLinkInteraction, { passive: false });
+      link.addEventListener('click', handleLinkInteraction, { passive: false });
     });
   
     // Supabase Client Init (einmalig; Wiederverwendung wenn vorhanden)
