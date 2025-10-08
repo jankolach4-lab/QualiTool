@@ -4023,15 +4023,24 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         };
       }
 
-      // Kontaktänderungs-Hooks
+      // Kontaktänderungs-Hooks mit zusätzlicher scheduleAutoSync für maximale Zuverlässigkeit
       [ 'addContact', 'addStreet', 'deleteContact', 'deleteAllContacts', 'addUnit', 'deleteUnit' ].forEach(fnName => {
         if (typeof window[fnName] === 'function'){
           const orig = window[fnName];
           window[fnName] = function(){
+            console.log(`[Hook] ${fnName} triggered`);
             const r = orig.apply(this, arguments);
-            try{ enqueueContactsSnapshot(); flushSoon(); }catch(_e){}
+            try{ 
+              enqueueContactsSnapshot(); 
+              flushSoon(); 
+              scheduleAutoSync(fnName);
+            }catch(e){
+              console.error(`[Hook] ${fnName} sync failed:`, e);
+            }
             return r;
           };
+        } else {
+          console.warn(`[Hook] Function ${fnName} not found for hooking`);
         }
       });
 
