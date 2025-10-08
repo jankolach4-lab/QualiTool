@@ -3118,6 +3118,13 @@
 
     // Initial Hash berücksichtigen (z.B. Direktaufruf mit #import)
     const initial = (location.hash||'').slice(1);
+    console.log('[Init] Completed - initial hash:', initial);
+  }
+  
+  // Support both web and Capacitor environments
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('[Event] DOMContentLoaded fired');
+    initializeApp();
     if (initial) {
       try { showSection(initial); } catch(e) { console.warn('init hash failed', e); }
     }
