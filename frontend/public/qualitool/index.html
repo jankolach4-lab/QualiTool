@@ -3125,6 +3125,15 @@
   document.addEventListener('DOMContentLoaded', () => {
     console.log('[Event] DOMContentLoaded fired');
     initializeApp();
+  });
+  
+  // Capacitor-specific initialization
+  document.addEventListener('deviceready', () => {
+    console.log('[Event] deviceready fired (Capacitor/Cordova detected)');
+    // Re-initialize to ensure everything works on native
+    setTimeout(() => {
+      initializeApp();
+    }, 200);
     if (initial) {
       try { showSection(initial); } catch(e) { console.warn('init hash failed', e); }
     }
