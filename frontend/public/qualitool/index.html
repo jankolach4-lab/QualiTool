@@ -4144,6 +4144,33 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       scheduleAutoSync('heartbeat');
     }
   }, 60000);
+  
+  // LocalStorage Change Monitor (Failsafe für direkte localStorage-Änderungen)
+  let lastContactsHash = '';
+  setInterval(() => {
+    try {
+      const currentContacts = localStorage.getItem('contacts') || '[]';
+      const currentHash = currentContacts.length + '_' + (currentContacts.substring(0, 100));
+      if (currentHash !== lastContactsHash && currentContacts !== '[]') {
+        lastContactsHash = currentHash;
+        console.log('[Storage Monitor] Contacts changed detected');
+        scheduleAutoSync('storage_monitor');
+      }
+    } catch(e) {
+      console.error('[Storage Monitor] Error:', e);
+    }
+  }, 5000); // Alle 5 Sekunden prüfen
+  
+  // Visibility Change Handler (Sync beim App-Resume)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && contacts && contacts.length > 0) {
+      console.log('[Visibility] App became visible - checking sync');
+      const timeSinceLastSync = Date.now() - lastSyncAttempt;
+      if (timeSinceLastSync > 10000) {
+        scheduleAutoSync('visibility');
+      }
+    }
+  });
 
   // 8) Auto-Initialisierung (lokale Teile sofort, Supabase parallel)
   (function initLocal(){
