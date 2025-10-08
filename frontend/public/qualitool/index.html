@@ -2253,22 +2253,33 @@
 
   function showSection(sectionId) {
     try {
+      console.log('[ShowSection] Switching to:', sectionId);
+      
       rmCls('.sidebar-nav a','active');
       const navLink = document.querySelector(`.sidebar-nav a[href="#${sectionId}"]`);
       if (navLink) navLink.classList.add('active');
 
       document.querySelectorAll('.expanded').forEach(section => section.classList.remove('expanded'));
 
-      // Alles ausblenden (nur wenn vorhanden)
-      setDisp('.import-section','none');
-      setDisp('.entry-section','none');
-      setDisp('.calendar-section','none');
-      setDisp('.statistics-section','none');
-      setDisp('.visit-recommendation-box','none');
-      setDisp('.search-box','none');
-      setDisp('.status-filters','none');
-      setDisp('.contact-list','none');
-      setDisp('.street-filter-container','none');
+      // WICHTIG: Alle Sektionen explizit ausblenden
+      const allSections = [
+        '.import-section',
+        '.entry-section', 
+        '.calendar-section',
+        '.statistics-section',
+        '.visit-recommendation-box',
+        '.search-box',
+        '.status-filters',
+        '.contact-list',
+        '.street-filter-container'
+      ];
+      
+      allSections.forEach(selector => {
+        document.querySelectorAll(selector).forEach(el => {
+          el.style.display = 'none';
+          console.log('[ShowSection] Hidden:', selector);
+        });
+      });
       // Defensive: Nur setzen, wenn Container existiert
       if (document.querySelector('.import-export-buttons')) {
         setDisp('.import-export-buttons','flex');
