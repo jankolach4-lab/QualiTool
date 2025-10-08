@@ -4005,6 +4005,23 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     flushTimer = setTimeout(flushQueue, 500);
   }
 
+  // scheduleAutoSync: Debounced Auto-Sync nach Änderungen
+  let autoSyncTimer = null;
+  function scheduleAutoSync(reason){
+    console.log('[AutoSync] Scheduled from:', reason);
+    if (autoSyncTimer) clearTimeout(autoSyncTimer);
+    autoSyncTimer = setTimeout(() => {
+      console.log('[AutoSync] Executing...');
+      try {
+        enqueueFullContactsSnapshot();
+        flushQueue();
+      } catch(e) {
+        console.error('[AutoSync] Failed:', e);
+      }
+    }, 2000); // 2 Sekunden Debounce
+  }
+  try { window.scheduleAutoSync = scheduleAutoSync; } catch(_){}
+
   // 8) Auto-Initialisierung (lokale Teile sofort, Supabase parallel)
   (function initLocal(){
     try{
