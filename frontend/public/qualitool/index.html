@@ -4137,36 +4137,10 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   }
   try { window.scheduleAutoSync = scheduleAutoSync; } catch(_){}
   
-  // Sync-Status-Indikator im UI
+  // VEREINFACHTER Sync-Status-Indikator (optional, nicht kritisch)
   function updateSyncIndicator(status) {
-    try {
-      let indicator = document.getElementById('syncStatusIndicator');
-      if (!indicator) {
-        indicator = document.createElement('div');
-        indicator.id = 'syncStatusIndicator';
-        indicator.style.cssText = 'position:fixed;top:10px;right:10px;padding:8px 12px;border-radius:6px;font-size:12px;z-index:9999;transition:all 0.3s;box-shadow:0 2px 8px rgba(0,0,0,0.15);';
-        document.body.appendChild(indicator);
-      }
-      
-      if (status === 'syncing') {
-        indicator.style.background = '#3b82f6';
-        indicator.style.color = 'white';
-        indicator.innerHTML = '🔄 Synchronisiere...';
-        indicator.style.display = 'block';
-      } else if (status === 'success') {
-        indicator.style.background = '#10b981';
-        indicator.style.color = 'white';
-        indicator.innerHTML = '✓ Synchronisiert';
-        indicator.style.display = 'block';
-        setTimeout(() => { indicator.style.display = 'none'; }, 2000);
-      } else if (status === 'error') {
-        indicator.style.background = '#ef4444';
-        indicator.style.color = 'white';
-        indicator.innerHTML = '⚠ Sync-Fehler (versuche erneut...)';
-        indicator.style.display = 'block';
-        setTimeout(() => { indicator.style.display = 'none'; }, 5000);
-      }
-    } catch(_) {}
+    // Deaktiviert um Sync-Probleme zu vermeiden
+    console.log('[Sync Indicator]', status);
   }
   try { window.updateSyncIndicator = updateSyncIndicator; } catch(_){}
   
