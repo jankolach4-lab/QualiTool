@@ -1716,14 +1716,32 @@
     }
   }
   function saveContacts() {
-  localStorage.setItem('contacts', JSON.stringify(contacts));
-  try { window.contacts = contacts; } catch(_) {}
-  try { enqueueContactsSnapshot(); } catch(_) {}
-  try { rescanAndEnqueueStatusDiffs(); } catch(_) {}
-  try { flushSoon(); } catch(_) {}
-  // NEU: Auto‑Sync nach Änderungen zuverlässig anstoßen (debounced)
-  try { scheduleAutoSync('saveContacts'); } catch(_) {}
-}
+    console.log('[SaveContacts] Saving contacts to localStorage and triggering sync');
+    localStorage.setItem('contacts', JSON.stringify(contacts));
+    try { window.contacts = contacts; } catch(_) {}
+    
+    // EINFACHER, DIREKTER SYNC
+    try { 
+      enqueueContactsSnapshot(); 
+      console.log('[SaveContacts] Snapshot enqueued');
+    } catch(e) { 
+      console.error('[SaveContacts] enqueueContactsSnapshot failed:', e);
+    }
+    
+    try { 
+      rescanAndEnqueueStatusDiffs(); 
+      console.log('[SaveContacts] Status diffs enqueued');
+    } catch(e) {
+      console.error('[SaveContacts] rescanAndEnqueueStatusDiffs failed:', e);
+    }
+    
+    try { 
+      flushSoon(); 
+      console.log('[SaveContacts] Flush scheduled');
+    } catch(e) {
+      console.error('[SaveContacts] flushSoon failed:', e);
+    }
+  }
   function updateStreetFilter() {
     const streetFilter = document.getElementById('streetFilter');
     const streets = new Set();
@@ -3828,10 +3846,6 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   }
 
   async function flushQueue(){
-    try {
-      updateSyncIndicator('syncing');
-    } catch(_) {}
-    
     const client = await awaitSupabase().catch((e)=>{
       console.error('[FlushQueue] Supabase client error:', e);
       return null;
@@ -3845,17 +3859,13 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     })) : null;
 
     let q = getQueue();
-    if (!q.length) {
-      try { updateSyncIndicator('success'); } catch(_) {}
-      return;
-    }
+    if (!q.length) return;
 
     const next = q[0];
 
     if (!online || !client || !user){
       // Kein Netz oder keine Session: nicht verwerfen, später erneut versuchen
       console.warn('[FlushQueue] Not ready - online:', online, 'client:', !!client, 'user:', !!user);
-      try { updateSyncIndicator('error'); } catch(_) {}
       setTimeout(flushQueue, 3000);
       return;
     }
@@ -4080,7 +4090,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         };
       }
 
-      // Kontaktänderungs-Hooks mit zusätzlicher scheduleAutoSync für maximale Zuverlässigkeit
+      // Kontaktänderungs-Hooks - EINFACH
       [ 'addContact', 'addStreet', 'deleteContact', 'deleteAllContacts', 'addUnit', 'deleteUnit' ].forEach(fnName => {
         if (typeof window[fnName] === 'function'){
           const orig = window[fnName];
@@ -4089,15 +4099,13 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
             const r = orig.apply(this, arguments);
             try{ 
               enqueueContactsSnapshot(); 
-              flushSoon(); 
-              scheduleAutoSync(fnName);
+              flushSoon();
+              console.log(`[Hook] ${fnName} sync triggered`);
             }catch(e){
               console.error(`[Hook] ${fnName} sync failed:`, e);
             }
             return r;
           };
-        } else {
-          console.warn(`[Hook] Function ${fnName} not found for hooking`);
         }
       });
 
@@ -4121,141 +4129,58 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     flushTimer = setTimeout(flushQueue, 500);
   }
 
-  // scheduleAutoSync: Debounced Auto-Sync nach Änderungen mit Retry
+  // VEREINFACHTE scheduleAutoSync (nur für Kompatibilität, falls aufgerufen)
   let autoSyncTimer = null;
-  let lastSyncAttempt = 0;
-  let syncRetryCount = 0;
-  const MAX_SYNC_RETRIES = 3;
-  
   function scheduleAutoSync(reason){
-    console.log('[AutoSync] Scheduled from:', reason);
-    if (autoSyncTimer) clearTimeout(autoSyncTimer);
-    autoSyncTimer = setTimeout(async () => {
-      console.log('[AutoSync] Executing...');
-      lastSyncAttempt = Date.now();
-      
-      try {
-        enqueueFullContactsSnapshot();
-        await flushQueue();
-        syncRetryCount = 0; // Reset bei Erfolg
-        updateSyncIndicator('success');
-        console.log('[AutoSync] ✓ Success');
-      } catch(e) {
-        console.error('[AutoSync] Failed:', e);
-        syncRetryCount++;
-        updateSyncIndicator('error');
-        
-        // Retry mit exponentieller Backoff
-        if (syncRetryCount <= MAX_SYNC_RETRIES) {
-          const retryDelay = Math.min(5000 * Math.pow(2, syncRetryCount - 1), 30000);
-          console.log(`[AutoSync] Retry ${syncRetryCount}/${MAX_SYNC_RETRIES} in ${retryDelay}ms`);
-          setTimeout(() => scheduleAutoSync('retry'), retryDelay);
-        } else {
-          console.error('[AutoSync] Max retries reached, will try again on next change');
-          syncRetryCount = 0;
-        }
-      }
-    }, 2000); // 2 Sekunden Debounce
+    console.log('[AutoSync] Called from:', reason, '(using standard sync path)');
+    // Nutzt den normalen saveContacts() Pfad - keine separate Logik nötig
   }
   try { window.scheduleAutoSync = scheduleAutoSync; } catch(_){}
   
-  // Sync-Status-Indikator im UI
+  // VEREINFACHTER Sync-Status-Indikator (optional, nicht kritisch)
   function updateSyncIndicator(status) {
-    try {
-      let indicator = document.getElementById('syncStatusIndicator');
-      if (!indicator) {
-        indicator = document.createElement('div');
-        indicator.id = 'syncStatusIndicator';
-        indicator.style.cssText = 'position:fixed;top:10px;right:10px;padding:8px 12px;border-radius:6px;font-size:12px;z-index:9999;transition:all 0.3s;box-shadow:0 2px 8px rgba(0,0,0,0.15);';
-        document.body.appendChild(indicator);
-      }
-      
-      if (status === 'syncing') {
-        indicator.style.background = '#3b82f6';
-        indicator.style.color = 'white';
-        indicator.innerHTML = '🔄 Synchronisiere...';
-        indicator.style.display = 'block';
-      } else if (status === 'success') {
-        indicator.style.background = '#10b981';
-        indicator.style.color = 'white';
-        indicator.innerHTML = '✓ Synchronisiert';
-        indicator.style.display = 'block';
-        setTimeout(() => { indicator.style.display = 'none'; }, 2000);
-      } else if (status === 'error') {
-        indicator.style.background = '#ef4444';
-        indicator.style.color = 'white';
-        indicator.innerHTML = '⚠ Sync-Fehler (versuche erneut...)';
-        indicator.style.display = 'block';
-        setTimeout(() => { indicator.style.display = 'none'; }, 5000);
-      }
-    } catch(_) {}
+    // Deaktiviert um Sync-Probleme zu vermeiden
+    console.log('[Sync Indicator]', status);
   }
   try { window.updateSyncIndicator = updateSyncIndicator; } catch(_){}
   
-  // Manuelle Sync-Funktion für den Sync-Button
+  // VEREINFACHTE Manuelle Sync-Funktion
   async function manualSync() {
     console.log('[Manual Sync] User triggered manual sync');
-    updateSyncIndicator('syncing');
     
     try {
-      // Force full snapshot
+      // Force full snapshot (ohne Hash-Check)
       enqueueFullContactsSnapshot();
+      console.log('[Manual Sync] Full snapshot enqueued');
       
       // Immediate flush
       await flushQueue();
-      
-      // Status update
-      updateSyncIndicator('success');
+      console.log('[Manual Sync] Queue flushed');
       
       // User Feedback
-      alert('✓ Synchronisation erfolgreich abgeschlossen!');
+      alert('✓ Synchronisation durchgeführt!');
       
-      return false; // Prevent default link behavior
+      return false;
     } catch(e) {
       console.error('[Manual Sync] Failed:', e);
-      updateSyncIndicator('error');
-      alert('⚠ Synchronisation fehlgeschlagen. Bitte prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.');
+      alert('⚠ Sync-Fehler: ' + (e.message || e));
       return false;
     }
   }
   try { window.manualSync = manualSync; } catch(_){}
   
-  // Periodischer Heartbeat-Sync (alle 60 Sekunden als Failsafe)
+  // VEREINFACHTER Heartbeat - nur alle 2 Minuten
   setInterval(() => {
-    const timeSinceLastSync = Date.now() - lastSyncAttempt;
-    // Nur wenn länger als 55 Sekunden her und Kontakte vorhanden
-    if (timeSinceLastSync > 55000 && contacts && contacts.length > 0) {
-      console.log('[Heartbeat] Periodic sync triggered');
-      scheduleAutoSync('heartbeat');
-    }
-  }, 60000);
-  
-  // LocalStorage Change Monitor (Failsafe für direkte localStorage-Änderungen)
-  let lastContactsHash = '';
-  setInterval(() => {
-    try {
-      const currentContacts = localStorage.getItem('contacts') || '[]';
-      const currentHash = currentContacts.length + '_' + (currentContacts.substring(0, 100));
-      if (currentHash !== lastContactsHash && currentContacts !== '[]') {
-        lastContactsHash = currentHash;
-        console.log('[Storage Monitor] Contacts changed detected');
-        scheduleAutoSync('storage_monitor');
-      }
-    } catch(e) {
-      console.error('[Storage Monitor] Error:', e);
-    }
-  }, 5000); // Alle 5 Sekunden prüfen
-  
-  // Visibility Change Handler (Sync beim App-Resume)
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && contacts && contacts.length > 0) {
-      console.log('[Visibility] App became visible - checking sync');
-      const timeSinceLastSync = Date.now() - lastSyncAttempt;
-      if (timeSinceLastSync > 10000) {
-        scheduleAutoSync('visibility');
+    if (contacts && contacts.length > 0) {
+      console.log('[Heartbeat] Periodic sync check');
+      try {
+        enqueueContactsSnapshot();
+        flushSoon();
+      } catch(e) {
+        console.error('[Heartbeat] Sync failed:', e);
       }
     }
-  });
+  }, 120000); // 2 Minuten
 
   // 8) Auto-Initialisierung (lokale Teile sofort, Supabase parallel)
   (function initLocal(){
@@ -4283,22 +4208,15 @@ try {
   });
 
   // Wenn Netzwerk wieder online ist
-  // Online/Offline Event-Handler mit sofortigem Sync bei Wiederverbindung
+  // Online/Offline Handler - EINFACH
   window.addEventListener('online', () => { 
-    console.log('[Network] Connection restored - triggering immediate sync');
+    console.log('[Network] Connection restored');
     try { 
-      updateSyncIndicator('syncing');
       enqueueFullContactsSnapshot(); 
       flushQueue();
-      scheduleAutoSync('online'); 
     } catch(e) {
       console.error('[Network] Sync on reconnect failed:', e);
     }
-  });
-  
-  window.addEventListener('offline', () => {
-    console.warn('[Network] Connection lost - sync paused');
-    try { updateSyncIndicator('error'); } catch(_) {}
   });
 
   // Capacitor App‑Resume (Android/iOS)
