@@ -4245,22 +4245,15 @@ try {
   });
 
   // Wenn Netzwerk wieder online ist
-  // Online/Offline Event-Handler mit sofortigem Sync bei Wiederverbindung
+  // Online/Offline Handler - EINFACH
   window.addEventListener('online', () => { 
-    console.log('[Network] Connection restored - triggering immediate sync');
+    console.log('[Network] Connection restored');
     try { 
-      updateSyncIndicator('syncing');
       enqueueFullContactsSnapshot(); 
       flushQueue();
-      scheduleAutoSync('online'); 
     } catch(e) {
       console.error('[Network] Sync on reconnect failed:', e);
     }
-  });
-  
-  window.addEventListener('offline', () => {
-    console.warn('[Network] Connection lost - sync paused');
-    try { updateSyncIndicator('error'); } catch(_) {}
   });
 
   // Capacitor App‑Resume (Android/iOS)
