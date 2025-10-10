@@ -4139,41 +4139,11 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     flushTimer = setTimeout(flushQueue, 500);
   }
 
-  // scheduleAutoSync: Debounced Auto-Sync nach Änderungen mit Retry
+  // VEREINFACHTE scheduleAutoSync (nur für Kompatibilität, falls aufgerufen)
   let autoSyncTimer = null;
-  let lastSyncAttempt = 0;
-  let syncRetryCount = 0;
-  const MAX_SYNC_RETRIES = 3;
-  
   function scheduleAutoSync(reason){
-    console.log('[AutoSync] Scheduled from:', reason);
-    if (autoSyncTimer) clearTimeout(autoSyncTimer);
-    autoSyncTimer = setTimeout(async () => {
-      console.log('[AutoSync] Executing...');
-      lastSyncAttempt = Date.now();
-      
-      try {
-        enqueueFullContactsSnapshot();
-        await flushQueue();
-        syncRetryCount = 0; // Reset bei Erfolg
-        updateSyncIndicator('success');
-        console.log('[AutoSync] ✓ Success');
-      } catch(e) {
-        console.error('[AutoSync] Failed:', e);
-        syncRetryCount++;
-        updateSyncIndicator('error');
-        
-        // Retry mit exponentieller Backoff
-        if (syncRetryCount <= MAX_SYNC_RETRIES) {
-          const retryDelay = Math.min(5000 * Math.pow(2, syncRetryCount - 1), 30000);
-          console.log(`[AutoSync] Retry ${syncRetryCount}/${MAX_SYNC_RETRIES} in ${retryDelay}ms`);
-          setTimeout(() => scheduleAutoSync('retry'), retryDelay);
-        } else {
-          console.error('[AutoSync] Max retries reached, will try again on next change');
-          syncRetryCount = 0;
-        }
-      }
-    }, 2000); // 2 Sekunden Debounce
+    console.log('[AutoSync] Called from:', reason, '(using standard sync path)');
+    // Nutzt den normalen saveContacts() Pfad - keine separate Logik nötig
   }
   try { window.scheduleAutoSync = scheduleAutoSync; } catch(_){}
   
