@@ -4206,42 +4206,18 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   }
   try { window.manualSync = manualSync; } catch(_){}
   
-  // Periodischer Heartbeat-Sync (alle 60 Sekunden als Failsafe)
+  // VEREINFACHTER Heartbeat - nur alle 2 Minuten
   setInterval(() => {
-    const timeSinceLastSync = Date.now() - lastSyncAttempt;
-    // Nur wenn länger als 55 Sekunden her und Kontakte vorhanden
-    if (timeSinceLastSync > 55000 && contacts && contacts.length > 0) {
-      console.log('[Heartbeat] Periodic sync triggered');
-      scheduleAutoSync('heartbeat');
-    }
-  }, 60000);
-  
-  // LocalStorage Change Monitor (Failsafe für direkte localStorage-Änderungen)
-  let lastContactsHash = '';
-  setInterval(() => {
-    try {
-      const currentContacts = localStorage.getItem('contacts') || '[]';
-      const currentHash = currentContacts.length + '_' + (currentContacts.substring(0, 100));
-      if (currentHash !== lastContactsHash && currentContacts !== '[]') {
-        lastContactsHash = currentHash;
-        console.log('[Storage Monitor] Contacts changed detected');
-        scheduleAutoSync('storage_monitor');
-      }
-    } catch(e) {
-      console.error('[Storage Monitor] Error:', e);
-    }
-  }, 5000); // Alle 5 Sekunden prüfen
-  
-  // Visibility Change Handler (Sync beim App-Resume)
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && contacts && contacts.length > 0) {
-      console.log('[Visibility] App became visible - checking sync');
-      const timeSinceLastSync = Date.now() - lastSyncAttempt;
-      if (timeSinceLastSync > 10000) {
-        scheduleAutoSync('visibility');
+    if (contacts && contacts.length > 0) {
+      console.log('[Heartbeat] Periodic sync check');
+      try {
+        enqueueContactsSnapshot();
+        flushSoon();
+      } catch(e) {
+        console.error('[Heartbeat] Sync failed:', e);
       }
     }
-  });
+  }, 120000); // 2 Minuten
 
   // 8) Auto-Initialisierung (lokale Teile sofort, Supabase parallel)
   (function initLocal(){
