@@ -3846,10 +3846,6 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   }
 
   async function flushQueue(){
-    try {
-      updateSyncIndicator('syncing');
-    } catch(_) {}
-    
     const client = await awaitSupabase().catch((e)=>{
       console.error('[FlushQueue] Supabase client error:', e);
       return null;
@@ -3863,17 +3859,13 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     })) : null;
 
     let q = getQueue();
-    if (!q.length) {
-      try { updateSyncIndicator('success'); } catch(_) {}
-      return;
-    }
+    if (!q.length) return;
 
     const next = q[0];
 
     if (!online || !client || !user){
       // Kein Netz oder keine Session: nicht verwerfen, später erneut versuchen
       console.warn('[FlushQueue] Not ready - online:', online, 'client:', !!client, 'user:', !!user);
-      try { updateSyncIndicator('error'); } catch(_) {}
       setTimeout(flushQueue, 3000);
       return;
     }
