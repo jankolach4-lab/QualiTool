@@ -4098,7 +4098,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         };
       }
 
-      // Kontaktänderungs-Hooks mit zusätzlicher scheduleAutoSync für maximale Zuverlässigkeit
+      // Kontaktänderungs-Hooks - EINFACH
       [ 'addContact', 'addStreet', 'deleteContact', 'deleteAllContacts', 'addUnit', 'deleteUnit' ].forEach(fnName => {
         if (typeof window[fnName] === 'function'){
           const orig = window[fnName];
@@ -4107,15 +4107,13 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
             const r = orig.apply(this, arguments);
             try{ 
               enqueueContactsSnapshot(); 
-              flushSoon(); 
-              scheduleAutoSync(fnName);
+              flushSoon();
+              console.log(`[Hook] ${fnName} sync triggered`);
             }catch(e){
               console.error(`[Hook] ${fnName} sync failed:`, e);
             }
             return r;
           };
-        } else {
-          console.warn(`[Hook] Function ${fnName} not found for hooking`);
         }
       });
 
