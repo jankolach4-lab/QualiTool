@@ -4170,29 +4170,26 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   }
   try { window.updateSyncIndicator = updateSyncIndicator; } catch(_){}
   
-  // Manuelle Sync-Funktion für den Sync-Button
+  // VEREINFACHTE Manuelle Sync-Funktion
   async function manualSync() {
     console.log('[Manual Sync] User triggered manual sync');
-    updateSyncIndicator('syncing');
     
     try {
-      // Force full snapshot
+      // Force full snapshot (ohne Hash-Check)
       enqueueFullContactsSnapshot();
+      console.log('[Manual Sync] Full snapshot enqueued');
       
       // Immediate flush
       await flushQueue();
-      
-      // Status update
-      updateSyncIndicator('success');
+      console.log('[Manual Sync] Queue flushed');
       
       // User Feedback
-      alert('✓ Synchronisation erfolgreich abgeschlossen!');
+      alert('✓ Synchronisation durchgeführt!');
       
-      return false; // Prevent default link behavior
+      return false;
     } catch(e) {
       console.error('[Manual Sync] Failed:', e);
-      updateSyncIndicator('error');
-      alert('⚠ Synchronisation fehlgeschlagen. Bitte prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.');
+      alert('⚠ Sync-Fehler: ' + (e.message || e));
       return false;
     }
   }
