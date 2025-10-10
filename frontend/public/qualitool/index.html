@@ -1716,14 +1716,32 @@
     }
   }
   function saveContacts() {
-  localStorage.setItem('contacts', JSON.stringify(contacts));
-  try { window.contacts = contacts; } catch(_) {}
-  try { enqueueContactsSnapshot(); } catch(_) {}
-  try { rescanAndEnqueueStatusDiffs(); } catch(_) {}
-  try { flushSoon(); } catch(_) {}
-  // NEU: Auto‑Sync nach Änderungen zuverlässig anstoßen (debounced)
-  try { scheduleAutoSync('saveContacts'); } catch(_) {}
-}
+    console.log('[SaveContacts] Saving contacts to localStorage and triggering sync');
+    localStorage.setItem('contacts', JSON.stringify(contacts));
+    try { window.contacts = contacts; } catch(_) {}
+    
+    // EINFACHER, DIREKTER SYNC
+    try { 
+      enqueueContactsSnapshot(); 
+      console.log('[SaveContacts] Snapshot enqueued');
+    } catch(e) { 
+      console.error('[SaveContacts] enqueueContactsSnapshot failed:', e);
+    }
+    
+    try { 
+      rescanAndEnqueueStatusDiffs(); 
+      console.log('[SaveContacts] Status diffs enqueued');
+    } catch(e) {
+      console.error('[SaveContacts] rescanAndEnqueueStatusDiffs failed:', e);
+    }
+    
+    try { 
+      flushSoon(); 
+      console.log('[SaveContacts] Flush scheduled');
+    } catch(e) {
+      console.error('[SaveContacts] flushSoon failed:', e);
+    }
+  }
   function updateStreetFilter() {
     const streetFilter = document.getElementById('streetFilter');
     const streets = new Set();
