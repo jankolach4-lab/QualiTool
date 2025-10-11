@@ -1720,12 +1720,13 @@
     localStorage.setItem('contacts', JSON.stringify(contacts));
     try { window.contacts = contacts; } catch(_) {}
     
-    // EINFACHER, DIREKTER SYNC
+    // WICHTIG: enqueueFullContactsSnapshot() statt enqueueContactsSnapshot()
+    // um Hash-Check zu umgehen und IMMER zu synchronisieren
     try { 
-      enqueueContactsSnapshot(); 
-      console.log('[SaveContacts] Snapshot enqueued');
+      enqueueFullContactsSnapshot(); 
+      console.log('[SaveContacts] Full snapshot enqueued (no hash check)');
     } catch(e) { 
-      console.error('[SaveContacts] enqueueContactsSnapshot failed:', e);
+      console.error('[SaveContacts] enqueueFullContactsSnapshot failed:', e);
     }
     
     try { 
