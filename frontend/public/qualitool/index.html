@@ -1622,10 +1622,20 @@
     const residentsSection = card.querySelector('.residents-section');
     const deleteBtn = card.querySelector('.delete-btn');
     if (residentsSection.style.display === 'block') {
+      // SCHLIESSEN → SYNC TRIGGERN
       residentsSection.style.display = 'none';
       card.classList.remove('expanded');
       card.classList.remove('active');
       deleteBtn.style.display = 'none';
+      
+      // SOFORTIGER SYNC beim Schließen einer Adresse
+      console.log('[toggleResidents] Address closed, triggering immediate sync');
+      try {
+        enqueueFullContactsSnapshot();
+        flushQueue(); // SOFORT, nicht flushSoon()
+      } catch(e) {
+        console.error('[toggleResidents] Sync failed:', e);
+      }
     } else {
       residentsSection.style.display = 'block';
       card.classList.add('expanded');
