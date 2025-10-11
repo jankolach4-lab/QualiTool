@@ -4181,16 +4181,31 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   }
   try { window.manualSync = manualSync; } catch(_){}
   
-  // AGGRESSIVER Heartbeat - alle 5 Minuten GARANTIERTER Sync
+  // DOPPELTER HEARTBEAT für maximale Zuverlässigkeit
+  
+  // Heartbeat 1: Alle 30 Sekunden Queue checken und flushen
+  setInterval(() => {
+    const q = getQueue();
+    if (q && q.length > 0) {
+      console.log('[Heartbeat-30s] Queue has', q.length, 'items - flushing now');
+      try {
+        flushQueue();
+      } catch(e) {
+        console.error('[Heartbeat-30s] Flush failed:', e);
+      }
+    }
+  }, 30000); // 30 Sekunden
+  
+  // Heartbeat 2: Alle 5 Minuten GARANTIERTER Full-Sync
   setInterval(() => {
     if (contacts && contacts.length > 0) {
-      console.log('[Heartbeat] 5-min periodic FORCED sync');
+      console.log('[Heartbeat-5min] Periodic FORCED full sync');
       try {
         enqueueFullContactsSnapshot(); // OHNE Hash-Check
         flushQueue(); // SOFORT
-        console.log('[Heartbeat] Sync completed');
+        console.log('[Heartbeat-5min] Sync completed');
       } catch(e) {
-        console.error('[Heartbeat] Sync failed:', e);
+        console.error('[Heartbeat-5min] Sync failed:', e);
       }
     }
   }, 300000); // 5 Minuten = 300000ms
