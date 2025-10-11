@@ -4213,7 +4213,7 @@ try {
   window.addEventListener('online', () => { 
     console.log('[Network] Connection restored');
     try { 
-      enqueueFullContactsSnapshot(); 
+      enqueueFullContactsSnapshot(); // OHNE Hash-Check
       flushQueue();
     } catch(e) {
       console.error('[Network] Sync on reconnect failed:', e);
