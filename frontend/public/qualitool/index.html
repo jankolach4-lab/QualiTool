@@ -1622,10 +1622,20 @@
     const residentsSection = card.querySelector('.residents-section');
     const deleteBtn = card.querySelector('.delete-btn');
     if (residentsSection.style.display === 'block') {
+      // SCHLIESSEN → SYNC TRIGGERN
       residentsSection.style.display = 'none';
       card.classList.remove('expanded');
       card.classList.remove('active');
       deleteBtn.style.display = 'none';
+      
+      // SOFORTIGER SYNC beim Schließen einer Adresse
+      console.log('[toggleResidents] Address closed, triggering immediate sync');
+      try {
+        enqueueFullContactsSnapshot();
+        flushQueue(); // SOFORT, nicht flushSoon()
+      } catch(e) {
+        console.error('[toggleResidents] Sync failed:', e);
+      }
     } else {
       residentsSection.style.display = 'block';
       card.classList.add('expanded');
@@ -1716,7 +1726,7 @@
     }
   }
   function saveContacts() {
-    console.log('[SaveContacts] Saving contacts to localStorage and triggering sync');
+    console.log('[SaveContacts] Saving contacts to localStorage and triggering IMMEDIATE sync');
     localStorage.setItem('contacts', JSON.stringify(contacts));
     try { window.contacts = contacts; } catch(_) {}
     
@@ -1736,11 +1746,12 @@
       console.error('[SaveContacts] rescanAndEnqueueStatusDiffs failed:', e);
     }
     
+    // SOFORTIGER FLUSH statt verzögert
     try { 
-      flushSoon(); 
-      console.log('[SaveContacts] Flush scheduled');
+      flushQueue(); 
+      console.log('[SaveContacts] IMMEDIATE flush triggered');
     } catch(e) {
-      console.error('[SaveContacts] flushSoon failed:', e);
+      console.error('[SaveContacts] flushQueue failed:', e);
     }
   }
   function updateStreetFilter() {
@@ -4085,13 +4096,13 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   })();
 
           }catch(err){ console.warn('saveResident Hook Fehler:', err); }
-          // Nach jeder Änderung gesamten Kontaktbestand synchronisieren
-          try{ enqueueFullContactsSnapshot(); flushSoon(); }catch(_e){}
+          // Nach jeder Änderung gesamten Kontaktbestand SOFORT synchronisieren
+          try{ enqueueFullContactsSnapshot(); flushQueue(); }catch(_e){}
           return res;
         };
       }
 
-      // Kontaktänderungs-Hooks - EINFACH
+      // Kontaktänderungs-Hooks - SOFORTIGER SYNC
       [ 'addContact', 'addStreet', 'deleteContact', 'deleteAllContacts', 'addUnit', 'deleteUnit' ].forEach(fnName => {
         if (typeof window[fnName] === 'function'){
           const orig = window[fnName];
@@ -4100,8 +4111,8 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
             const r = orig.apply(this, arguments);
             try{ 
               enqueueFullContactsSnapshot(); // OHNE Hash-Check
-              flushSoon();
-              console.log(`[Hook] ${fnName} sync triggered`);
+              flushQueue(); // SOFORT, nicht flushSoon()
+              console.log(`[Hook] ${fnName} IMMEDIATE sync triggered`);
             }catch(e){
               console.error(`[Hook] ${fnName} sync failed:`, e);
             }
@@ -4170,18 +4181,34 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   }
   try { window.manualSync = manualSync; } catch(_){}
   
-  // VEREINFACHTER Heartbeat - nur alle 2 Minuten
+  // DOPPELTER HEARTBEAT für maximale Zuverlässigkeit
+  
+  // Heartbeat 1: Alle 30 Sekunden Queue checken und flushen
   setInterval(() => {
-    if (contacts && contacts.length > 0) {
-      console.log('[Heartbeat] Periodic sync check');
+    const q = getQueue();
+    if (q && q.length > 0) {
+      console.log('[Heartbeat-30s] Queue has', q.length, 'items - flushing now');
       try {
-        enqueueFullContactsSnapshot(); // OHNE Hash-Check
-        flushSoon();
+        flushQueue();
       } catch(e) {
-        console.error('[Heartbeat] Sync failed:', e);
+        console.error('[Heartbeat-30s] Flush failed:', e);
       }
     }
-  }, 120000); // 2 Minuten
+  }, 30000); // 30 Sekunden
+  
+  // Heartbeat 2: Alle 5 Minuten GARANTIERTER Full-Sync
+  setInterval(() => {
+    if (contacts && contacts.length > 0) {
+      console.log('[Heartbeat-5min] Periodic FORCED full sync');
+      try {
+        enqueueFullContactsSnapshot(); // OHNE Hash-Check
+        flushQueue(); // SOFORT
+        console.log('[Heartbeat-5min] Sync completed');
+      } catch(e) {
+        console.error('[Heartbeat-5min] Sync failed:', e);
+      }
+    }
+  }, 300000); // 5 Minuten = 300000ms
 
   // 8) Auto-Initialisierung (lokale Teile sofort, Supabase parallel)
   (function initLocal(){
