@@ -4096,8 +4096,8 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   })();
 
           }catch(err){ console.warn('saveResident Hook Fehler:', err); }
-          // Nach jeder Änderung gesamten Kontaktbestand synchronisieren
-          try{ enqueueFullContactsSnapshot(); flushSoon(); }catch(_e){}
+          // Nach jeder Änderung gesamten Kontaktbestand SOFORT synchronisieren
+          try{ enqueueFullContactsSnapshot(); flushQueue(); }catch(_e){}
           return res;
         };
       }
