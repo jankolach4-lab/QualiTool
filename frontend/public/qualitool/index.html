@@ -4099,7 +4099,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
             console.log(`[Hook] ${fnName} triggered`);
             const r = orig.apply(this, arguments);
             try{ 
-              enqueueContactsSnapshot(); 
+              enqueueFullContactsSnapshot(); // OHNE Hash-Check
               flushSoon();
               console.log(`[Hook] ${fnName} sync triggered`);
             }catch(e){
