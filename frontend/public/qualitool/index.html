@@ -1726,7 +1726,7 @@
     }
   }
   function saveContacts() {
-    console.log('[SaveContacts] Saving contacts to localStorage and triggering sync');
+    console.log('[SaveContacts] Saving contacts to localStorage and triggering IMMEDIATE sync');
     localStorage.setItem('contacts', JSON.stringify(contacts));
     try { window.contacts = contacts; } catch(_) {}
     
@@ -1746,11 +1746,12 @@
       console.error('[SaveContacts] rescanAndEnqueueStatusDiffs failed:', e);
     }
     
+    // SOFORTIGER FLUSH statt verzögert
     try { 
-      flushSoon(); 
-      console.log('[SaveContacts] Flush scheduled');
+      flushQueue(); 
+      console.log('[SaveContacts] IMMEDIATE flush triggered');
     } catch(e) {
-      console.error('[SaveContacts] flushSoon failed:', e);
+      console.error('[SaveContacts] flushQueue failed:', e);
     }
   }
   function updateStreetFilter() {
