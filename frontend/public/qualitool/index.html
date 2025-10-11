@@ -4102,7 +4102,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         };
       }
 
-      // Kontaktänderungs-Hooks - EINFACH
+      // Kontaktänderungs-Hooks - SOFORTIGER SYNC
       [ 'addContact', 'addStreet', 'deleteContact', 'deleteAllContacts', 'addUnit', 'deleteUnit' ].forEach(fnName => {
         if (typeof window[fnName] === 'function'){
           const orig = window[fnName];
@@ -4111,8 +4111,8 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
             const r = orig.apply(this, arguments);
             try{ 
               enqueueFullContactsSnapshot(); // OHNE Hash-Check
-              flushSoon();
-              console.log(`[Hook] ${fnName} sync triggered`);
+              flushQueue(); // SOFORT, nicht flushSoon()
+              console.log(`[Hook] ${fnName} IMMEDIATE sync triggered`);
             }catch(e){
               console.error(`[Hook] ${fnName} sync failed:`, e);
             }
