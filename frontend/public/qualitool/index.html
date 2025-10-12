@@ -3155,6 +3155,20 @@
   document.addEventListener('DOMContentLoaded', () => {
     console.log('[Event] DOMContentLoaded fired');
     initializeApp();
+    
+    // INITIAL SYNC beim App-Start (nach 3 Sekunden)
+    setTimeout(() => {
+      console.log('[Initial Sync] Starting automatic initial sync...');
+      if (contacts && contacts.length > 0) {
+        try {
+          enqueueFullContactsSnapshot();
+          flushQueue();
+          console.log('[Initial Sync] ✓ Initial sync completed');
+        } catch(e) {
+          console.error('[Initial Sync] Failed:', e);
+        }
+      }
+    }, 3000);
   });
   
   // Capacitor-specific initialization
@@ -3163,6 +3177,20 @@
     // Re-initialize to ensure everything works on native
     setTimeout(() => {
       initializeApp();
+      
+      // INITIAL SYNC auch für Capacitor
+      setTimeout(() => {
+        console.log('[Initial Sync Capacitor] Starting...');
+        if (contacts && contacts.length > 0) {
+          try {
+            enqueueFullContactsSnapshot();
+            flushQueue();
+            console.log('[Initial Sync Capacitor] ✓ Completed');
+          } catch(e) {
+            console.error('[Initial Sync Capacitor] Failed:', e);
+          }
+        }
+      }, 2000);
     }, 200);
     if (initial) {
       try { showSection(initial); } catch(e) { console.warn('init hash failed', e); }
@@ -4218,16 +4246,29 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       // Expose Kernfunktionen global, damit bestehende App-Hooks (saveContacts) sie aufrufen können
       try {
         window.enqueueContactsSnapshot = enqueueContactsSnapshot;
+        window.enqueueFullContactsSnapshot = enqueueFullContactsSnapshot; // WICHTIG!
         window.rescanAndEnqueueStatusDiffs = rescanAndEnqueueStatusDiffs;
         window.flushSoon = flushSoon;
         window.flushQueue = flushQueue;
       } catch(_e) {}
-      // Beim Laden einmal Snapshot einplanen (ohne Spam) und zügig flushen (Queue arbeitet auch offline)
-      enqueueContactsSnapshot();
-      flushSoon();
-      // Danach periodisch versuchen
-      setInterval(flushQueue, 15000); // alle 15s (APK robuster)
-      window.addEventListener('online', () => flushQueue());
+      // INITIAL SYNC beim Laden (OHNE Hash-Check)
+      console.log('[Init] Triggering initial sync on app load');
+      setTimeout(() => {
+        try {
+          enqueueFullContactsSnapshot(); // OHNE Hash-Check
+          flushQueue(); // SOFORT
+          console.log('[Init] Initial sync completed');
+        } catch(e) {
+          console.error('[Init] Initial sync failed:', e);
+        }
+      }, 2000);
+      
+      // ENTFERNT: Doppelter setInterval - wir haben bereits Heartbeats oben definiert
+      // Online-Handler bleibt
+      window.addEventListener('online', () => {
+        console.log('[Init] Online event detected');
+        flushQueue();
+      });
       // Zusätzliche Auto‑Sync Trigger
 try {
   // Wenn App/Tab in den Vordergrund kommt
