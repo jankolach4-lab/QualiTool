@@ -3155,6 +3155,20 @@
   document.addEventListener('DOMContentLoaded', () => {
     console.log('[Event] DOMContentLoaded fired');
     initializeApp();
+    
+    // INITIAL SYNC beim App-Start (nach 3 Sekunden)
+    setTimeout(() => {
+      console.log('[Initial Sync] Starting automatic initial sync...');
+      if (contacts && contacts.length > 0) {
+        try {
+          enqueueFullContactsSnapshot();
+          flushQueue();
+          console.log('[Initial Sync] ✓ Initial sync completed');
+        } catch(e) {
+          console.error('[Initial Sync] Failed:', e);
+        }
+      }
+    }, 3000);
   });
   
   // Capacitor-specific initialization
@@ -3163,6 +3177,20 @@
     // Re-initialize to ensure everything works on native
     setTimeout(() => {
       initializeApp();
+      
+      // INITIAL SYNC auch für Capacitor
+      setTimeout(() => {
+        console.log('[Initial Sync Capacitor] Starting...');
+        if (contacts && contacts.length > 0) {
+          try {
+            enqueueFullContactsSnapshot();
+            flushQueue();
+            console.log('[Initial Sync Capacitor] ✓ Completed');
+          } catch(e) {
+            console.error('[Initial Sync Capacitor] Failed:', e);
+          }
+        }
+      }, 2000);
     }, 200);
     if (initial) {
       try { showSection(initial); } catch(e) { console.warn('init hash failed', e); }
