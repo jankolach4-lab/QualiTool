@@ -4246,6 +4246,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       // Expose Kernfunktionen global, damit bestehende App-Hooks (saveContacts) sie aufrufen können
       try {
         window.enqueueContactsSnapshot = enqueueContactsSnapshot;
+        window.enqueueFullContactsSnapshot = enqueueFullContactsSnapshot; // WICHTIG!
         window.rescanAndEnqueueStatusDiffs = rescanAndEnqueueStatusDiffs;
         window.flushSoon = flushSoon;
         window.flushQueue = flushQueue;
