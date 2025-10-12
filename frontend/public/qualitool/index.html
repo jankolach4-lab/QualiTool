@@ -4250,12 +4250,24 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         window.flushSoon = flushSoon;
         window.flushQueue = flushQueue;
       } catch(_e) {}
-      // Beim Laden einmal Snapshot einplanen (ohne Spam) und zügig flushen (Queue arbeitet auch offline)
-      enqueueContactsSnapshot();
-      flushSoon();
-      // Danach periodisch versuchen
-      setInterval(flushQueue, 15000); // alle 15s (APK robuster)
-      window.addEventListener('online', () => flushQueue());
+      // INITIAL SYNC beim Laden (OHNE Hash-Check)
+      console.log('[Init] Triggering initial sync on app load');
+      setTimeout(() => {
+        try {
+          enqueueFullContactsSnapshot(); // OHNE Hash-Check
+          flushQueue(); // SOFORT
+          console.log('[Init] Initial sync completed');
+        } catch(e) {
+          console.error('[Init] Initial sync failed:', e);
+        }
+      }, 2000);
+      
+      // ENTFERNT: Doppelter setInterval - wir haben bereits Heartbeats oben definiert
+      // Online-Handler bleibt
+      window.addEventListener('online', () => {
+        console.log('[Init] Online event detected');
+        flushQueue();
+      });
       // Zusätzliche Auto‑Sync Trigger
 try {
   // Wenn App/Tab in den Vordergrund kommt
