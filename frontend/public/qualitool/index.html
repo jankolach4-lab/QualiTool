@@ -3165,20 +3165,7 @@
     // Re-initialize to ensure everything works on native
     setTimeout(() => {
       initializeApp();
-      
-      // INITIAL SYNC auch für Capacitor
-      setTimeout(() => {
-        console.log('[Initial Sync Capacitor] Starting...');
-        if (contacts && contacts.length > 0) {
-          try {
-            enqueueFullContactsSnapshot();
-            flushQueue();
-            console.log('[Initial Sync Capacitor] ✓ Completed');
-          } catch(e) {
-            console.error('[Initial Sync Capacitor] Failed:', e);
-          }
-        }
-      }, 2000);
+      // KEIN separater Sync - wird von initLocal() mit Session-Check gemacht
     }, 200);
     if (initial) {
       try { showSection(initial); } catch(e) { console.warn('init hash failed', e); }
