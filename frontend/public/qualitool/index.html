@@ -4251,17 +4251,43 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         window.flushSoon = flushSoon;
         window.flushQueue = flushQueue;
       } catch(_e) {}
-      // INITIAL SYNC beim Laden (OHNE Hash-Check)
-      console.log('[Init] Triggering initial sync on app load');
-      setTimeout(() => {
-        try {
-          enqueueFullContactsSnapshot(); // OHNE Hash-Check
-          flushQueue(); // SOFORT
-          console.log('[Init] Initial sync completed');
-        } catch(e) {
-          console.error('[Init] Initial sync failed:', e);
-        }
-      }, 2000);
+      // INITIAL SYNC - aber WARTE auf Supabase-Session!
+      console.log('[Init] Waiting for Supabase session before initial sync...');
+      async function waitForSessionAndSync() {
+        let attempts = 0;
+        const maxAttempts = 20; // 20 Versuche = 20 Sekunden
+        
+        const checkInterval = setInterval(async () => {
+          attempts++;
+          console.log(`[Init] Session check attempt ${attempts}/${maxAttempts}`);
+          
+          try {
+            const client = await awaitSupabase().catch(() => null);
+            const user = client ? (await getUser().catch(() => null)) : null;
+            
+            if (user) {
+              clearInterval(checkInterval);
+              console.log('[Init] ✓ Session found! User:', user.id);
+              
+              // JETZT synchronisieren
+              try {
+                enqueueFullContactsSnapshot();
+                await flushQueue();
+                console.log('[Init] ✓ Initial sync completed successfully');
+              } catch(e) {
+                console.error('[Init] Initial sync failed:', e);
+              }
+            } else if (attempts >= maxAttempts) {
+              clearInterval(checkInterval);
+              console.warn('[Init] ✗ No session after', maxAttempts, 'attempts. Sync will start after login.');
+            }
+          } catch(e) {
+            console.error('[Init] Session check error:', e);
+          }
+        }, 1000); // Alle 1 Sekunde prüfen
+      }
+      
+      waitForSessionAndSync();
       
       // ENTFERNT: Doppelter setInterval - wir haben bereits Heartbeats oben definiert
       // Online-Handler bleibt
