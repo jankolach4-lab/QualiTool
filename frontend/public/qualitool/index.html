@@ -3813,58 +3813,54 @@ async function manualDirectSyncNow(){
 // Globale Registrierung (überschreibt den Shim nur 1x)
 try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = manualDirectSyncNow; } catch(_){}
 
-// AUTOMATISCHER INITIAL-SYNC - HIER, NACHDEM manualDirectSyncNow() DEFINIERT WURDE!
+// AGGRESSIVE AUTOMATISCHER INITIAL-SYNC - GARANTIERT AUSFÜHRUNG!
 (function autoInitialSync() {
-  console.log('[AutoSync] Setting up automatic initial sync...');
+  console.log('[AutoSync] Setting up AGGRESSIVE automatic initial sync...');
   
-  // Für APK/Capacitor: deviceready Event
-  document.addEventListener('deviceready', function() {
-    console.log('[AutoSync] deviceready detected - starting sync in 7s');
-    setTimeout(async function() {
-      console.log('[AutoSync] Executing initial sync via manualDirectSyncNow()...');
+  let syncAttempts = 0;
+  let syncSuccessful = false;
+  const MAX_ATTEMPTS = 20; // 20 Versuche = 100 Sekunden
+  
+  // Prüft alle 5 Sekunden, ob schon erfolgreich synchronisiert wurde
+  const syncChecker = setInterval(async function() {
+    // Prüfe ob bereits erfolgreich synchronisiert (manuell oder automatisch)
+    try {
+      const lastSync = localStorage.getItem('qt_last_sync_try');
+      if (lastSync) {
+        const parsed = JSON.parse(lastSync);
+        if (parsed.stage === 'events_ok') {
+          console.log('[AutoSync] ✓ Already synced successfully (stage: events_ok)');
+          clearInterval(syncChecker);
+          syncSuccessful = true;
+          return;
+        }
+      }
+    } catch(e) {}
+    
+    // Wenn noch nicht erfolgreich und noch Versuche übrig
+    if (!syncSuccessful && syncAttempts < MAX_ATTEMPTS) {
+      syncAttempts++;
+      console.log(`[AutoSync] Attempt ${syncAttempts}/${MAX_ATTEMPTS} - executing manualDirectSyncNow()...`);
+      
       try {
         const result = await manualDirectSyncNow();
-        console.log('[AutoSync] Initial sync result:', result ? 'SUCCESS ✓' : 'FAILED ✗');
-        if (!result) {
-          console.log('[AutoSync] Retrying in 10s...');
-          setTimeout(async function() {
-            const retry = await manualDirectSyncNow();
-            console.log('[AutoSync] Retry result:', retry ? 'SUCCESS ✓' : 'FAILED ✗');
-          }, 10000);
+        console.log('[AutoSync] Sync result:', result ? 'SUCCESS ✓✓✓' : 'FAILED ✗');
+        
+        if (result) {
+          console.log('[AutoSync] ✓✓✓ FIRST SUCCESSFUL AUTO-SYNC! Stopping checker.');
+          clearInterval(syncChecker);
+          syncSuccessful = true;
         }
       } catch(e) {
-        console.error('[AutoSync] Error:', e);
+        console.error('[AutoSync] Error during sync attempt:', e);
       }
-    }, 7000);
-  }, false);
+    } else if (syncAttempts >= MAX_ATTEMPTS) {
+      console.warn('[AutoSync] Max attempts reached. Stopping auto-sync checker.');
+      clearInterval(syncChecker);
+    }
+  }, 5000); // Alle 5 Sekunden prüfen und ggf. syncen
   
-  // Für Web/Browser: DOMContentLoaded (falls deviceready nicht feuert)
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('[AutoSync] DOMContentLoaded - starting sync in 7s');
-      setTimeout(async function() {
-        console.log('[AutoSync] Executing initial sync via manualDirectSyncNow()...');
-        try {
-          const result = await manualDirectSyncNow();
-          console.log('[AutoSync] Initial sync result:', result ? 'SUCCESS ✓' : 'FAILED ✗');
-        } catch(e) {
-          console.error('[AutoSync] Error:', e);
-        }
-      }, 7000);
-    });
-  } else {
-    // DOM bereits geladen
-    console.log('[AutoSync] DOM already loaded - starting sync in 7s');
-    setTimeout(async function() {
-      console.log('[AutoSync] Executing initial sync via manualDirectSyncNow()...');
-      try {
-        const result = await manualDirectSyncNow();
-        console.log('[AutoSync] Initial sync result:', result ? 'SUCCESS ✓' : 'FAILED ✗');
-      } catch(e) {
-        console.error('[AutoSync] Error:', e);
-      }
-    }, 7000);
-  }
+  console.log('[AutoSync] Checker running - will attempt sync every 5s until successful');
 })();
     const stamp = Date.now();
     try{
