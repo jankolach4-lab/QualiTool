@@ -4226,7 +4226,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         window.flushSoon = flushSoon;
         window.flushQueue = flushQueue;
       } catch(_e) {}
-      // INITIAL SYNC - aber WARTE auf Supabase-Session!
+      // INITIAL SYNC - DIREKT wie manueller Sync!
       console.log('[Init] Waiting for Supabase session before initial sync...');
       async function waitForSessionAndSync() {
         let attempts = 0;
@@ -4238,19 +4238,24 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
           
           try {
             const client = await awaitSupabase().catch(() => null);
-            const user = client ? (await getUser().catch(() => null)) : null;
+            if (!client) return;
+            
+            const { data: { user } } = await client.auth.getUser().catch(() => ({ data: { user: null }}));
             
             if (user) {
               clearInterval(checkInterval);
               console.log('[Init] ✓ Session found! User:', user.id);
               
-              // JETZT synchronisieren
+              // WICHTIG: Nutze manualDirectSyncNow() wie der manuelle Button!
               try {
-                enqueueFullContactsSnapshot();
-                await flushQueue();
-                console.log('[Init] ✓ Initial sync completed successfully');
+                const success = await manualDirectSyncNow();
+                if (success) {
+                  console.log('[Init] ✓ Initial direct sync completed successfully');
+                } else {
+                  console.warn('[Init] Initial direct sync returned false');
+                }
               } catch(e) {
-                console.error('[Init] Initial sync failed:', e);
+                console.error('[Init] Initial direct sync failed:', e);
               }
             } else if (attempts >= maxAttempts) {
               clearInterval(checkInterval);
