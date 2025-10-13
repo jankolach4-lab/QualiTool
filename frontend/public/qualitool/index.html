@@ -4226,48 +4226,27 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         window.flushSoon = flushSoon;
         window.flushQueue = flushQueue;
       } catch(_e) {}
-      // INITIAL SYNC - DIREKT wie manueller Sync!
-      console.log('[Init] Waiting for Supabase session before initial sync...');
-      async function waitForSessionAndSync() {
-        let attempts = 0;
-        const maxAttempts = 20; // 20 Versuche = 20 Sekunden
-        
-        const checkInterval = setInterval(async () => {
-          attempts++;
-          console.log(`[Init] Session check attempt ${attempts}/${maxAttempts}`);
-          
-          try {
-            const client = await awaitSupabase().catch(() => null);
-            if (!client) return;
-            
-            const { data: { user } } = await client.auth.getUser().catch(() => ({ data: { user: null }}));
-            
-            if (user) {
-              clearInterval(checkInterval);
-              console.log('[Init] ✓ Session found! User:', user.id);
-              
-              // WICHTIG: Nutze manualDirectSyncNow() wie der manuelle Button!
-              try {
-                const success = await manualDirectSyncNow();
-                if (success) {
-                  console.log('[Init] ✓ Initial direct sync completed successfully');
-                } else {
-                  console.warn('[Init] Initial direct sync returned false');
-                }
-              } catch(e) {
-                console.error('[Init] Initial direct sync failed:', e);
-              }
-            } else if (attempts >= maxAttempts) {
-              clearInterval(checkInterval);
-              console.warn('[Init] ✗ No session after', maxAttempts, 'attempts. Sync will start after login.');
-            }
-          } catch(e) {
-            console.error('[Init] Session check error:', e);
+      // INITIAL SYNC - EINFACH mit Verzögerung starten!
+      console.log('[Init] Scheduling initial sync after 5 seconds...');
+      setTimeout(async () => {
+        console.log('[Init] Starting initial sync now...');
+        try {
+          // Nutze manualDirectSyncNow() - genau wie der manuelle Button
+          const success = await manualDirectSyncNow();
+          if (success) {
+            console.log('[Init] ✓✓✓ Initial sync completed successfully - events_ok!');
+          } else {
+            console.warn('[Init] Initial sync returned false - retrying in 5s...');
+            // Retry einmal
+            setTimeout(async () => {
+              const retry = await manualDirectSyncNow();
+              console.log('[Init] Retry result:', retry ? 'SUCCESS' : 'FAILED');
+            }, 5000);
           }
-        }, 1000); // Alle 1 Sekunde prüfen
-      }
-      
-      waitForSessionAndSync();
+        } catch(e) {
+          console.error('[Init] Initial sync error:', e);
+        }
+      }, 5000); // 5 Sekunden warten, damit Supabase sicher geladen ist
       
       // ENTFERNT: Doppelter setInterval - wir haben bereits Heartbeats oben definiert
       // Online-Handler bleibt
