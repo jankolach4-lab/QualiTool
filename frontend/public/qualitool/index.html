@@ -4280,30 +4280,10 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         window.flushSoon = flushSoon;
         window.flushQueue = flushQueue;
       } catch(_e) {}
-      // INITIAL SYNC - EINFACH mit Verzögerung starten!
-      console.log('[Init] Scheduling initial sync after 5 seconds...');
-      setTimeout(async () => {
-        console.log('[Init] Starting initial sync now...');
-        try {
-          // Nutze manualDirectSyncNow() - genau wie der manuelle Button
-          const success = await manualDirectSyncNow();
-          if (success) {
-            console.log('[Init] ✓✓✓ Initial sync completed successfully - events_ok!');
-          } else {
-            console.warn('[Init] Initial sync returned false - retrying in 5s...');
-            // Retry einmal
-            setTimeout(async () => {
-              const retry = await manualDirectSyncNow();
-              console.log('[Init] Retry result:', retry ? 'SUCCESS' : 'FAILED');
-            }, 5000);
-          }
-        } catch(e) {
-          console.error('[Init] Initial sync error:', e);
-        }
-      }, 5000); // 5 Sekunden warten, damit Supabase sicher geladen ist
+      // Initial-Sync wird jetzt NACH manualDirectSyncNow() Definition gehandhabt
+      // Siehe autoInitialSync() IIFE nach der Funktionsdefinition
       
-      // ENTFERNT: Doppelter setInterval - wir haben bereits Heartbeats oben definiert
-      // Online-Handler bleibt
+      // Online-Handler
       window.addEventListener('online', () => {
         console.log('[Init] Online event detected');
         flushQueue();
