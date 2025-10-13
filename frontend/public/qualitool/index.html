@@ -3156,19 +3156,7 @@
     console.log('[Event] DOMContentLoaded fired');
     initializeApp();
     
-    // INITIAL SYNC beim App-Start (nach 3 Sekunden)
-    setTimeout(() => {
-      console.log('[Initial Sync] Starting automatic initial sync...');
-      if (contacts && contacts.length > 0) {
-        try {
-          enqueueFullContactsSnapshot();
-          flushQueue();
-          console.log('[Initial Sync] ✓ Initial sync completed');
-        } catch(e) {
-          console.error('[Initial Sync] Failed:', e);
-        }
-      }
-    }, 3000);
+    // KEIN sofortiger Sync hier - wird von initLocal() mit Session-Check gemacht
   });
   
   // Capacitor-specific initialization
