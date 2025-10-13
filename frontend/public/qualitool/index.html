@@ -3812,6 +3812,60 @@ async function manualDirectSyncNow(){
 }
 // Globale Registrierung (überschreibt den Shim nur 1x)
 try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = manualDirectSyncNow; } catch(_){}
+
+// AUTOMATISCHER INITIAL-SYNC - HIER, NACHDEM manualDirectSyncNow() DEFINIERT WURDE!
+(function autoInitialSync() {
+  console.log('[AutoSync] Setting up automatic initial sync...');
+  
+  // Für APK/Capacitor: deviceready Event
+  document.addEventListener('deviceready', function() {
+    console.log('[AutoSync] deviceready detected - starting sync in 7s');
+    setTimeout(async function() {
+      console.log('[AutoSync] Executing initial sync via manualDirectSyncNow()...');
+      try {
+        const result = await manualDirectSyncNow();
+        console.log('[AutoSync] Initial sync result:', result ? 'SUCCESS ✓' : 'FAILED ✗');
+        if (!result) {
+          console.log('[AutoSync] Retrying in 10s...');
+          setTimeout(async function() {
+            const retry = await manualDirectSyncNow();
+            console.log('[AutoSync] Retry result:', retry ? 'SUCCESS ✓' : 'FAILED ✗');
+          }, 10000);
+        }
+      } catch(e) {
+        console.error('[AutoSync] Error:', e);
+      }
+    }, 7000);
+  }, false);
+  
+  // Für Web/Browser: DOMContentLoaded (falls deviceready nicht feuert)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('[AutoSync] DOMContentLoaded - starting sync in 7s');
+      setTimeout(async function() {
+        console.log('[AutoSync] Executing initial sync via manualDirectSyncNow()...');
+        try {
+          const result = await manualDirectSyncNow();
+          console.log('[AutoSync] Initial sync result:', result ? 'SUCCESS ✓' : 'FAILED ✗');
+        } catch(e) {
+          console.error('[AutoSync] Error:', e);
+        }
+      }, 7000);
+    });
+  } else {
+    // DOM bereits geladen
+    console.log('[AutoSync] DOM already loaded - starting sync in 7s');
+    setTimeout(async function() {
+      console.log('[AutoSync] Executing initial sync via manualDirectSyncNow()...');
+      try {
+        const result = await manualDirectSyncNow();
+        console.log('[AutoSync] Initial sync result:', result ? 'SUCCESS ✓' : 'FAILED ✗');
+      } catch(e) {
+        console.error('[AutoSync] Error:', e);
+      }
+    }, 7000);
+  }
+})();
     const stamp = Date.now();
     try{
       localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'start' }));
