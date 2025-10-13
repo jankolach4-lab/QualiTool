@@ -3812,6 +3812,60 @@ async function manualDirectSyncNow(){
 }
 // Globale Registrierung (überschreibt den Shim nur 1x)
 try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = manualDirectSyncNow; } catch(_){}
+
+// AUTOMATISCHER INITIAL-SYNC - HIER, NACHDEM manualDirectSyncNow() DEFINIERT WURDE!
+(function autoInitialSync() {
+  console.log('[AutoSync] Setting up automatic initial sync...');
+  
+  // Für APK/Capacitor: deviceready Event
+  document.addEventListener('deviceready', function() {
+    console.log('[AutoSync] deviceready detected - starting sync in 7s');
+    setTimeout(async function() {
+      console.log('[AutoSync] Executing initial sync via manualDirectSyncNow()...');
+      try {
+        const result = await manualDirectSyncNow();
+        console.log('[AutoSync] Initial sync result:', result ? 'SUCCESS ✓' : 'FAILED ✗');
+        if (!result) {
+          console.log('[AutoSync] Retrying in 10s...');
+          setTimeout(async function() {
+            const retry = await manualDirectSyncNow();
+            console.log('[AutoSync] Retry result:', retry ? 'SUCCESS ✓' : 'FAILED ✗');
+          }, 10000);
+        }
+      } catch(e) {
+        console.error('[AutoSync] Error:', e);
+      }
+    }, 7000);
+  }, false);
+  
+  // Für Web/Browser: DOMContentLoaded (falls deviceready nicht feuert)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('[AutoSync] DOMContentLoaded - starting sync in 7s');
+      setTimeout(async function() {
+        console.log('[AutoSync] Executing initial sync via manualDirectSyncNow()...');
+        try {
+          const result = await manualDirectSyncNow();
+          console.log('[AutoSync] Initial sync result:', result ? 'SUCCESS ✓' : 'FAILED ✗');
+        } catch(e) {
+          console.error('[AutoSync] Error:', e);
+        }
+      }, 7000);
+    });
+  } else {
+    // DOM bereits geladen
+    console.log('[AutoSync] DOM already loaded - starting sync in 7s');
+    setTimeout(async function() {
+      console.log('[AutoSync] Executing initial sync via manualDirectSyncNow()...');
+      try {
+        const result = await manualDirectSyncNow();
+        console.log('[AutoSync] Initial sync result:', result ? 'SUCCESS ✓' : 'FAILED ✗');
+      } catch(e) {
+        console.error('[AutoSync] Error:', e);
+      }
+    }, 7000);
+  }
+})();
     const stamp = Date.now();
     try{
       localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'start' }));
@@ -4226,30 +4280,10 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         window.flushSoon = flushSoon;
         window.flushQueue = flushQueue;
       } catch(_e) {}
-      // INITIAL SYNC - EINFACH mit Verzögerung starten!
-      console.log('[Init] Scheduling initial sync after 5 seconds...');
-      setTimeout(async () => {
-        console.log('[Init] Starting initial sync now...');
-        try {
-          // Nutze manualDirectSyncNow() - genau wie der manuelle Button
-          const success = await manualDirectSyncNow();
-          if (success) {
-            console.log('[Init] ✓✓✓ Initial sync completed successfully - events_ok!');
-          } else {
-            console.warn('[Init] Initial sync returned false - retrying in 5s...');
-            // Retry einmal
-            setTimeout(async () => {
-              const retry = await manualDirectSyncNow();
-              console.log('[Init] Retry result:', retry ? 'SUCCESS' : 'FAILED');
-            }, 5000);
-          }
-        } catch(e) {
-          console.error('[Init] Initial sync error:', e);
-        }
-      }, 5000); // 5 Sekunden warten, damit Supabase sicher geladen ist
+      // Initial-Sync wird jetzt NACH manualDirectSyncNow() Definition gehandhabt
+      // Siehe autoInitialSync() IIFE nach der Funktionsdefinition
       
-      // ENTFERNT: Doppelter setInterval - wir haben bereits Heartbeats oben definiert
-      // Online-Handler bleibt
+      // Online-Handler
       window.addEventListener('online', () => {
         console.log('[Init] Online event detected');
         flushQueue();
