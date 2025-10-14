@@ -3813,13 +3813,13 @@ async function manualDirectSyncNow(){
 // Globale Registrierung (überschreibt den Shim nur 1x)
 try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = manualDirectSyncNow; } catch(_){}
 
-// AGGRESSIVE AUTOMATISCHER INITIAL-SYNC - GARANTIERT AUSFÜHRUNG!
+// AGGRESSIVE AUTOMATISCHER INITIAL-SYNC - EXAKT WIE MANUELLER BUTTON!
 (function autoInitialSync() {
-  console.log('[AutoSync] Setting up AGGRESSIVE automatic initial sync...');
+  console.log('[AutoSync] Setting up automatic initial sync (EXACTLY like manual button)...');
   
   let syncAttempts = 0;
   let syncSuccessful = false;
-  const MAX_ATTEMPTS = 20; // 20 Versuche = 100 Sekunden
+  const MAX_ATTEMPTS = 30; // 30 Versuche = 150 Sekunden
   
   // Prüft alle 5 Sekunden, ob schon erfolgreich synchronisiert wurde
   const syncChecker = setInterval(async function() {
@@ -3840,11 +3840,20 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     // Wenn noch nicht erfolgreich und noch Versuche übrig
     if (!syncSuccessful && syncAttempts < MAX_ATTEMPTS) {
       syncAttempts++;
-      console.log(`[AutoSync] Attempt ${syncAttempts}/${MAX_ATTEMPTS} - executing manualDirectSyncNow()...`);
+      console.log(`[AutoSync] Attempt ${syncAttempts}/${MAX_ATTEMPTS} - EXACTLY like manual button...`);
       
       try {
-        const result = await manualDirectSyncNow();
-        console.log('[AutoSync] Sync result:', result ? 'SUCCESS ✓✓✓' : 'FAILED ✗');
+        // GENAU WIE DER MANUELLE BUTTON (Zeile 3621-3630)
+        const fn = (window && typeof window.manualDirectSyncNow === 'function') ? window.manualDirectSyncNow : null;
+        
+        if (!fn) {
+          console.warn('[AutoSync] window.manualDirectSyncNow not available yet, waiting...');
+          return; // Nächster Versuch in 5s
+        }
+        
+        console.log('[AutoSync] window.manualDirectSyncNow found! Executing...');
+        const result = await fn();
+        console.log('[AutoSync] Sync result:', result ? 'SUCCESS ✓✓✓ events_ok' : 'FAILED ✗');
         
         if (result) {
           console.log('[AutoSync] ✓✓✓ FIRST SUCCESSFUL AUTO-SYNC! Stopping checker.');
@@ -3860,7 +3869,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     }
   }, 5000); // Alle 5 Sekunden prüfen und ggf. syncen
   
-  console.log('[AutoSync] Checker running - will attempt sync every 5s until successful');
+  console.log('[AutoSync] Checker running - will attempt sync every 5s until window.manualDirectSyncNow succeeds');
 })();
     const stamp = Date.now();
     try{
