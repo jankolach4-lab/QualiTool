@@ -3655,37 +3655,74 @@
 
   function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
   async function awaitSupabase(maxMs=10000){
-    // Sofort vorhandenen globalen Client nutzen (z. B. aus login.html), auch wenn supabase-js (CDN) noch nicht geladen ist
-    if (window.supa && !sb) { sb = window.supa; }
-    if (sb) { return sb; }
+    console.log('[awaitSupabase] Starting... window.supa exists:', !!window.supa, 'sb exists:', !!sb);
+    
+    // IMMER window.supa nutzen (zentraler Client)
+    if (window.supa) { 
+      sb = window.supa;
+      console.log('[awaitSupabase] Using existing window.supa');
+      return sb; 
+    }
+    
+    if (sb) { 
+      console.log('[awaitSupabase] Using existing local sb');
+      return sb; 
+    }
 
     const start = Date.now();
-    // Falls noch kein globaler Client vorhanden ist, warte auf supabase-js und initialisiere
+    console.log('[awaitSupabase] Waiting for supabase library...');
+    
+    // Warte auf supabase-js Library
     while(!(window.supabase && window.supabase.createClient)){
-      if (Date.now()-start > maxMs) throw new Error('supabase-js nicht geladen');
+      if (Date.now()-start > maxMs) {
+        console.error('[awaitSupabase] Timeout waiting for supabase-js');
+        throw new Error('supabase-js nicht geladen');
+      }
       await sleep(100);
-      // während wir warten, könnte login.html bereits window.supa gesetzt haben
-      if (window.supa) { sb = window.supa; return sb; }
+      
+      // Prüfe immer wieder ob window.supa gesetzt wurde
+      if (window.supa) { 
+        sb = window.supa;
+        console.log('[awaitSupabase] window.supa appeared during wait');
+        return sb; 
+      }
     }
-    if (!sb) {
+    
+    // Erstelle NUR EINEN Client wenn noch keiner existiert
+    if (!sb && !window.supa) {
+      console.log('[awaitSupabase] Creating NEW Supabase client...');
+      
       function getCapacitorStorage(){
         try{
           const P = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) || null;
           if (!P) return null;
+          console.log('[awaitSupabase] Capacitor Preferences available');
           return {
             getItem: async (key) => { const r = await P.get({ key }); return (r && typeof r.value==='string') ? r.value : null; },
             setItem: async (key, value) => { await P.set({ key, value: String(value ?? '') }); },
             removeItem: async (key) => { await P.remove({ key }); }
           };
-        }catch(e){ return null; }
+        }catch(e){ 
+          console.log('[awaitSupabase] Capacitor not available, using localStorage');
+          return null; 
+        }
       }
+      
       const capStore = getCapacitorStorage();
-      if (window.supabase && window.supabase.createClient) {
-        sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, storage: capStore || undefined, autoRefreshToken: true, detectSessionInUrl: false }});
-      }
-      if (!sb && window.supa) { sb = window.supa; }
-      if (sb) { window.supa = sb; }
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { 
+        auth: { 
+          persistSession: true, 
+          storage: capStore || window.localStorage,
+          autoRefreshToken: true, 
+          detectSessionInUrl: false 
+        }
+      });
+      
+      // ZENTRAL: Setze window.supa
+      window.supa = sb;
+      console.log('[awaitSupabase] ✓ NEW client created and set as window.supa');
     }
+    
     return sb;
   }
 
@@ -3813,73 +3850,86 @@ async function manualDirectSyncNow(){
 // Globale Registrierung (überschreibt den Shim nur 1x)
 try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = manualDirectSyncNow; } catch(_){}
 
-// DIREKT runDirectSyncAndReport() AUFRUFEN - WIE DER BUTTON!
+// AUTO-SYNC mit konsolidiertem Supabase-Client
 (function autoInitialSync() {
-  console.log('[AutoSync] Setting up DIRECT runDirectSyncAndReport() calls...');
+  console.log('[AutoSync] Setting up auto-sync with consolidated client...');
   
   let syncAttempts = 0;
-  const MAX_ATTEMPTS = 20; // 20 × 3s = 60 Sekunden
+  const MAX_ATTEMPTS = 20; // 20 × 5s = 100 Sekunden
+  let syncInterval = null;
   
-  // Funktion die DIREKT runDirectSyncAndReport aufruft
   async function tryDirectSync() {
     syncAttempts++;
-    console.log(`[AutoSync] Direct sync attempt ${syncAttempts}/${MAX_ATTEMPTS}...`);
+    console.log(`[AutoSync] Attempt ${syncAttempts}/${MAX_ATTEMPTS}...`);
     
     // Prüfe ob bereits erfolgreich
     try {
       const lastSync = localStorage.getItem('qt_last_sync_try');
       if (lastSync) {
         const parsed = JSON.parse(lastSync);
+        console.log('[AutoSync] Last sync stage:', parsed.stage, 'userId:', parsed.user?.id || 'null');
+        
         if (parsed.stage === 'events_ok') {
           console.log('[AutoSync] ✓✓✓ Already synced (events_ok)! Stopping.');
-          clearInterval(syncInterval);
+          if (syncInterval) clearInterval(syncInterval);
           return;
         }
-        console.log('[AutoSync] Current stage:', parsed.stage, 'userId:', parsed.user?.id || 'null');
       }
     } catch(e) {}
     
-    // Rufe DIREKT die Funktion auf, die der Button verwendet
+    // Prüfe ob window.supa und Session vorhanden
     try {
-      // runDirectSyncAndReport ist in dem Debug-Panel IIFE definiert
-      // Wir müssen es selbst nachbilden
-      console.log('[AutoSync] Calling manualDirectSyncNow directly...');
+      if (!window.supa) {
+        console.log('[AutoSync] window.supa not available yet, waiting...');
+        return;
+      }
       
+      const { data: { session } } = await window.supa.auth.getSession().catch(() => ({ data: { session: null }}));
+      if (!session || !session.user) {
+        console.log('[AutoSync] No session yet (user not logged in), waiting...');
+        return;
+      }
+      
+      console.log('[AutoSync] ✓ Session found! User:', session.user.id);
+      
+      // JETZT synchronisieren via manualDirectSyncNow
       const fn = (window && typeof window.manualDirectSyncNow === 'function') ? window.manualDirectSyncNow : null;
       if (!fn) {
         console.warn('[AutoSync] window.manualDirectSyncNow not available yet');
         return;
       }
       
+      console.log('[AutoSync] Executing manualDirectSyncNow()...');
       const result = await fn();
-      console.log('[AutoSync] Direct sync result:', result ? 'SUCCESS ✓✓✓' : 'FAILED ✗');
+      console.log('[AutoSync] Sync result:', result ? 'SUCCESS ✓✓✓ events_ok' : 'FAILED ✗');
       
       if (result) {
         console.log('[AutoSync] ✓✓✓ AUTO-SYNC SUCCESSFUL!');
-        clearInterval(syncInterval);
+        if (syncInterval) clearInterval(syncInterval);
       }
       
     } catch(e) {
-      console.error('[AutoSync] Error during direct sync:', e);
+      console.error('[AutoSync] Error:', e);
     }
     
     if (syncAttempts >= MAX_ATTEMPTS) {
       console.warn('[AutoSync] Max attempts reached. Stopping.');
-      clearInterval(syncInterval);
+      if (syncInterval) clearInterval(syncInterval);
     }
   }
   
-  // Starte nach 5 Sekunden, dann alle 3 Sekunden
+  // Starte nach 5 Sekunden, dann alle 5 Sekunden
   console.log('[AutoSync] Will start first attempt in 5 seconds...');
   setTimeout(function() {
+    console.log('[AutoSync] Starting sync attempts...');
     tryDirectSync(); // Erster Versuch
     
-    // Dann alle 3 Sekunden wiederholen
-    const syncInterval = setInterval(tryDirectSync, 3000);
+    // Dann alle 5 Sekunden wiederholen
+    syncInterval = setInterval(tryDirectSync, 5000);
     window.__autoSyncInterval = syncInterval; // Zum Debugging
   }, 5000);
   
-  console.log('[AutoSync] Direct sync setup complete');
+  console.log('[AutoSync] Setup complete - will check window.supa + session every 5s');
 })();
     const stamp = Date.now();
     try{
