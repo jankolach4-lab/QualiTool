@@ -278,7 +278,7 @@
 
 ## test_plan:
   current_focus:
-    - "Qualitool index.html: Debug Panel + Direktsync + Queue"
+    - "Qualitool Auto-Sync Problem beheben (userId: null beim Start)"
   stuck_tasks:
     - "Status-Persistenz + Snapshot-Event-Trigger (Phase 1)"
   test_all: false
