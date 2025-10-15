@@ -3124,6 +3124,15 @@
   function initializeApp() {
     console.log('[Init] Application initializing...');
     
+    // KRITISCH: Initialisiere Supabase SOFORT beim App-Start
+    // Dies registriert den Auth-State-Listener für automatische Synchronisation
+    console.log('[Init] Initializing Supabase client and auth listener...');
+    awaitSupabase().then((client) => {
+      console.log('[Init] ✓ Supabase client initialized, auth listener active');
+    }).catch((e) => {
+      console.error('[Init] Failed to initialize Supabase:', e);
+    });
+    
     // Force initial section display (contacts)
     setTimeout(() => {
       console.log('[Init] Setting initial section to contacts');
