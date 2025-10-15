@@ -3979,38 +3979,6 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   
   console.log('[AutoSync-Fallback] Setup complete - will check window.supa + session every 3s as backup');
 })();
-    const stamp = Date.now();
-    try{
-      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'start' }));
-      const client = await awaitSupabase();
-      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'client_ready' }));
-      const { data: { user } } = await client.auth.getUser();
-      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'got_user', user: (user?{id:user.id,email:user.email}:null) }));
-      if (!user) throw new Error('Keine Session vorhanden');
-      const snapshot = normalizeContacts(readLocalContactsRaw());
-      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: snapshot.length }));
-      // Upsert über RPC (korrekte Signatur)
-      try{
-        const { error } = await client.rpc('fn_public_upsert_user_contacts', { p_user_id: user.id, p_contacts: snapshot });
-        if (error) throw error;
-      }catch(e1){
-        localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'rpc_upsert_failed', err: String(e1&&e1.message||e1) }));
-        // Fallback Tabellen-Upsert
-        const { error: e2 } = await client.from('user_contacts').upsert({ user_id: user.id, contacts: snapshot }, { onConflict: 'user_id' });
-        if (e2) throw e2;
-      }
-      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'upsert_ok' }));
-      // Events generieren (2A)
-      const { error: e3 } = await client.rpc('fn_log_events_from_contacts_snapshot', { p_user_id: user.id, p_contacts: snapshot });
-      if (e3) throw e3;
-      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'events_ok' }));
-      try { localStorage.removeItem('qt_last_event_err'); } catch(_){ }
-      return true;
-    }catch(err){
-      try { localStorage.setItem('qt_last_event_err', JSON.stringify({ t: Date.now(), stage: 'manual_direct_sync', msg: String(err&&err.message||err) })); } catch(_){ }
-      return false;
-    }
-  }
 
   // 5) Status-Event erfassen
   function enqueueStatusEvent(evt){
