@@ -3813,63 +3813,91 @@ async function manualDirectSyncNow(){
 // Globale Registrierung (überschreibt den Shim nur 1x)
 try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = manualDirectSyncNow; } catch(_){}
 
-// AGGRESSIVE AUTOMATISCHER INITIAL-SYNC - EXAKT WIE MANUELLER BUTTON!
+// AUTH-EVENT-BASIERTER AUTO-SYNC - DIE RICHTIGE LÖSUNG!
 (function autoInitialSync() {
-  console.log('[AutoSync] Setting up automatic initial sync (EXACTLY like manual button)...');
+  console.log('[AutoSync] Setting up AUTH-EVENT-based automatic sync...');
   
-  let syncAttempts = 0;
-  let syncSuccessful = false;
-  const MAX_ATTEMPTS = 30; // 30 Versuche = 150 Sekunden
+  let syncExecuted = false;
   
-  // Prüft alle 5 Sekunden, ob schon erfolgreich synchronisiert wurde
-  const syncChecker = setInterval(async function() {
-    // Prüfe ob bereits erfolgreich synchronisiert (manuell oder automatisch)
-    try {
-      const lastSync = localStorage.getItem('qt_last_sync_try');
-      if (lastSync) {
-        const parsed = JSON.parse(lastSync);
-        if (parsed.stage === 'events_ok') {
-          console.log('[AutoSync] ✓ Already synced successfully (stage: events_ok)');
-          clearInterval(syncChecker);
-          syncSuccessful = true;
-          return;
-        }
-      }
-    } catch(e) {}
-    
-    // Wenn noch nicht erfolgreich und noch Versuche übrig
-    if (!syncSuccessful && syncAttempts < MAX_ATTEMPTS) {
-      syncAttempts++;
-      console.log(`[AutoSync] Attempt ${syncAttempts}/${MAX_ATTEMPTS} - EXACTLY like manual button...`);
-      
-      try {
-        // GENAU WIE DER MANUELLE BUTTON (Zeile 3621-3630)
-        const fn = (window && typeof window.manualDirectSyncNow === 'function') ? window.manualDirectSyncNow : null;
-        
-        if (!fn) {
-          console.warn('[AutoSync] window.manualDirectSyncNow not available yet, waiting...');
-          return; // Nächster Versuch in 5s
-        }
-        
-        console.log('[AutoSync] window.manualDirectSyncNow found! Executing...');
-        const result = await fn();
-        console.log('[AutoSync] Sync result:', result ? 'SUCCESS ✓✓✓ events_ok' : 'FAILED ✗');
-        
-        if (result) {
-          console.log('[AutoSync] ✓✓✓ FIRST SUCCESSFUL AUTO-SYNC! Stopping checker.');
-          clearInterval(syncChecker);
-          syncSuccessful = true;
-        }
-      } catch(e) {
-        console.error('[AutoSync] Error during sync attempt:', e);
-      }
-    } else if (syncAttempts >= MAX_ATTEMPTS) {
-      console.warn('[AutoSync] Max attempts reached. Stopping auto-sync checker.');
-      clearInterval(syncChecker);
+  // Funktion die den Sync ausführt
+  async function executeAutoSync() {
+    if (syncExecuted) {
+      console.log('[AutoSync] Already executed, skipping');
+      return;
     }
-  }, 5000); // Alle 5 Sekunden prüfen und ggf. syncen
+    
+    console.log('[AutoSync] Executing initial sync via window.manualDirectSyncNow...');
+    
+    try {
+      const fn = (window && typeof window.manualDirectSyncNow === 'function') ? window.manualDirectSyncNow : null;
+      
+      if (!fn) {
+        console.warn('[AutoSync] window.manualDirectSyncNow not available yet');
+        return false;
+      }
+      
+      const result = await fn();
+      console.log('[AutoSync] Sync result:', result ? 'SUCCESS ✓✓✓ events_ok' : 'FAILED ✗');
+      
+      if (result) {
+        syncExecuted = true;
+        console.log('[AutoSync] ✓✓✓ AUTO-SYNC COMPLETED!');
+        return true;
+      }
+      return false;
+    } catch(e) {
+      console.error('[AutoSync] Error:', e);
+      return false;
+    }
+  }
   
-  console.log('[AutoSync] Checker running - will attempt sync every 5s until window.manualDirectSyncNow succeeds');
+  // HAUPT-LÖSUNG: Auth State Change Listener (reagiert auf Login!)
+  (async function() {
+    try {
+      const client = await awaitSupabase().catch(() => null);
+      if (!client) {
+        console.warn('[AutoSync] No Supabase client available');
+        return;
+      }
+      
+      console.log('[AutoSync] Setting up onAuthStateChange listener...');
+      
+      client.auth.onAuthStateChange(async (event, session) => {
+        console.log('[AutoSync] Auth event:', event, 'Session:', !!session);
+        
+        if (session && event === 'SIGNED_IN') {
+          console.log('[AutoSync] SIGNED_IN event detected! Triggering sync in 2s...');
+          setTimeout(async () => {
+            await executeAutoSync();
+          }, 2000);
+        } else if (session && event === 'INITIAL_SESSION') {
+          console.log('[AutoSync] INITIAL_SESSION detected! User already logged in. Triggering sync in 3s...');
+          setTimeout(async () => {
+            await executeAutoSync();
+          }, 3000);
+        }
+      });
+      
+      console.log('[AutoSync] ✓ Auth listener registered successfully');
+      
+      // FALLBACK: Wenn Auth-Event nicht feuert, versuche nach 10s
+      setTimeout(async () => {
+        if (!syncExecuted) {
+          console.log('[AutoSync] Fallback: No auth event after 10s, checking session manually...');
+          const { data: { session } } = await client.auth.getSession().catch(() => ({ data: { session: null }}));
+          if (session) {
+            console.log('[AutoSync] Session exists, executing sync...');
+            await executeAutoSync();
+          }
+        }
+      }, 10000);
+      
+    } catch(e) {
+      console.error('[AutoSync] Setup error:', e);
+    }
+  })();
+  
+  console.log('[AutoSync] AUTH-EVENT setup complete');
 })();
     const stamp = Date.now();
     try{
