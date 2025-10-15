@@ -3878,27 +3878,28 @@ async function manualDirectSyncNow(){
 // Globale Registrierung (überschreibt den Shim nur 1x)
 try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = manualDirectSyncNow; } catch(_){}
 
-// AUTO-SYNC mit konsolidiertem Supabase-Client
-(function autoInitialSync() {
-  console.log('[AutoSync] Setting up auto-sync with consolidated client...');
+// AUTO-SYNC FALLBACK mit konsolidiertem Supabase-Client
+// Dies ist ein Backup-Mechanismus falls der Auth-Listener nicht feuert
+(function autoInitialSyncFallback() {
+  console.log('[AutoSync] Setting up auto-sync FALLBACK (will run if auth listener doesnt trigger)...');
   
   let syncAttempts = 0;
-  const MAX_ATTEMPTS = 20; // 20 × 5s = 100 Sekunden
+  const MAX_ATTEMPTS = 25; // 25 × 3s = 75 Sekunden
   let syncInterval = null;
   
   async function tryDirectSync() {
     syncAttempts++;
-    console.log(`[AutoSync] Attempt ${syncAttempts}/${MAX_ATTEMPTS}...`);
+    console.log(`[AutoSync-Fallback] Attempt ${syncAttempts}/${MAX_ATTEMPTS}...`);
     
     // Prüfe ob bereits erfolgreich
     try {
       const lastSync = localStorage.getItem('qt_last_sync_try');
       if (lastSync) {
         const parsed = JSON.parse(lastSync);
-        console.log('[AutoSync] Last sync stage:', parsed.stage, 'userId:', parsed.user?.id || 'null');
+        console.log('[AutoSync-Fallback] Last sync stage:', parsed.stage, 'userId:', parsed.user?.id || 'null');
         
         if (parsed.stage === 'events_ok') {
-          console.log('[AutoSync] ✓✓✓ Already synced (events_ok)! Stopping.');
+          console.log('[AutoSync-Fallback] ✓✓✓ Already synced (events_ok)! Stopping fallback.');
           if (syncInterval) clearInterval(syncInterval);
           return;
         }
@@ -3908,56 +3909,66 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     // Prüfe ob window.supa und Session vorhanden
     try {
       if (!window.supa) {
-        console.log('[AutoSync] window.supa not available yet, waiting...');
+        console.log('[AutoSync-Fallback] window.supa not available yet, waiting...');
         return;
       }
       
-      const { data: { session } } = await window.supa.auth.getSession().catch(() => ({ data: { session: null }}));
+      // WICHTIG: Warte explizit auf Session-Load mit mehreren Versuchen
+      let session = null;
+      for (let i = 0; i < 3; i++) {
+        const { data } = await window.supa.auth.getSession().catch(() => ({ data: { session: null }}));
+        if (data && data.session && data.session.user) {
+          session = data.session;
+          break;
+        }
+        if (i < 2) await new Promise(r => setTimeout(r, 500)); // Warte 500ms zwischen Versuchen
+      }
+      
       if (!session || !session.user) {
-        console.log('[AutoSync] No session yet (user not logged in), waiting...');
+        console.log('[AutoSync-Fallback] No session yet (user not logged in or session still loading), waiting...');
         return;
       }
       
-      console.log('[AutoSync] ✓ Session found! User:', session.user.id);
+      console.log('[AutoSync-Fallback] ✓ Session found! User:', session.user.id);
       
       // JETZT synchronisieren via manualDirectSyncNow
       const fn = (window && typeof window.manualDirectSyncNow === 'function') ? window.manualDirectSyncNow : null;
       if (!fn) {
-        console.warn('[AutoSync] window.manualDirectSyncNow not available yet');
+        console.warn('[AutoSync-Fallback] window.manualDirectSyncNow not available yet');
         return;
       }
       
-      console.log('[AutoSync] Executing manualDirectSyncNow()...');
+      console.log('[AutoSync-Fallback] Executing manualDirectSyncNow()...');
       const result = await fn();
-      console.log('[AutoSync] Sync result:', result ? 'SUCCESS ✓✓✓ events_ok' : 'FAILED ✗');
+      console.log('[AutoSync-Fallback] Sync result:', result ? 'SUCCESS ✓✓✓ events_ok' : 'FAILED ✗');
       
       if (result) {
-        console.log('[AutoSync] ✓✓✓ AUTO-SYNC SUCCESSFUL!');
+        console.log('[AutoSync-Fallback] ✓✓✓ AUTO-SYNC SUCCESSFUL via fallback!');
         if (syncInterval) clearInterval(syncInterval);
       }
       
     } catch(e) {
-      console.error('[AutoSync] Error:', e);
+      console.error('[AutoSync-Fallback] Error:', e);
     }
     
     if (syncAttempts >= MAX_ATTEMPTS) {
-      console.warn('[AutoSync] Max attempts reached. Stopping.');
+      console.warn('[AutoSync-Fallback] Max attempts reached. Stopping.');
       if (syncInterval) clearInterval(syncInterval);
     }
   }
   
-  // Starte nach 5 Sekunden, dann alle 5 Sekunden
-  console.log('[AutoSync] Will start first attempt in 5 seconds...');
+  // Starte nach 3 Sekunden, dann alle 3 Sekunden (häufiger als vorher)
+  console.log('[AutoSync-Fallback] Will start first attempt in 3 seconds...');
   setTimeout(function() {
-    console.log('[AutoSync] Starting sync attempts...');
+    console.log('[AutoSync-Fallback] Starting fallback sync attempts...');
     tryDirectSync(); // Erster Versuch
     
-    // Dann alle 5 Sekunden wiederholen
-    syncInterval = setInterval(tryDirectSync, 5000);
+    // Dann alle 3 Sekunden wiederholen
+    syncInterval = setInterval(tryDirectSync, 3000);
     window.__autoSyncInterval = syncInterval; // Zum Debugging
-  }, 5000);
+  }, 3000);
   
-  console.log('[AutoSync] Setup complete - will check window.supa + session every 5s');
+  console.log('[AutoSync-Fallback] Setup complete - will check window.supa + session every 3s as backup');
 })();
     const stamp = Date.now();
     try{
