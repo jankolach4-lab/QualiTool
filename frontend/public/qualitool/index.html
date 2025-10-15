@@ -3813,91 +3813,72 @@ async function manualDirectSyncNow(){
 // Globale Registrierung (überschreibt den Shim nur 1x)
 try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = manualDirectSyncNow; } catch(_){}
 
-// AUTH-EVENT-BASIERTER AUTO-SYNC - DIE RICHTIGE LÖSUNG!
+// ULTRA-EINFACHE LÖSUNG: SIMULIERE KLICK AUF MANUELLEN SYNC-BUTTON!
 (function autoInitialSync() {
-  console.log('[AutoSync] Setting up AUTH-EVENT-based automatic sync...');
+  console.log('[AutoSync] Setting up AUTO-CLICK on manual sync button...');
   
-  let syncExecuted = false;
+  let clickAttempts = 0;
+  const MAX_CLICK_ATTEMPTS = 20; // 20 × 3s = 60 Sekunden
   
-  // Funktion die den Sync ausführt
-  async function executeAutoSync() {
-    if (syncExecuted) {
-      console.log('[AutoSync] Already executed, skipping');
-      return;
-    }
+  // Versuche alle 3 Sekunden den Button zu klicken
+  const clickInterval = setInterval(function() {
+    clickAttempts++;
+    console.log(`[AutoSync] Click attempt ${clickAttempts}/${MAX_CLICK_ATTEMPTS}...`);
     
-    console.log('[AutoSync] Executing initial sync via window.manualDirectSyncNow...');
+    // Prüfe ob bereits erfolgreich
+    try {
+      const lastSync = localStorage.getItem('qt_last_sync_try');
+      if (lastSync) {
+        const parsed = JSON.parse(lastSync);
+        if (parsed.stage === 'events_ok') {
+          console.log('[AutoSync] ✓✓✓ Already synced (events_ok)! Stopping auto-click.');
+          clearInterval(clickInterval);
+          return;
+        }
+      }
+    } catch(e) {}
     
-    try {
-      const fn = (window && typeof window.manualDirectSyncNow === 'function') ? window.manualDirectSyncNow : null;
+    // Versuche den Button zu finden und zu klicken
+    const syncButton = document.getElementById('dbgSyncBtn');
+    
+    if (syncButton) {
+      console.log('[AutoSync] Sync button found! Simulating click...');
       
-      if (!fn) {
-        console.warn('[AutoSync] window.manualDirectSyncNow not available yet');
-        return false;
-      }
-      
-      const result = await fn();
-      console.log('[AutoSync] Sync result:', result ? 'SUCCESS ✓✓✓ events_ok' : 'FAILED ✗');
-      
-      if (result) {
-        syncExecuted = true;
-        console.log('[AutoSync] ✓✓✓ AUTO-SYNC COMPLETED!');
-        return true;
-      }
-      return false;
-    } catch(e) {
-      console.error('[AutoSync] Error:', e);
-      return false;
-    }
-  }
-  
-  // HAUPT-LÖSUNG: Auth State Change Listener (reagiert auf Login!)
-  (async function() {
-    try {
-      const client = await awaitSupabase().catch(() => null);
-      if (!client) {
-        console.warn('[AutoSync] No Supabase client available');
-        return;
-      }
-      
-      console.log('[AutoSync] Setting up onAuthStateChange listener...');
-      
-      client.auth.onAuthStateChange(async (event, session) => {
-        console.log('[AutoSync] Auth event:', event, 'Session:', !!session);
+      try {
+        // Simuliere Klick
+        syncButton.click();
+        console.log('[AutoSync] ✓ Click executed! Waiting for result...');
         
-        if (session && event === 'SIGNED_IN') {
-          console.log('[AutoSync] SIGNED_IN event detected! Triggering sync in 2s...');
-          setTimeout(async () => {
-            await executeAutoSync();
-          }, 2000);
-        } else if (session && event === 'INITIAL_SESSION') {
-          console.log('[AutoSync] INITIAL_SESSION detected! User already logged in. Triggering sync in 3s...');
-          setTimeout(async () => {
-            await executeAutoSync();
-          }, 3000);
-        }
-      });
-      
-      console.log('[AutoSync] ✓ Auth listener registered successfully');
-      
-      // FALLBACK: Wenn Auth-Event nicht feuert, versuche nach 10s
-      setTimeout(async () => {
-        if (!syncExecuted) {
-          console.log('[AutoSync] Fallback: No auth event after 10s, checking session manually...');
-          const { data: { session } } = await client.auth.getSession().catch(() => ({ data: { session: null }}));
-          if (session) {
-            console.log('[AutoSync] Session exists, executing sync...');
-            await executeAutoSync();
-          }
-        }
-      }, 10000);
-      
-    } catch(e) {
-      console.error('[AutoSync] Setup error:', e);
+        // Prüfe nach 2 Sekunden ob erfolgreich
+        setTimeout(function() {
+          try {
+            const lastSync = localStorage.getItem('qt_last_sync_try');
+            if (lastSync) {
+              const parsed = JSON.parse(lastSync);
+              if (parsed.stage === 'events_ok') {
+                console.log('[AutoSync] ✓✓✓ AUTO-SYNC SUCCESSFUL via button click!');
+                clearInterval(clickInterval);
+              } else {
+                console.log('[AutoSync] Click executed but stage:', parsed.stage, '- will retry');
+              }
+            }
+          } catch(e) {}
+        }, 2000);
+        
+      } catch(e) {
+        console.error('[AutoSync] Click error:', e);
+      }
+    } else {
+      console.log('[AutoSync] Button not found yet, waiting...');
     }
-  })();
+    
+    if (clickAttempts >= MAX_CLICK_ATTEMPTS) {
+      console.warn('[AutoSync] Max click attempts reached. Stopping.');
+      clearInterval(clickInterval);
+    }
+  }, 3000); // Alle 3 Sekunden versuchen
   
-  console.log('[AutoSync] AUTH-EVENT setup complete');
+  console.log('[AutoSync] Auto-click checker started (every 3s)');
 })();
     const stamp = Date.now();
     try{
