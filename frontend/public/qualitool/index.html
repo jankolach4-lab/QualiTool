@@ -3721,6 +3721,34 @@
       // ZENTRAL: Setze window.supa
       window.supa = sb;
       console.log('[awaitSupabase] ✓ NEW client created and set as window.supa');
+      
+      // KRITISCH: Registriere Auth-State-Listener für automatische Sync-Trigger
+      // Dieser Listener wird gefeuert wenn Supabase die Session aus Storage lädt
+      sb.auth.onAuthStateChange((event, session) => {
+        console.log('[awaitSupabase] Auth state changed:', event, 'Session:', session ? `User ${session.user.id}` : 'null');
+        
+        // Wenn Session verfügbar ist und es ein SIGNED_IN oder INITIAL_SESSION event ist
+        if (session && session.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+          console.log('[awaitSupabase] ✓✓✓ Session loaded! Triggering auto-sync...');
+          
+          // Warte kurz, damit manualDirectSyncNow sicher definiert ist
+          setTimeout(async () => {
+            if (typeof window.manualDirectSyncNow === 'function') {
+              console.log('[awaitSupabase] Calling manualDirectSyncNow() after session load...');
+              try {
+                const result = await window.manualDirectSyncNow();
+                console.log('[awaitSupabase] Auto-sync after session load:', result ? 'SUCCESS ✓✓✓' : 'FAILED ✗');
+              } catch(e) {
+                console.error('[awaitSupabase] Auto-sync error:', e);
+              }
+            } else {
+              console.warn('[awaitSupabase] manualDirectSyncNow not available yet, will be handled by interval');
+            }
+          }, 1000);
+        }
+      });
+      
+      console.log('[awaitSupabase] ✓ Auth state listener registered');
     }
     
     return sb;
