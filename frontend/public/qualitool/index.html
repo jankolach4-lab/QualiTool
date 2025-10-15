@@ -3813,17 +3813,17 @@ async function manualDirectSyncNow(){
 // Globale Registrierung (überschreibt den Shim nur 1x)
 try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = manualDirectSyncNow; } catch(_){}
 
-// ULTRA-EINFACHE LÖSUNG: SIMULIERE KLICK AUF MANUELLEN SYNC-BUTTON!
+// DIREKT runDirectSyncAndReport() AUFRUFEN - WIE DER BUTTON!
 (function autoInitialSync() {
-  console.log('[AutoSync] Setting up AUTO-CLICK on manual sync button...');
+  console.log('[AutoSync] Setting up DIRECT runDirectSyncAndReport() calls...');
   
-  let clickAttempts = 0;
-  const MAX_CLICK_ATTEMPTS = 20; // 20 × 3s = 60 Sekunden
+  let syncAttempts = 0;
+  const MAX_ATTEMPTS = 20; // 20 × 3s = 60 Sekunden
   
-  // Versuche alle 3 Sekunden den Button zu klicken
-  const clickInterval = setInterval(function() {
-    clickAttempts++;
-    console.log(`[AutoSync] Click attempt ${clickAttempts}/${MAX_CLICK_ATTEMPTS}...`);
+  // Funktion die DIREKT runDirectSyncAndReport aufruft
+  async function tryDirectSync() {
+    syncAttempts++;
+    console.log(`[AutoSync] Direct sync attempt ${syncAttempts}/${MAX_ATTEMPTS}...`);
     
     // Prüfe ob bereits erfolgreich
     try {
@@ -3831,54 +3831,55 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       if (lastSync) {
         const parsed = JSON.parse(lastSync);
         if (parsed.stage === 'events_ok') {
-          console.log('[AutoSync] ✓✓✓ Already synced (events_ok)! Stopping auto-click.');
-          clearInterval(clickInterval);
+          console.log('[AutoSync] ✓✓✓ Already synced (events_ok)! Stopping.');
+          clearInterval(syncInterval);
           return;
         }
+        console.log('[AutoSync] Current stage:', parsed.stage, 'userId:', parsed.user?.id || 'null');
       }
     } catch(e) {}
     
-    // Versuche den Button zu finden und zu klicken
-    const syncButton = document.getElementById('dbgSyncBtn');
-    
-    if (syncButton) {
-      console.log('[AutoSync] Sync button found! Simulating click...');
+    // Rufe DIREKT die Funktion auf, die der Button verwendet
+    try {
+      // runDirectSyncAndReport ist in dem Debug-Panel IIFE definiert
+      // Wir müssen es selbst nachbilden
+      console.log('[AutoSync] Calling manualDirectSyncNow directly...');
       
-      try {
-        // Simuliere Klick
-        syncButton.click();
-        console.log('[AutoSync] ✓ Click executed! Waiting for result...');
-        
-        // Prüfe nach 2 Sekunden ob erfolgreich
-        setTimeout(function() {
-          try {
-            const lastSync = localStorage.getItem('qt_last_sync_try');
-            if (lastSync) {
-              const parsed = JSON.parse(lastSync);
-              if (parsed.stage === 'events_ok') {
-                console.log('[AutoSync] ✓✓✓ AUTO-SYNC SUCCESSFUL via button click!');
-                clearInterval(clickInterval);
-              } else {
-                console.log('[AutoSync] Click executed but stage:', parsed.stage, '- will retry');
-              }
-            }
-          } catch(e) {}
-        }, 2000);
-        
-      } catch(e) {
-        console.error('[AutoSync] Click error:', e);
+      const fn = (window && typeof window.manualDirectSyncNow === 'function') ? window.manualDirectSyncNow : null;
+      if (!fn) {
+        console.warn('[AutoSync] window.manualDirectSyncNow not available yet');
+        return;
       }
-    } else {
-      console.log('[AutoSync] Button not found yet, waiting...');
+      
+      const result = await fn();
+      console.log('[AutoSync] Direct sync result:', result ? 'SUCCESS ✓✓✓' : 'FAILED ✗');
+      
+      if (result) {
+        console.log('[AutoSync] ✓✓✓ AUTO-SYNC SUCCESSFUL!');
+        clearInterval(syncInterval);
+      }
+      
+    } catch(e) {
+      console.error('[AutoSync] Error during direct sync:', e);
     }
     
-    if (clickAttempts >= MAX_CLICK_ATTEMPTS) {
-      console.warn('[AutoSync] Max click attempts reached. Stopping.');
-      clearInterval(clickInterval);
+    if (syncAttempts >= MAX_ATTEMPTS) {
+      console.warn('[AutoSync] Max attempts reached. Stopping.');
+      clearInterval(syncInterval);
     }
-  }, 3000); // Alle 3 Sekunden versuchen
+  }
   
-  console.log('[AutoSync] Auto-click checker started (every 3s)');
+  // Starte nach 5 Sekunden, dann alle 3 Sekunden
+  console.log('[AutoSync] Will start first attempt in 5 seconds...');
+  setTimeout(function() {
+    tryDirectSync(); // Erster Versuch
+    
+    // Dann alle 3 Sekunden wiederholen
+    const syncInterval = setInterval(tryDirectSync, 3000);
+    window.__autoSyncInterval = syncInterval; // Zum Debugging
+  }, 5000);
+  
+  console.log('[AutoSync] Direct sync setup complete');
 })();
     const stamp = Date.now();
     try{
