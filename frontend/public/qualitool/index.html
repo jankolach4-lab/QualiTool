@@ -3655,37 +3655,74 @@
 
   function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
   async function awaitSupabase(maxMs=10000){
-    // Sofort vorhandenen globalen Client nutzen (z. B. aus login.html), auch wenn supabase-js (CDN) noch nicht geladen ist
-    if (window.supa && !sb) { sb = window.supa; }
-    if (sb) { return sb; }
+    console.log('[awaitSupabase] Starting... window.supa exists:', !!window.supa, 'sb exists:', !!sb);
+    
+    // IMMER window.supa nutzen (zentraler Client)
+    if (window.supa) { 
+      sb = window.supa;
+      console.log('[awaitSupabase] Using existing window.supa');
+      return sb; 
+    }
+    
+    if (sb) { 
+      console.log('[awaitSupabase] Using existing local sb');
+      return sb; 
+    }
 
     const start = Date.now();
-    // Falls noch kein globaler Client vorhanden ist, warte auf supabase-js und initialisiere
+    console.log('[awaitSupabase] Waiting for supabase library...');
+    
+    // Warte auf supabase-js Library
     while(!(window.supabase && window.supabase.createClient)){
-      if (Date.now()-start > maxMs) throw new Error('supabase-js nicht geladen');
+      if (Date.now()-start > maxMs) {
+        console.error('[awaitSupabase] Timeout waiting for supabase-js');
+        throw new Error('supabase-js nicht geladen');
+      }
       await sleep(100);
-      // während wir warten, könnte login.html bereits window.supa gesetzt haben
-      if (window.supa) { sb = window.supa; return sb; }
+      
+      // Prüfe immer wieder ob window.supa gesetzt wurde
+      if (window.supa) { 
+        sb = window.supa;
+        console.log('[awaitSupabase] window.supa appeared during wait');
+        return sb; 
+      }
     }
-    if (!sb) {
+    
+    // Erstelle NUR EINEN Client wenn noch keiner existiert
+    if (!sb && !window.supa) {
+      console.log('[awaitSupabase] Creating NEW Supabase client...');
+      
       function getCapacitorStorage(){
         try{
           const P = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) || null;
           if (!P) return null;
+          console.log('[awaitSupabase] Capacitor Preferences available');
           return {
             getItem: async (key) => { const r = await P.get({ key }); return (r && typeof r.value==='string') ? r.value : null; },
             setItem: async (key, value) => { await P.set({ key, value: String(value ?? '') }); },
             removeItem: async (key) => { await P.remove({ key }); }
           };
-        }catch(e){ return null; }
+        }catch(e){ 
+          console.log('[awaitSupabase] Capacitor not available, using localStorage');
+          return null; 
+        }
       }
+      
       const capStore = getCapacitorStorage();
-      if (window.supabase && window.supabase.createClient) {
-        sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, storage: capStore || undefined, autoRefreshToken: true, detectSessionInUrl: false }});
-      }
-      if (!sb && window.supa) { sb = window.supa; }
-      if (sb) { window.supa = sb; }
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { 
+        auth: { 
+          persistSession: true, 
+          storage: capStore || window.localStorage,
+          autoRefreshToken: true, 
+          detectSessionInUrl: false 
+        }
+      });
+      
+      // ZENTRAL: Setze window.supa
+      window.supa = sb;
+      console.log('[awaitSupabase] ✓ NEW client created and set as window.supa');
     }
+    
     return sb;
   }
 
