@@ -1939,9 +1939,10 @@
           ${contact.residents?.some(r => getHighestPriorityStatus(r) === 'kein-interesse') && 
             contact.residents.every(r => !['abschluss', 'onlineabschluss', 'beraten', 'abschl-anderer-vp'].includes(getHighestPriorityStatus(r))) ? 'status-kein-interesse-red' : ''}" 
           onclick="toggleResidents(${contact.id})">
-          <p>${contact.plz}</p>
-          <p>${contact.ort}</p>
-          <p>${contact.strasse} ${contact.nummer}</p>
+          <div class="address-block">
+            <div class="address-line-1">${contact.plz} ${contact.ort}</div>
+            <div class="address-line-2">${contact.strasse} ${contact.nummer}</div>
+          </div>
           <p>${contact.zusatz ? `${contact.zusatz}` : ''}</p>
           <p>${contact.we ? `${contact.we} WE` : ''}</p>
           <div class="unit-info">
