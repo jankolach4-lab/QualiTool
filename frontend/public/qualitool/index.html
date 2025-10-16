@@ -1631,8 +1631,12 @@
       // SOFORTIGER SYNC beim Schließen einer Adresse
       console.log('[toggleResidents] Address closed, triggering immediate sync');
       try {
-        enqueueFullContactsSnapshot();
-        flushQueue(); // SOFORT, nicht flushSoon()
+        if (typeof enqueueFullContactsSnapshot === 'function') {
+          enqueueFullContactsSnapshot();
+        }
+        if (typeof flushQueue === 'function') {
+          flushQueue(); // SOFORT, nicht flushSoon()
+        }
       } catch(e) {
         console.error('[toggleResidents] Sync failed:', e);
       }
