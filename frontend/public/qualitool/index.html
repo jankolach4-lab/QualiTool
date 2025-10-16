@@ -3124,18 +3124,8 @@
   function initializeApp() {
     console.log('[Init] Application initializing...');
     
-    // KRITISCH: Initialisiere Supabase SOFORT beim App-Start (aber nur wenn verfügbar)
-    // Dies registriert den Auth-State-Listener für automatische Synchronisation
-    if (typeof awaitSupabase === 'function') {
-      console.log('[Init] Initializing Supabase client and auth listener...');
-      awaitSupabase().then((client) => {
-        console.log('[Init] ✓ Supabase client initialized, auth listener active');
-      }).catch((e) => {
-        console.error('[Init] Failed to initialize Supabase:', e);
-      });
-    } else {
-      console.log('[Init] awaitSupabase not yet available, will be initialized later');
-    }
+    // awaitSupabase() wird NICHT hier aufgerufen, sondern im Early-Init-Block nach der Definition
+    // (siehe Script-Block nach Zeile ~3770)
     
     // Force initial section display (contacts)
     setTimeout(() => {
