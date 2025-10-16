@@ -1737,8 +1737,12 @@
     // WICHTIG: enqueueFullContactsSnapshot() statt enqueueContactsSnapshot()
     // um Hash-Check zu umgehen und IMMER zu synchronisieren
     try { 
-      enqueueFullContactsSnapshot(); 
-      console.log('[SaveContacts] Full snapshot enqueued (no hash check)');
+      if (typeof enqueueFullContactsSnapshot === 'function') {
+        enqueueFullContactsSnapshot(); 
+        console.log('[SaveContacts] Full snapshot enqueued (no hash check)');
+      } else {
+        console.warn('[SaveContacts] enqueueFullContactsSnapshot not yet defined');
+      }
     } catch(e) { 
       console.error('[SaveContacts] enqueueFullContactsSnapshot failed:', e);
     }
