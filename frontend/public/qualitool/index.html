@@ -1631,8 +1631,12 @@
       // SOFORTIGER SYNC beim Schließen einer Adresse
       console.log('[toggleResidents] Address closed, triggering immediate sync');
       try {
-        enqueueFullContactsSnapshot();
-        flushQueue(); // SOFORT, nicht flushSoon()
+        if (typeof enqueueFullContactsSnapshot === 'function') {
+          enqueueFullContactsSnapshot();
+        }
+        if (typeof flushQueue === 'function') {
+          flushQueue(); // SOFORT, nicht flushSoon()
+        }
       } catch(e) {
         console.error('[toggleResidents] Sync failed:', e);
       }
@@ -1733,8 +1737,12 @@
     // WICHTIG: enqueueFullContactsSnapshot() statt enqueueContactsSnapshot()
     // um Hash-Check zu umgehen und IMMER zu synchronisieren
     try { 
-      enqueueFullContactsSnapshot(); 
-      console.log('[SaveContacts] Full snapshot enqueued (no hash check)');
+      if (typeof enqueueFullContactsSnapshot === 'function') {
+        enqueueFullContactsSnapshot(); 
+        console.log('[SaveContacts] Full snapshot enqueued (no hash check)');
+      } else {
+        console.warn('[SaveContacts] enqueueFullContactsSnapshot not yet defined');
+      }
     } catch(e) { 
       console.error('[SaveContacts] enqueueFullContactsSnapshot failed:', e);
     }
@@ -2538,8 +2546,11 @@
 
   // Helper: Plattform/Nativ erkennen
   function isNativeApp() {
-    try { return !!window.Capacitor && typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() !== 'web'; }
-    catch(_) { return false; }
+    try { 
+      return !!window.Capacitor && typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() !== 'web'; 
+    } catch(_) { 
+      return false; 
+    }
   }
   // Helper: robust file download handling (works in preview/iframe)
   function triggerDownload(blob, filename){
@@ -2627,8 +2638,11 @@
     try {
       await tryWrite('EXTERNAL_STORAGE');
     } catch(e1){
-      try { await tryWrite('EXTERNAL'); }
-      catch(e2){ throw e2 || e1; }
+      try { 
+        await tryWrite('EXTERNAL'); 
+      } catch(e2){ 
+        throw e2 || e1; 
+      }
     }
 
     // Optional: URI ermitteln
@@ -3123,6 +3137,9 @@
   // MOBILE/CAPACITOR: deviceready event support
   function initializeApp() {
     console.log('[Init] Application initializing...');
+    
+    // awaitSupabase() wird NICHT hier aufgerufen, sondern im Early-Init-Block nach der Definition
+    // (siehe Script-Block nach Zeile ~3770)
     
     // Force initial section display (contacts)
     setTimeout(() => {
@@ -3721,10 +3738,49 @@
       // ZENTRAL: Setze window.supa
       window.supa = sb;
       console.log('[awaitSupabase] ✓ NEW client created and set as window.supa');
+      
+      // KRITISCH: Registriere Auth-State-Listener für automatische Sync-Trigger
+      // Dieser Listener wird gefeuert wenn Supabase die Session aus Storage lädt
+      sb.auth.onAuthStateChange((event, session) => {
+        console.log('[awaitSupabase] Auth state changed:', event, 'Session:', session ? `User ${session.user.id}` : 'null');
+        
+        // Wenn Session verfügbar ist und es ein SIGNED_IN oder INITIAL_SESSION event ist
+        if (session && session.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+          console.log('[awaitSupabase] ✓✓✓ Session loaded! Triggering auto-sync...');
+          
+          // Warte kurz, damit manualDirectSyncNow sicher definiert ist
+          setTimeout(async () => {
+            if (typeof window.manualDirectSyncNow === 'function') {
+              console.log('[awaitSupabase] Calling manualDirectSyncNow() after session load...');
+              try {
+                const result = await window.manualDirectSyncNow();
+                console.log('[awaitSupabase] Auto-sync after session load:', result ? 'SUCCESS ✓✓✓' : 'FAILED ✗');
+              } catch(e) {
+                console.error('[awaitSupabase] Auto-sync error:', e);
+              }
+            } else {
+              console.warn('[awaitSupabase] manualDirectSyncNow not available yet, will be handled by interval');
+            }
+          }, 1000);
+        }
+      });
+      
+      console.log('[awaitSupabase] ✓ Auth state listener registered');
     }
     
     return sb;
   }
+
+  // SOFORTIGE INITIALISIERUNG: Rufe awaitSupabase() auf sobald definiert
+  // Dies registriert den Auth-Listener so früh wie möglich
+  (function earlySupabaseInit(){
+    console.log('[EarlyInit] Triggering Supabase initialization immediately...');
+    awaitSupabase().then(() => {
+      console.log('[EarlyInit] ✓ Supabase initialized, auth listener active');
+    }).catch((e) => {
+      console.error('[EarlyInit] Supabase init error:', e);
+    });
+  })();
 
   // 3) Storage/Queue Utilities
   const QUEUE_KEY = 'qt_sync_queue_v1';
@@ -3850,27 +3906,28 @@ async function manualDirectSyncNow(){
 // Globale Registrierung (überschreibt den Shim nur 1x)
 try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = manualDirectSyncNow; } catch(_){}
 
-// AUTO-SYNC mit konsolidiertem Supabase-Client
-(function autoInitialSync() {
-  console.log('[AutoSync] Setting up auto-sync with consolidated client...');
+// AUTO-SYNC FALLBACK mit konsolidiertem Supabase-Client
+// Dies ist ein Backup-Mechanismus falls der Auth-Listener nicht feuert
+(function autoInitialSyncFallback() {
+  console.log('[AutoSync] Setting up auto-sync FALLBACK (will run if auth listener doesnt trigger)...');
   
   let syncAttempts = 0;
-  const MAX_ATTEMPTS = 20; // 20 × 5s = 100 Sekunden
+  const MAX_ATTEMPTS = 25; // 25 × 3s = 75 Sekunden
   let syncInterval = null;
   
   async function tryDirectSync() {
     syncAttempts++;
-    console.log(`[AutoSync] Attempt ${syncAttempts}/${MAX_ATTEMPTS}...`);
+    console.log(`[AutoSync-Fallback] Attempt ${syncAttempts}/${MAX_ATTEMPTS}...`);
     
     // Prüfe ob bereits erfolgreich
     try {
       const lastSync = localStorage.getItem('qt_last_sync_try');
       if (lastSync) {
         const parsed = JSON.parse(lastSync);
-        console.log('[AutoSync] Last sync stage:', parsed.stage, 'userId:', parsed.user?.id || 'null');
+        console.log('[AutoSync-Fallback] Last sync stage:', parsed.stage, 'userId:', parsed.user?.id || 'null');
         
         if (parsed.stage === 'events_ok') {
-          console.log('[AutoSync] ✓✓✓ Already synced (events_ok)! Stopping.');
+          console.log('[AutoSync-Fallback] ✓✓✓ Already synced (events_ok)! Stopping fallback.');
           if (syncInterval) clearInterval(syncInterval);
           return;
         }
@@ -3880,89 +3937,67 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     // Prüfe ob window.supa und Session vorhanden
     try {
       if (!window.supa) {
-        console.log('[AutoSync] window.supa not available yet, waiting...');
+        console.log('[AutoSync-Fallback] window.supa not available yet, waiting...');
         return;
       }
       
-      const { data: { session } } = await window.supa.auth.getSession().catch(() => ({ data: { session: null }}));
+      // WICHTIG: Warte explizit auf Session-Load mit mehreren Versuchen
+      let session = null;
+      for (let i = 0; i < 3; i++) {
+        const { data } = await window.supa.auth.getSession().catch(() => ({ data: { session: null }}));
+        if (data && data.session && data.session.user) {
+          session = data.session;
+          break;
+        }
+        if (i < 2) await new Promise(r => setTimeout(r, 500)); // Warte 500ms zwischen Versuchen
+      }
+      
       if (!session || !session.user) {
-        console.log('[AutoSync] No session yet (user not logged in), waiting...');
+        console.log('[AutoSync-Fallback] No session yet (user not logged in or session still loading), waiting...');
         return;
       }
       
-      console.log('[AutoSync] ✓ Session found! User:', session.user.id);
+      console.log('[AutoSync-Fallback] ✓ Session found! User:', session.user.id);
       
       // JETZT synchronisieren via manualDirectSyncNow
       const fn = (window && typeof window.manualDirectSyncNow === 'function') ? window.manualDirectSyncNow : null;
       if (!fn) {
-        console.warn('[AutoSync] window.manualDirectSyncNow not available yet');
+        console.warn('[AutoSync-Fallback] window.manualDirectSyncNow not available yet');
         return;
       }
       
-      console.log('[AutoSync] Executing manualDirectSyncNow()...');
+      console.log('[AutoSync-Fallback] Executing manualDirectSyncNow()...');
       const result = await fn();
-      console.log('[AutoSync] Sync result:', result ? 'SUCCESS ✓✓✓ events_ok' : 'FAILED ✗');
+      console.log('[AutoSync-Fallback] Sync result:', result ? 'SUCCESS ✓✓✓ events_ok' : 'FAILED ✗');
       
       if (result) {
-        console.log('[AutoSync] ✓✓✓ AUTO-SYNC SUCCESSFUL!');
+        console.log('[AutoSync-Fallback] ✓✓✓ AUTO-SYNC SUCCESSFUL via fallback!');
         if (syncInterval) clearInterval(syncInterval);
       }
       
     } catch(e) {
-      console.error('[AutoSync] Error:', e);
+      console.error('[AutoSync-Fallback] Error:', e);
     }
     
     if (syncAttempts >= MAX_ATTEMPTS) {
-      console.warn('[AutoSync] Max attempts reached. Stopping.');
+      console.warn('[AutoSync-Fallback] Max attempts reached. Stopping.');
       if (syncInterval) clearInterval(syncInterval);
     }
   }
   
-  // Starte nach 5 Sekunden, dann alle 5 Sekunden
-  console.log('[AutoSync] Will start first attempt in 5 seconds...');
+  // Starte nach 3 Sekunden, dann alle 3 Sekunden (häufiger als vorher)
+  console.log('[AutoSync-Fallback] Will start first attempt in 3 seconds...');
   setTimeout(function() {
-    console.log('[AutoSync] Starting sync attempts...');
+    console.log('[AutoSync-Fallback] Starting fallback sync attempts...');
     tryDirectSync(); // Erster Versuch
     
-    // Dann alle 5 Sekunden wiederholen
-    syncInterval = setInterval(tryDirectSync, 5000);
+    // Dann alle 3 Sekunden wiederholen
+    syncInterval = setInterval(tryDirectSync, 3000);
     window.__autoSyncInterval = syncInterval; // Zum Debugging
-  }, 5000);
+  }, 3000);
   
-  console.log('[AutoSync] Setup complete - will check window.supa + session every 5s');
+  console.log('[AutoSync-Fallback] Setup complete - will check window.supa + session every 3s as backup');
 })();
-    const stamp = Date.now();
-    try{
-      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'start' }));
-      const client = await awaitSupabase();
-      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'client_ready' }));
-      const { data: { user } } = await client.auth.getUser();
-      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'got_user', user: (user?{id:user.id,email:user.email}:null) }));
-      if (!user) throw new Error('Keine Session vorhanden');
-      const snapshot = normalizeContacts(readLocalContactsRaw());
-      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: snapshot.length }));
-      // Upsert über RPC (korrekte Signatur)
-      try{
-        const { error } = await client.rpc('fn_public_upsert_user_contacts', { p_user_id: user.id, p_contacts: snapshot });
-        if (error) throw error;
-      }catch(e1){
-        localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'rpc_upsert_failed', err: String(e1&&e1.message||e1) }));
-        // Fallback Tabellen-Upsert
-        const { error: e2 } = await client.from('user_contacts').upsert({ user_id: user.id, contacts: snapshot }, { onConflict: 'user_id' });
-        if (e2) throw e2;
-      }
-      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'upsert_ok' }));
-      // Events generieren (2A)
-      const { error: e3 } = await client.rpc('fn_log_events_from_contacts_snapshot', { p_user_id: user.id, p_contacts: snapshot });
-      if (e3) throw e3;
-      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'events_ok' }));
-      try { localStorage.removeItem('qt_last_event_err'); } catch(_){ }
-      return true;
-    }catch(err){
-      try { localStorage.setItem('qt_last_event_err', JSON.stringify({ t: Date.now(), stage: 'manual_direct_sync', msg: String(err&&err.message||err) })); } catch(_){ }
-      return false;
-    }
-  }
 
   // 5) Status-Event erfassen
   function enqueueStatusEvent(evt){
@@ -4004,6 +4039,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       return;
     }
 
+    try {
       if (next.type === 'contacts') {
         let ok = false, lastErr = null;
         try {

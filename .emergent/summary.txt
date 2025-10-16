@@ -1,112 +1,88 @@
 <analysis>
-The previous AI engineer successfully transformed a static dashboard into a Next.js application, integrating Supabase for data and authentication. Key challenges included initial Git/Vercel synchronization, resolved by user intervention. Data integration involved handling Supabase RLS and processing  and  for complex analytics. The AI developed comprehensive Project and VP Analytics, including various charts and tables, clarifying data logic for current status and history. Significant effort was dedicated to refining UI/UX based on user feedback (layout, typography, card sizes, table styling). The Projection Tool was implemented with holiday calculations and manual WE input. A  was integrated for geocoding, which required extensive debugging and improvement for Excel import robustness and geocoding accuracy. Finally, project settings persistence was moved from  to Supabase, necessitating a new  table and RLS policies. The trajectory shows a methodical approach to feature development and iterative refinement.
+The AI engineer's work primarily focused on expanding a Next.js dashboard and troubleshooting a linked legacy QualiTool (React App) running in the same container. Key dashboard enhancements included adding a project projection tool (initially , then Supabase persistence), integrating a geocoding/polygon tool, and implementing an interactive map displaying project completions by address. The map required extensive debugging for accurate house number geocoding, multi-resident marker grouping, and subtle UI integration. A significant portion of the trajectory involved tackling persistent synchronization issues between the QualiTool and Supabase, especially when users manually added/deleted entries or when the app ran on an Android APK. This led to a deep dive into Supabase client initialization, session management, and auto-sync trigger mechanisms, which remains the central challenge at the end of the trajectory. UI/UX refinements were also made throughout for both applications.
 </analysis>
 
 <product_requirements>
 The Qualifizierungstool admin dashboard provides real-time analytics for projects and VPs. It needs:
 -   **Overall View:** Total projects, VPs, and residential units (WE).
--   **Project Table:** Details for Project (City), WE, VP count, completions, status percentage, progress bar; clickable rows. Alternating row colors, no colored badges.
--   **Project Analytics:** Charts for daily completions, daily status changes, status breakdown (pie chart with unique colors for each status), status table. Initial daily charts side-by-side, status breakdown next to status table. All charts/tables are dynamic based on selected time range.
--   **Project Projection Tool:** Input for start/end dates, manual total WE, and federal state (Bundesland) for holiday-aware completion forecasting. Forecast capped at total WE, displayed as whole number for completions, 2 decimals for percentage.
--   **VP Table:** Lists VPs for selected project, showing name, WE (project-specific), completions (project-specific), completion percentages (project-specific); clickable rows. Alternating row colors, no colored badges.
--   **VP Analytics:** Charts for daily completions, daily status changes, status breakdown (pie chart with unique colors), hourly activity (with day selector within the card, defaults to current day), summary table. Initial daily charts side-by-side, status breakdown, hourly activity, and summary side-by-side.
--   **Time Range:** Selectable periods (7, 14, 30, 90, 120 days) for bar charts.
--   **Data Source:**  JSONB field and  from Supabase.
--   **Design:** Professional Admin Dashboard Pro title (left-aligned with cards, with an icon). Compact layout with specific card heights (Row 1: 280px, Row 2: 320-360px), Inter font.
--   **Authentication:** Functional login via . Admin whitelist functionality is a deferred consideration.
--   **External Tool Integration:** Polygontool linked from dashboard header, opens in new tab, for geocoding addresses and managing polygons. The tool needs robust Excel import (flexible headers, WE default to 1) and improved geocoding (structured search, viewbox bias, street variations). Polygon coloring on map must accurately reflect  status.
--   **Persistence:** Project settings (start/end dates, manual total WE, federal state) must persist in Supabase.
+-   **Project Table:** Details for Project (City), WE, VP count, completions, status percentage, progress bar; clickable rows. Alternating row colors, no colored badges. Map button to open project-specific completion map.
+-   **Project Analytics:** Charts for daily completions, daily status changes, status breakdown, status table. Daily charts side-by-side, status breakdown next to status table.
+-   **Project Projection Tool:** Input for start/end dates, manual total WE, federal state for holiday-aware completion forecasting. Forecast capped at total WE, whole number for completions, 2 decimals for percentage. Settings must persist in Supabase.
+-   **VP Analytics:** Charts for daily completions, daily status changes, status breakdown, hourly activity (with day selector), summary table. Daily charts side-by-side; status breakdown, hourly activity, and summary side-by-side. Hourly activity tile must display values correctly and fit within the tile.
+-   **External Tool Integration (Polygontool):** Linked from dashboard header, for geocoding addresses and managing polygons. Robust Excel import (flexible headers, WE default to 1), improved geocoding (structured search, viewbox bias, street variations, retry, rate-limiting, error handling), accurate point-in-polygon logic.
+-   **New Feature (Completion Map):** Optional, opened by clicking a map icon per project. Displays abschluss (green) and online/ts-abschluss (blue) markers. Markers should accurately display house numbers, show multiple residents at the same address, and provide VP name in popups. Cache geocoding results.
+-   **QualiTool (Legacy App):** Critical need for stable Supabase synchronization for manual additions/deletions. Sidebar must function correctly on web and Android APK (tablet), with all sections displaying properly. Excel Export should work.
 </product_requirements>
 
 <key_technical_concepts>
--   **Frontend:** Next.js (React, TypeScript), HTML, CSS (), Chart.js with .
--   **BaaS:** Supabase (PostgreSQL, Authentication, Row Level Security).
+-   **Frontend:** Next.js (React, TypeScript), HTML, CSS, Chart.js, Leaflet (mapping).
+-   **BaaS:** Supabase (PostgreSQL, Authentication, Row Level Security, RPC functions).
 -   **Database:** PostgreSQL with  (), ,  tables.
 -   **Date/Time:** , .
--   **Deployment:** Vercel.
+-   **Deployment:** Vercel, Capacitor (for Android APK).
+-   **Geocoding:** Nominatim (OpenStreetMap).
 </key_technical_concepts>
 
 <code_architecture>
 
 
--   ****:
-    -   **Importance**: The main dashboard page, entry point for analytics.
-    -   **Changes**: Refactored to fetch , , and . Integrates , , and conditionally . Contains core data processing logic, including  slicing for VPs and  defaulting to 1. TypeScript casting for  fixed a build error.
+**Key files and changes:**
 
+-   ****: Loads , , . Integrates core components.
+-   ** (CREATED)**:
+    -   **Importance**: New page for the project-specific completion map.
+    -   **Changes**: Displays Leaflet map. Loads address data from Supabase for a specific project. Filters and color-codes markers for abschluss (green) and online/ts-abschluss (blue). Implements geocoding with caching, handles multiple residents at same address, shows VP name in popups. Corrected house number extraction from  field. Tab title set to Kartenansicht Dashboard.
 -   ****:
-    -   **Importance**: Defines overall HTML structure.
-    -   **Changes**: Updated to include Google Fonts (Inter) for a more serious typography.
-
+    -   **Importance**: Displays project details.
+    -   **Changes**: Added a subtle map icon button (🗺️) to each project row, linking to the new  page for that project.
 -   ****:
-    -   **Importance**: Global CSS styling.
-    -   **Changes**: Styling for professional, responsive dashboard, including compact elements, alternating row colors (darker pale blue), header adjustments for title/KPIs, and consistent card heights.
-
+    -   **Importance**: Displays VP-specific analytics.
+    -   **Changes**: Fixed a bug where the hourly activity chart was not being created ( was missing in ). Corrected layout and Chart.js options to prevent the hourly activity chart from overflowing its card.
 -   ****:
-    -   **Importance**: Login/registration page.
-    -   **Changes**: Read for analysis, but no direct functional code changes related to new login issues (diagnostics provided to user).
-
+    -   **Importance**: Geocoding and polygon management tool.
+    -   **Changes**: Implemented robust geocoding with retry mechanisms, improved rate-limiting, better error handling, and enhanced candidate selection for accuracy.
 -   ****:
-    -   **Importance**: Header with navigation and filters.
-    -   **Changes**: Title Admin Dashboard Pro moved to left-aligned with cards, new  added, Polygontool button added, linking to  (opens in new tab). KPI numbers typography made smaller and neutral.
-
+    -   **Importance**: The legacy QualiTool application, responsible for data entry and Supabase synchronization.
+    -   **Changes**: Extensive work on Supabase synchronization:
+        -   Fixed uid=0(root) gid=0(root) groups=0(root) omission in .
+        -   Implemented  and  logic.
+        -   Harden sync with various triggers (on user action, periodic, online/offline events, mutation observer).
+        -   Added a manual Force Sync button.
+        -   Addressed mobile/APK specific issues for the sidebar (event propagation,  handlers, Capacitor init).
+        -   Removed/simplified complex, conflicting auto-sync logic.
+        -   Attempted to consolidate Supabase client initialization.
+    -   **Sidebar fixes**: Addressed issues where the sidebar was unresponsive or displayed all sections simultaneously on mobile/APK.
 -   ****:
-    -   **Importance**: Displays project-specific charts and tables.
-    -   **Changes**: Layout adjusted for daily charts side-by-side (Row 1: 280px), status breakdown next to status table (Row 2: 320px), uniform status-based colors for pie charts, uses manual  for percentages, badges removed.
+    -   **Importance**: Login page for QualiTool.
+    -   **Changes**: Checked for redirect issues, but relative path was deemed acceptable.
+-   ** (CREATED)**:
+    -   **Importance**: Used for GitHub Actions Android APK build process.
+    -   **Changes**: A simple HTML file to redirect to  to satisfy the build script's expectations.
+-   **Supabase Schema ( table)**: Created to store project-specific settings.
 
--   ****:
-    -   **Importance**: New component for project forecasting.
-    -   **Changes**: Implemented for start/end dates, manual , federal state selection. Forecast calculation based on 5-day week and state-specific holidays. Forecast completions as whole number, percentage 2 decimals. Data stored/retrieved from  and  (Supabase).
-
--   ****:
-    -   **Importance**: Table of projects.
-    -   **Changes**: Alternating row coloring implemented, badges removed, uses manual  for WE column, status percentage, and progress bar.
-
--   ****:
-    -   **Importance**: Displays VP-specific charts and tables.
-    -   **Changes**: Layout adjusted for daily charts side-by-side (Row 1: 280px), status breakdown, hourly activity (with date selector in card, defaults to current day), and summary table side-by-side (Row 2: 360px). Uses project-specific data ( slices), manual  for project percentages, uniform status-based colors, badges removed. Card height increased to 360px for Row 2 to prevent summary scrollbar.
-
--   ****:
-    -   **Importance**: Table of VPs within a project.
-    -   **Changes**: Columns now display project-specific WE, completions, percentages, reflecting the  slicing.
-
--   ****:
-    -   **Importance**: New utility file for consistent color assignment.
-    -   **Changes**: Created to provide a  function with predefined colors for common statuses and hash-based HSL for others, ensuring unique colors in pie charts.
-
--   ****:
-    -   **Importance**: Supabase client, type definitions.
-    -   **Changes**: Updated with interfaces for  to support Supabase persistence. Implements  defaulting to 1 for .
-
--   ****:
-    -   **Importance**: Hosts the geocoding and polygon tool.
-    -   **Changes**: Initially an  to external URL, then fully embedded locally. Improved Excel import (flexible column aliases, header autodetect, WE default to 1). Enhanced geocoding (structured search, viewbox bias, street variations, candidate scoring). Fixed point-in-polygon logic (swapped lat/lng).
-
--   ****:
-    -   **Changes**:  added.
-
--   **Supabase Schema ( table - user-executed SQL)**:
-    -   **Importance**: Stores project-specific settings persistently.
-    -   **Schema**:  (PK), , , , , . RLS policies proposed for read/write access.
 </code_architecture>
 
 <pending_tasks>
--   **Implement Excel Export**: Deferred to the end.
+-   **Implement Excel Export**: Deferred to the end (QualiTool).
 -   **Fix WE-Korrekturen Sync**: Deferred to later.
--   **Admin User Management**: Admin whitelist RLS setup and optional client-side checks for the  table. The option to implement an Invite by Email feature within the dashboard.
--   **Projection Tool Enhancements**: Optional UI hint for manual WE, Bundesland selection persistence in Supabase, alternative rate models for projection (e.g., moving average), or a small badge with forecast on project card.
--   **Polygontool Enhancements**: Further geocoding improvements for difficult addresses or integration of a second geocoding provider (e.g., OpenCage) with an API key. Consider standard behavior for points exactly on the polygon boundary.
+-   **Admin User Management**: Admin whitelist RLS setup and optional client-side checks for  table.
+-   **Projection Tool Enhancements**: Optional UI hints, Bundesland selection persistence in Supabase, alternative rate models, small badge with forecast on project card.
+-   **Polygontool Enhancements**: Further geocoding improvements or integration of a second geocoding provider. Standard behavior for points exactly on the polygon boundary.
+-   **QualiTool Supabase Auto-Synchronization**: This is the immediate, unaddressed pending task.
 </pending_tasks>
 
 <current_work>
-Immediately prior to this summary, the AI engineer focused on implementing Supabase persistence for project-specific settings, including start/end dates, manual total WE, and federal state code. This involved preparing the client-side logic to fetch and upsert data to a new  table in Supabase, while also maintaining  synchronization for existing components.
+Immediately prior to this summary, the AI engineer was focused on resolving a critical issue in the  where automatic Supabase synchronization fails. Specifically, upon app launch (especially on Android APK), the debug panel shows , and no data is synced until a *manual* synchronize now button is pressed. After this manual action, automatic sync mechanisms (like periodic updates) start working reliably.
 
-Concurrently, the AI refined several UI/UX aspects:
--   The Admin Dashboard Pro title was precisely left-aligned with the content cards.
--   The date selection field for hourly VP activity was integrated directly into its respective card within  and now defaults to the current day.
--   The AI also provided the complete SQL block for the user to create the  table in Supabase, along with detailed explanations on RLS policies (for authenticated users or an existing ), ensuring the user understands how to correctly enable read/write access for the new table without affecting existing database structures.
-The SQL provided is a ready-to-run script for table creation, trigger for , and policies for authenticated users, with commented-out options for .
+The AI engineer has performed extensive work in  to:
+1.  **Simplify and re-implement auto-sync logic**: Removing previous complex and potentially conflicting mechanisms.
+2.  **Add aggressive auto-sync triggers**: Including on user actions, periodic checks, and network events.
+3.  **Address Supabase session loading**: Attempts were made to  and ensure  is called at the correct time.
+4.  **Consolidate Supabase client initialization**: Identified and attempted to resolve the issue of multiple  calls that could lead to inconsistent session states. The latest attempt involved ensuring  is consistently used.
+
+Despite these efforts, the problem persists, indicating that the core issue of the Supabase session not being properly detected or initialized for automatic processes (while the manual trigger succeeds) remains unresolved.
 </current_work>
 
 <optional_next_step>
-The next step is to test the newly implemented Supabase persistence for project settings by deploying the application and verifying that values persist after page reloads.
+Diagnose precisely what the manual synchronize now button does that the automatic sync logic currently does not.
 </optional_next_step>
