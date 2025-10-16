@@ -2635,8 +2635,11 @@
     try {
       await tryWrite('EXTERNAL_STORAGE');
     } catch(e1){
-      try { await tryWrite('EXTERNAL'); }
-      catch(e2){ throw e2 || e1; }
+      try { 
+        await tryWrite('EXTERNAL'); 
+      } catch(e2){ 
+        throw e2 || e1; 
+      }
     }
 
     // Optional: URI ermitteln
