@@ -3779,8 +3779,26 @@
   // Dies registriert den Auth-Listener so früh wie möglich
   (function earlySupabaseInit(){
     console.log('[EarlyInit] Triggering Supabase initialization immediately...');
-    awaitSupabase().then(() => {
+    awaitSupabase().then(async (client) => {
       console.log('[EarlyInit] ✓ Supabase initialized, auth listener active');
+      
+      // KRITISCH: Stelle sicher, dass User-Zeile existiert (für Auto-Sync/Realtime)
+      try {
+        const { data: { user } } = await client.auth.getUser();
+        if (user && user.id) {
+          console.log('[EarlyInit] Ensuring user row exists for:', user.id);
+          const { error } = await client
+            .from('user_contacts')
+            .insert({ user_id: user.id, contacts: [] }, { ignoreDuplicates: true });
+          if (error && error.code !== '23505') {
+            console.warn('[EarlyInit] ensureUserRow error (may be OK):', error);
+          } else {
+            console.log('[EarlyInit] ✓ User row ensured');
+          }
+        }
+      } catch(e) {
+        console.warn('[EarlyInit] ensureUserRow failed:', e);
+      }
     }).catch((e) => {
       console.error('[EarlyInit] Supabase init error:', e);
     });
