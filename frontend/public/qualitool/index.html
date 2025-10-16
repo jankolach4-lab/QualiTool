@@ -1983,6 +1983,17 @@
               <p>${getStatusLabel(getHighestPriorityStatus(resident)) || 'Kein Status'}</p>
             `).join('') || '<p>Kein Status</p>'}
           </div>
+          <div class="unit-info unit-date">
+            ${contact.residents?.map((resident, index) => {
+              const lastStatusChange = resident?.statusHistory?.length > 0 
+                ? resident.statusHistory.sort((a, b) => b.timestamp - a.timestamp)[0]
+                : null;
+              const dateStr = lastStatusChange 
+                ? new Date(lastStatusChange.date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
+                : '';
+              return `<p class="status-date">${dateStr}</p>`;
+            }).join('') || '<p class="status-date"></p>'}
+          </div>
         </div>
         <div class="residents-section" style="display: none;">
           ${residentInputs}
