@@ -2546,8 +2546,11 @@
 
   // Helper: Plattform/Nativ erkennen
   function isNativeApp() {
-    try { return !!window.Capacitor && typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() !== 'web'; }
-    catch(_) { return false; }
+    try { 
+      return !!window.Capacitor && typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() !== 'web'; 
+    } catch(_) { 
+      return false; 
+    }
   }
   // Helper: robust file download handling (works in preview/iframe)
   function triggerDownload(blob, filename){
