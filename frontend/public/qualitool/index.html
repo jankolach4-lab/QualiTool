@@ -4039,6 +4039,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       return;
     }
 
+    try {
       if (next.type === 'contacts') {
         let ok = false, lastErr = null;
         try {
