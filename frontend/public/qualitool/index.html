@@ -3665,6 +3665,10 @@
 </script>
 
 <script>
+  const DEFAULT_SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
+  const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
+  
+  const SUPABASE_URL = window.SUPABASE_URL || DEFAULT_SUPABASE_URL;
   const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 
   // 2) Warten bis supabase-js geladen ist und Client initialisieren (Session wird von supabase-js verwaltet)
