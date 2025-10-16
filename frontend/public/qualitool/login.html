@@ -156,13 +156,20 @@
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { showError('Kein Nutzer gefunden.'); return; }
 
+      // KRITISCH: Stelle sicher, dass User-Zeile existiert (für Auto-Sync/Realtime)
+      console.log('[afterAuth] Ensuring user row exists for:', user.id);
+      await ensureUserRow(user.id);
+
       // Offline-Nutzung ab jetzt erlaubt (nach erstem Login)
       localStorage.setItem('last_user_id', user.id);
       localStorage.setItem('offline_allowed', 'true');
 
       // Cloud <-> Lokal Sync beim ersten Login
-      const cloud = await getCloudContacts();
+      console.log('[afterAuth] Loading cloud contacts...');
+      const cloud = await getCloudContacts(user.id);
       const local = getLocalContacts(user.id);
+      console.log('[afterAuth] Cloud:', cloud.length, 'Local:', local.length);
+      
       if (local.length > 0 && cloud.length === 0) {
         const doUpload = confirm('Lokale Adressen gefunden. Jetzt in die Cloud hochladen?');
         if (doUpload) { await uploadLocalToCloud(user.id); }
@@ -170,6 +177,7 @@
         setLocalContacts(user.id, cloud);
       }
 
+      console.log('[afterAuth] Redirecting to index.html...');
       window.location.href = './index.html';
     }
 
