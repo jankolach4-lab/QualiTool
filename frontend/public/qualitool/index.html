@@ -4381,47 +4381,54 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         window.flushSoon = flushSoon;
         window.flushQueue = flushQueue;
       } catch(_e) {}
-      // Initial-Sync wird jetzt NACH manualDirectSyncNow() Definition gehandhabt
-      // Siehe autoInitialSync() IIFE nach der Funktionsdefinition
       
       // Online-Handler
       window.addEventListener('online', () => {
         console.log('[Init] Online event detected');
         flushQueue();
       });
-      // Zusätzliche Auto‑Sync Trigger
-try {
-  // Wenn App/Tab in den Vordergrund kommt
-  document.addEventListener('visibilitychange', () => {
-    try { if (!document.hidden) scheduleAutoSync('visible'); } catch(_){}
-  });
+      
+      // Zusätzliche Auto-Sync Trigger
+      try {
+        // Wenn App/Tab in den Vordergrund kommt
+        document.addEventListener('visibilitychange', () => {
+          try { if (!document.hidden) scheduleAutoSync('visible'); } catch(_){}
+        });
 
-  // Wenn Netzwerk wieder online ist
-  // Online/Offline Handler - EINFACH
-  window.addEventListener('online', () => { 
-    console.log('[Network] Connection restored');
-    try { 
-      enqueueFullContactsSnapshot(); // OHNE Hash-Check
-      flushQueue();
-    } catch(e) {
-      console.error('[Network] Sync on reconnect failed:', e);
-    }
-  });
+        // Wenn Netzwerk wieder online ist
+        window.addEventListener('online', () => { 
+          console.log('[Network] Connection restored');
+          try { 
+            enqueueFullContactsSnapshot(); // OHNE Hash-Check
+            flushQueue();
+          } catch(e) {
+            console.error('[Network] Sync on reconnect failed:', e);
+          }
+        });
 
-  // Capacitor App‑Resume (Android/iOS)
-  const App = window.Capacitor && window.Capacitor.App;
-  if (App && typeof App.addListener === 'function') {
-    App.addListener('appStateChange', ({ isActive }) => {
-      try { if (isActive) scheduleAutoSync('app_resume'); } catch(_){}
-    });
-  }
-} catch(_) {}
-      document.addEventListener('visibilitychange', () => { if (!document.hidden) flushQueue(); });
+        // Capacitor App-Resume (Android/iOS)
+        const App = window.Capacitor && window.Capacitor.App;
+        if (App && typeof App.addListener === 'function') {
+          App.addListener('appStateChange', ({ isActive }) => {
+            try { if (isActive) scheduleAutoSync('app_resume'); } catch(_){}
+          });
+        }
+      } catch(_) {}
+      
       // Supabase-Client asynchron initialisieren (optional)
-      (async () => { try { await awaitSupabase(); flushSoon(); } catch(_){ /* offline ok */ } })();
-    }catch(e){ console.warn('Auto-Sync Init (lokal) fehlgeschlagen:', e?.message||e); }
+      (async () => { 
+        try { 
+          await awaitSupabase(); 
+          flushSoon(); 
+        } catch(_){ 
+          /* offline ok */ 
+        } 
+      })();
+      
+    } catch(e){ 
+      console.warn('Auto-Sync Init (lokal) fehlgeschlagen:', e?.message||e); 
+    }
   })();
-})();
 </script>
 <script>
 /*
