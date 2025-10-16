@@ -297,7 +297,7 @@
 
   .contact-info {
     display: grid;
-    grid-template-columns: minmax(120px, 120px) minmax(60px, 60px) minmax(50px, 50px) minmax(150px, 1fr) minmax(130px, 1fr) minmax(80px, 80px);
+    grid-template-columns: minmax(160px, 160px) minmax(60px, 60px) minmax(45px, 45px) minmax(130px, 1fr) minmax(120px, 1fr) minmax(80px, 80px);
     gap: 8px 10px;
     align-items: center;
     font-size: 14px;
@@ -311,15 +311,13 @@
     flex-direction: column;
     gap: 2px;
     line-height: 1.2;
-    min-width: 120px;
+    min-width: 160px;
   }
   
   .address-line-1,
   .address-line-2 {
     font-size: 12px;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
   
   .address-line-1 {
@@ -1353,6 +1351,11 @@
         <select id="streetFilter" class="street-filter" onchange="applyFilters()">
           <option value="all">Alle Straßen</option>
         </select>
+        <select id="houseNumberFilter" class="street-filter" onchange="applyFilters()">
+          <option value="all">Alle Hausnummern</option>
+          <option value="even">Nur gerade</option>
+          <option value="odd">Nur ungerade</option>
+        </select>
       </div>
 
       <!-- Contact list -->
@@ -2024,6 +2027,7 @@
   function applyFilters() {
     const searchTerm = (document.getElementById('searchInput').value || '').toLowerCase();
     const selectedStreet = document.getElementById('streetFilter').value;
+    const selectedHouseNumber = document.getElementById('houseNumberFilter').value;
     const filteredContacts = contacts.filter(contact => {
       if (!contact) return false;
       const searchMatch = (contact.plz?.toString() || '').includes(searchTerm) || 
@@ -2041,10 +2045,24 @@
                          contact.residents?.some(resident => getHighestPriorityStatus(resident) === currentFilter) || 
                          false;
       const streetMatch = selectedStreet === 'all' || contact.strasse === selectedStreet;
-      return searchMatch && statusMatch && streetMatch;
+      
+      // Hausnummer-Filter: gerade/ungerade
+      let houseNumberMatch = true;
+      if (selectedHouseNumber !== 'all' && contact.nummer) {
+        // Extrahiere numerischen Teil der Hausnummer (z.B. "123a" -> 123)
+        const numericPart = parseInt(contact.nummer.toString().match(/\d+/)?.[0] || '0');
+        if (selectedHouseNumber === 'even') {
+          houseNumberMatch = numericPart % 2 === 0;
+        } else if (selectedHouseNumber === 'odd') {
+          houseNumberMatch = numericPart % 2 !== 0;
+        }
+      }
+      
+      return searchMatch && statusMatch && streetMatch && houseNumberMatch;
     });
     renderContacts(filteredContacts);
     document.getElementById('streetFilter').value = selectedStreet;
+    document.getElementById('houseNumberFilter').value = selectedHouseNumber;
   }
 
   function getStatusPriority(status) {
