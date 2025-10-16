@@ -3665,6 +3665,10 @@
 </script>
 
 <script>
+  const DEFAULT_SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
+  const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
+  
+  const SUPABASE_URL = window.SUPABASE_URL || DEFAULT_SUPABASE_URL;
   const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 
   // 2) Warten bis supabase-js geladen ist und Client initialisieren (Session wird von supabase-js verwaltet)
@@ -3775,8 +3779,26 @@
   // Dies registriert den Auth-Listener so früh wie möglich
   (function earlySupabaseInit(){
     console.log('[EarlyInit] Triggering Supabase initialization immediately...');
-    awaitSupabase().then(() => {
+    awaitSupabase().then(async (client) => {
       console.log('[EarlyInit] ✓ Supabase initialized, auth listener active');
+      
+      // KRITISCH: Stelle sicher, dass User-Zeile existiert (für Auto-Sync/Realtime)
+      try {
+        const { data: { user } } = await client.auth.getUser();
+        if (user && user.id) {
+          console.log('[EarlyInit] Ensuring user row exists for:', user.id);
+          const { error } = await client
+            .from('user_contacts')
+            .insert({ user_id: user.id, contacts: [] }, { ignoreDuplicates: true });
+          if (error && error.code !== '23505') {
+            console.warn('[EarlyInit] ensureUserRow error (may be OK):', error);
+          } else {
+            console.log('[EarlyInit] ✓ User row ensured');
+          }
+        }
+      } catch(e) {
+        console.warn('[EarlyInit] ensureUserRow failed:', e);
+      }
     }).catch((e) => {
       console.error('[EarlyInit] Supabase init error:', e);
     });
@@ -4381,47 +4403,54 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         window.flushSoon = flushSoon;
         window.flushQueue = flushQueue;
       } catch(_e) {}
-      // Initial-Sync wird jetzt NACH manualDirectSyncNow() Definition gehandhabt
-      // Siehe autoInitialSync() IIFE nach der Funktionsdefinition
       
       // Online-Handler
       window.addEventListener('online', () => {
         console.log('[Init] Online event detected');
         flushQueue();
       });
-      // Zusätzliche Auto‑Sync Trigger
-try {
-  // Wenn App/Tab in den Vordergrund kommt
-  document.addEventListener('visibilitychange', () => {
-    try { if (!document.hidden) scheduleAutoSync('visible'); } catch(_){}
-  });
+      
+      // Zusätzliche Auto-Sync Trigger
+      try {
+        // Wenn App/Tab in den Vordergrund kommt
+        document.addEventListener('visibilitychange', () => {
+          try { if (!document.hidden) scheduleAutoSync('visible'); } catch(_){}
+        });
 
-  // Wenn Netzwerk wieder online ist
-  // Online/Offline Handler - EINFACH
-  window.addEventListener('online', () => { 
-    console.log('[Network] Connection restored');
-    try { 
-      enqueueFullContactsSnapshot(); // OHNE Hash-Check
-      flushQueue();
-    } catch(e) {
-      console.error('[Network] Sync on reconnect failed:', e);
-    }
-  });
+        // Wenn Netzwerk wieder online ist
+        window.addEventListener('online', () => { 
+          console.log('[Network] Connection restored');
+          try { 
+            enqueueFullContactsSnapshot(); // OHNE Hash-Check
+            flushQueue();
+          } catch(e) {
+            console.error('[Network] Sync on reconnect failed:', e);
+          }
+        });
 
-  // Capacitor App‑Resume (Android/iOS)
-  const App = window.Capacitor && window.Capacitor.App;
-  if (App && typeof App.addListener === 'function') {
-    App.addListener('appStateChange', ({ isActive }) => {
-      try { if (isActive) scheduleAutoSync('app_resume'); } catch(_){}
-    });
-  }
-} catch(_) {}
-      document.addEventListener('visibilitychange', () => { if (!document.hidden) flushQueue(); });
+        // Capacitor App-Resume (Android/iOS)
+        const App = window.Capacitor && window.Capacitor.App;
+        if (App && typeof App.addListener === 'function') {
+          App.addListener('appStateChange', ({ isActive }) => {
+            try { if (isActive) scheduleAutoSync('app_resume'); } catch(_){}
+          });
+        }
+      } catch(_) {}
+      
       // Supabase-Client asynchron initialisieren (optional)
-      (async () => { try { await awaitSupabase(); flushSoon(); } catch(_){ /* offline ok */ } })();
-    }catch(e){ console.warn('Auto-Sync Init (lokal) fehlgeschlagen:', e?.message||e); }
+      (async () => { 
+        try { 
+          await awaitSupabase(); 
+          flushSoon(); 
+        } catch(_){ 
+          /* offline ok */ 
+        } 
+      })();
+      
+    } catch(e){ 
+      console.warn('Auto-Sync Init (lokal) fehlgeschlagen:', e?.message||e); 
+    }
   })();
-})();
 </script>
 <script>
 /*
