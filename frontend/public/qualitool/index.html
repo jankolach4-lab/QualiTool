@@ -3767,6 +3767,17 @@
     return sb;
   }
 
+  // SOFORTIGE INITIALISIERUNG: Rufe awaitSupabase() auf sobald definiert
+  // Dies registriert den Auth-Listener so früh wie möglich
+  (function earlySupabaseInit(){
+    console.log('[EarlyInit] Triggering Supabase initialization immediately...');
+    awaitSupabase().then(() => {
+      console.log('[EarlyInit] ✓ Supabase initialized, auth listener active');
+    }).catch((e) => {
+      console.error('[EarlyInit] Supabase init error:', e);
+    });
+  })();
+
   // 3) Storage/Queue Utilities
   const QUEUE_KEY = 'qt_sync_queue_v1';
   const LAST_HASH_KEY = 'qt_last_contacts_hash';
