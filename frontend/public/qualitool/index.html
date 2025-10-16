@@ -297,13 +297,30 @@
 
   .contact-info {
     display: grid;
-    grid-template-columns: auto auto auto auto auto minmax(160px, 1fr) minmax(140px, 1fr);
+    grid-template-columns: auto auto auto minmax(160px, 1fr) minmax(140px, 1fr);
     gap: 8px 12px;
     align-items: center;
     font-size: 14px;
     margin-bottom: 4px;
     text-align: left;
     justify-content: start;
+  }
+  
+  .address-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1.2;
+  }
+  
+  .address-line-1,
+  .address-line-2 {
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  
+  .address-line-1 {
+    font-weight: 500;
   }
 
   .contact-info p {
