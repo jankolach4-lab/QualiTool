@@ -91,8 +91,27 @@
     function clearError(){ const box = $('errorBox'); box.textContent = ''; box.style.display = 'none'; }
     function setLoading(on){ $('loadingBox').style.display = on ? 'block' : 'none'; $('loginBtn').disabled = on; $('signupBtn').disabled = on; }
 
-    async function getCloudContacts(){
-      const { data, error } = await supabase.from('user_contacts').select('contacts').maybeSingle();
+    // Stelle sicher, dass User-Zeile in user_contacts existiert (ohne Daten zu überschreiben)
+    async function ensureUserRow(userId){
+      try {
+        const { error } = await supabase
+          .from('user_contacts')
+          .insert({ user_id: userId, contacts: [] }, { ignoreDuplicates: true });
+        // ignoreDuplicates bedeutet: Wenn Zeile existiert, nichts tun
+        if (error && error.code !== '23505') { // 23505 = unique constraint violation (OK)
+          console.warn('[ensureUserRow] Insert error (may be OK):', error);
+        }
+      } catch(e) {
+        console.warn('[ensureUserRow] Error:', e);
+      }
+    }
+
+    async function getCloudContacts(userId){
+      const { data, error } = await supabase
+        .from('user_contacts')
+        .select('contacts')
+        .eq('user_id', userId)
+        .maybeSingle();
       if (error && error.code !== 'PGRST116') throw error;
       return (data && data.contacts) ? data.contacts : [];
     }
