@@ -2953,7 +2953,13 @@
     delete modal.dataset.correctionIndex;
   }
 
-  function exportWECorrectionsToExcel() {
+  async function exportWECorrectionsToExcel() {
+    // Warte bis XLSX-Library geladen ist
+    if (!(await ensureXLSXReady())) {
+      alert('Excel-Library konnte nicht geladen werden. Bitte versuchen Sie es erneut.');
+      return;
+    }
+    
     const workbook = XLSX.utils.book_new();
     const tableData = contacts.flatMap(contact => {
       if (!contact.weCorrections || contact.weCorrections.length === 0) return [];
@@ -2967,6 +2973,12 @@
         Datum: new Date(correction.date).toLocaleString('de-DE')
       }));
     });
+    
+    if (tableData.length === 0) {
+      alert('Keine WE-Korrekturen zum Exportieren vorhanden.');
+      return;
+    }
+    
     const worksheet = XLSX.utils.json_to_sheet(tableData);
     XLSX.utils.book_append_sheet(workbook, worksheet, 'WE-Korrekturen');
     const filename = `WE-Korrekturen_${new Date().toISOString().split('T')[0]}.xlsx`;
