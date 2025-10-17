@@ -2084,11 +2084,36 @@
       return resident?.status || '';
     }
 
-    return resident.statusHistory.reduce((highestStatus, entry) => {
+    // Sortiere Historie nach Datum (neueste zuerst)
+    const sortedHistory = [...resident.statusHistory].sort((a, b) => b.timestamp - a.timestamp);
+    
+    // Finde höchsten Status nach normaler Priorität
+    const highestByPriority = resident.statusHistory.reduce((highestStatus, entry) => {
       const currentPriority = getStatusPriority(entry.status);
       const highestPriority = getStatusPriority(highestStatus);
       return currentPriority > highestPriority ? entry.status : highestStatus;
     }, '');
+    
+    // SONDERREGEL: "kein-eintritt" oder "kein-interesse" NACH höher priorisiertem Status
+    const newestEntry = sortedHistory[0];
+    const newestStatus = newestEntry?.status;
+    
+    // Prüfe ob neuester Status einer der beiden speziellen Statusse ist
+    if (newestStatus === 'kein-eintritt' || newestStatus === 'kein-interesse') {
+      // Prüfe ob es einen älteren Status mit höherer Priorität gibt
+      const hasOlderHigherPriorityStatus = sortedHistory.some((entry, index) => {
+        if (index === 0) return false; // Überspringe neuesten Status
+        return getStatusPriority(entry.status) > getStatusPriority(newestStatus);
+      });
+      
+      // Wenn ja, dann verwende den neueren (speziellen) Status
+      if (hasOlderHigherPriorityStatus) {
+        return newestStatus;
+      }
+    }
+    
+    // Sonst normale Prioritätslogik
+    return highestByPriority;
   }
 
   function toggleCalendar() {
