@@ -1982,9 +1982,8 @@
           onclick="toggleResidents(${contact.id})">
           <div class="address-block">
             <div class="address-line-1">${contact.plz} ${contact.ort}</div>
-            <div class="address-line-2">${contact.strasse} ${contact.nummer}</div>
+            <div class="address-line-2">${contact.strasse} ${contact.nummer}${contact.zusatz ? ` ${contact.zusatz}` : ''}</div>
           </div>
-          <p>${contact.zusatz ? `${contact.zusatz}` : ''}</p>
           <p>${contact.we ? `${contact.we} WE` : ''}</p>
           <div class="unit-info">
             ${contact.residents?.map((resident, index) => {
