@@ -297,7 +297,7 @@
 
   .contact-info {
     display: grid;
-    grid-template-columns: minmax(165px, 165px) minmax(35px, 35px) minmax(130px, 1fr) minmax(105px, 1fr) minmax(50px, 50px);
+    grid-template-columns: minmax(170px, 170px) minmax(30px, 30px) minmax(135px, 1fr) minmax(100px, 1fr) minmax(50px, 50px);
     gap: 8px 10px;
     align-items: center;
     font-size: 14px;
@@ -311,7 +311,7 @@
     flex-direction: column;
     gap: 2px;
     line-height: 1.2;
-    min-width: 165px;
+    min-width: 170px;
   }
   
   .address-line-1,
@@ -526,8 +526,8 @@
 
   .status-filters {
     margin: 12px 0 24px 0;
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px 10px;
     background: var(--surface);
     padding: 8px 8px 4px 8px;
@@ -539,13 +539,14 @@
     background: #f1f5f9;
     color: #64748b;
     border: none;
-    padding: 8px 16px;
+    padding: 8px 12px;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s;
     margin: 3px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
+    white-space: nowrap;
   }
 
   .filter-btn.active,
