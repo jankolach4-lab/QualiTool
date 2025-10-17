@@ -3717,18 +3717,7 @@
     // Modal Klick außerhalb schließen (Delegation)
     document.addEventListener('click', function(e){ if (e.target && e.target.id === 'debugModal') closeDebug(); }, { capture: true });
 
-    // Sidebar-Icon hinzufügen
-    window.addEventListener('DOMContentLoaded', function(){
-      try{
-        const nav = document.querySelector('.sidebar-nav');
-        if (nav && !document.getElementById('dbgNavItem')){
-          const li = document.createElement('li');
-          li.innerHTML = '<a id="dbgNavItem" href="#" title="Sync/Debug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.56-3.36L23 10"></path><path d="M1 14l4.93 4.93A9 9 0 0 0 20.49 15"></path></svg></a>';
-          nav.appendChild(li);
-          li.querySelector('a').addEventListener('click', function(ev){ ev.preventDefault(); openDebug(); });
-        }
-      }catch(_){ }
-    });
+    // Sidebar-Icon wurde entfernt (nicht mehr benötigt)
   })();
 </script>
 
