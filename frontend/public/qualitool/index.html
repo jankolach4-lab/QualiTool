@@ -2546,9 +2546,9 @@
       exportBar.style.justifyContent = 'flex-end';
       exportBar.style.margin = '10px 0';
       const btn = document.createElement('button');
-      btn.textContent = 'WE-Korrekturen exportieren';
+      btn.textContent = 'WE-Korrekturen exportieren (CSV)';
       btn.className = 'import-btn';
-      btn.onclick = () => exportWECorrectionsToExcel();
+      btn.onclick = () => exportWECorrectionsToCSV();
       exportBar.appendChild(btn);
 
       container.appendChild(title);
