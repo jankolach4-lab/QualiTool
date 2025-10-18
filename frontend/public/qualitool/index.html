@@ -1742,7 +1742,8 @@
     if (confirm('Möchten Sie wirklich alle Adressen löschen?')) {
       contacts = [];
       saveContacts();
-      renderContacts();
+      // Filter beibehalten nach Speichern
+      applyFilters();
     }
   }
   function addUnit(contactId) {
@@ -1761,7 +1762,8 @@
       }
       contact.we = (currentUnits - 1).toString();
       saveContacts();
-      renderContacts();
+      // Filter beibehalten nach Speichern
+      applyFilters();
     }
   }
   function saveContacts() {
@@ -2579,7 +2581,8 @@
     if (deleted > 0) {
       alert(`${deleted} Adressen wurden gelöscht`);
       saveContacts();
-      renderContacts();
+      // Filter beibehalten nach Speichern
+      applyFilters();
       updateStreetFilter();
     } else {
       alert('Keine Adressen mit dieser PLZ gefunden');
@@ -2622,7 +2625,8 @@
     if (deleted > 0) {
       alert(`${deleted} Adressen wurden gelöscht`);
       saveContacts();
-      renderContacts();
+      // Filter beibehalten nach Speichern
+      applyFilters();
       updateStreetFilter();
     } else {
       alert('Keine Adressen in den ausgewählten Straßen gefunden');
