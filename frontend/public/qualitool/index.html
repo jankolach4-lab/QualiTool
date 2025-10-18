@@ -1743,7 +1743,7 @@
       contacts = [];
       saveContacts();
       // Filter beibehalten nach Speichern
-      applyFilters();
+      renderContacts();
     }
   }
   function addUnit(contactId) {
@@ -1763,7 +1763,7 @@
       contact.we = (currentUnits - 1).toString();
       saveContacts();
       // Filter beibehalten nach Speichern
-      applyFilters();
+      renderContacts();
     }
   }
   function saveContacts() {
@@ -2582,7 +2582,7 @@
       alert(`${deleted} Adressen wurden gelöscht`);
       saveContacts();
       // Filter beibehalten nach Speichern
-      applyFilters();
+      renderContacts();
       updateStreetFilter();
     } else {
       alert('Keine Adressen mit dieser PLZ gefunden');
@@ -2626,7 +2626,7 @@
       alert(`${deleted} Adressen wurden gelöscht`);
       saveContacts();
       // Filter beibehalten nach Speichern
-      applyFilters();
+      renderContacts();
       updateStreetFilter();
     } else {
       alert('Keine Adressen in den ausgewählten Straßen gefunden');
