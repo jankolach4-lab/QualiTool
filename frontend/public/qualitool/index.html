@@ -1742,6 +1742,7 @@
     if (confirm('Möchten Sie wirklich alle Adressen löschen?')) {
       contacts = [];
       saveContacts();
+      // Filter beibehalten nach Speichern
       renderContacts();
     }
   }
@@ -1761,13 +1762,15 @@
       }
       contact.we = (currentUnits - 1).toString();
       saveContacts();
+      // Filter beibehalten nach Speichern
       renderContacts();
     }
   }
   function saveContacts() {
     console.log('[SaveContacts] Saving contacts to localStorage and triggering IMMEDIATE sync');
-    localStorage.setItem('contacts', JSON.stringify(contacts));
+    // Speichere erst
     try { window.contacts = contacts; } catch(_) {}
+    try { setLocalContacts(getUserIdFromLocalStorage(), contacts); } catch(_){}
     
     // WICHTIG: enqueueFullContactsSnapshot() statt enqueueContactsSnapshot()
     // um Hash-Check zu umgehen und IMMER zu synchronisieren
@@ -1782,20 +1785,44 @@
       console.error('[SaveContacts] enqueueFullContactsSnapshot failed:', e);
     }
     
-    try { 
-      rescanAndEnqueueStatusDiffs(); 
-      console.log('[SaveContacts] Status diffs enqueued');
+    // Status-Diffs auch enqueuen (zusätzlich)
+    try {
+      if (typeof rescanAndEnqueueStatusDiffs === 'function') {
+        rescanAndEnqueueStatusDiffs();
+        console.log('[SaveContacts] Status diffs enqueued');
+      }
     } catch(e) {
       console.error('[SaveContacts] rescanAndEnqueueStatusDiffs failed:', e);
     }
     
-    // SOFORTIGER FLUSH statt verzögert
-    try { 
-      flushQueue(); 
-      console.log('[SaveContacts] IMMEDIATE flush triggered');
+    // SOFORT flushen (nicht flushSoon!)
+    try {
+      if (typeof flushQueue === 'function') {
+        flushQueue();
+        console.log('[SaveContacts] IMMEDIATE flush triggered');
+      }
     } catch(e) {
       console.error('[SaveContacts] flushQueue failed:', e);
     }
+    
+    // Nach dem Speichern Filter erneut anwenden, um aktive Filter beizubehalten
+    setTimeout(() => {
+      const streetFilter = document.getElementById('streetFilter');
+      const houseNumberFilter = document.getElementById('houseNumberFilter');
+      const searchInput = document.getElementById('searchInput');
+      
+      // Prüfe ob irgendein Filter aktiv ist
+      const hasActiveFilter = 
+        (streetFilter && streetFilter.value !== 'all') ||
+        (houseNumberFilter && houseNumberFilter.value !== 'all') ||
+        (searchInput && searchInput.value.trim() !== '') ||
+        currentFilter !== 'all';
+      
+      if (hasActiveFilter) {
+        console.log('[SaveContacts] Re-applying filters after save');
+        applyFilters();
+      }
+    }, 50);
   }
   function updateStreetFilter() {
     const streetFilter = document.getElementById('streetFilter');
@@ -2579,6 +2606,7 @@
     if (deleted > 0) {
       alert(`${deleted} Adressen wurden gelöscht`);
       saveContacts();
+      // Filter beibehalten nach Speichern
       renderContacts();
       updateStreetFilter();
     } else {
@@ -2622,6 +2650,7 @@
     if (deleted > 0) {
       alert(`${deleted} Adressen wurden gelöscht`);
       saveContacts();
+      // Filter beibehalten nach Speichern
       renderContacts();
       updateStreetFilter();
     } else {
