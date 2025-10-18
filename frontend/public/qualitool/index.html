@@ -1768,7 +1768,8 @@
   }
   function saveContacts() {
     console.log('[SaveContacts] Saving contacts to localStorage and triggering IMMEDIATE sync');
-    // Speichere erst
+    // Speichere in localStorage (WICHTIG für Auto-Sync!)
+    localStorage.setItem('contacts', JSON.stringify(contacts));
     try { window.contacts = contacts; } catch(_) {}
     try { setLocalContacts(getUserIdFromLocalStorage(), contacts); } catch(_){}
     
