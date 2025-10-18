@@ -2984,6 +2984,9 @@
   }
 
   function exportWECorrectionsToCSV() {
+    console.log('[Export WE-Korrekturen] Starting CSV export...');
+    console.log('[Export WE-Korrekturen] Contacts count:', contacts ? contacts.length : 0);
+    
     // Sammle alle WE-Korrekturen
     const corrections = [];
     contacts.forEach(contact => {
@@ -2995,12 +2998,14 @@
             urspruenglicheWE: correction.originalWe,
             korrigierteWE: correction.correctedWe,
             geeVorhanden: correction.hasGEE ? 'Ja' : 'Nein',
-            begruendung: correction.reason,
+            begruendung: correction.reason || '',
             datum: new Date(correction.date).toLocaleDateString('de-DE')
           });
         });
       }
     });
+    
+    console.log('[Export WE-Korrekturen] Corrections found:', corrections.length);
     
     if (corrections.length === 0) {
       alert('Keine WE-Korrekturen zum Exportieren vorhanden.');
@@ -3030,16 +3035,28 @@
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const filename = `WE-Korrekturen_${new Date().toISOString().split('T')[0]}.csv`;
     
+    console.log('[Export WE-Korrekturen] Creating download...');
+    
     // Download
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      console.log('[Export WE-Korrekturen] Download successful!');
+    } catch(e) {
+      console.error('[Export WE-Korrekturen] Download failed:', e);
+      alert('Fehler beim Export: ' + e.message);
+    }
   }
+  
+  // Globale Verfügbarkeit sicherstellen
+  window.exportWECorrectionsToCSV = exportWECorrectionsToCSV;
 
   function editWeCorrection(contactId, correctionIndex) {
     const contact = contacts.find(c => c.id === contactId);
