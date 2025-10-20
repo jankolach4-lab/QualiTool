@@ -3532,7 +3532,10 @@
       // Originale Initialisierung: Immer zuerst zur Adressliste (Kontaktliste)
       showSection('contacts');
       filterByStatus('all');
-      updateStreetFilter();
+      // Verzögerter Aufruf um sicherzustellen, dass DOM vollständig geladen ist
+      setTimeout(() => {
+        updateStreetFilter();
+      }, 100);
 
       // saveContacts erweitern, ohne UI zu ändern
       const _save = window.saveContacts;
