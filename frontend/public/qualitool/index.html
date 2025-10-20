@@ -1498,8 +1498,9 @@
       daysGrid.appendChild(dayDiv);
     }
   }
-  window.contacts = JSON.parse(localStorage.getItem('contacts')) || [];
-  let contacts = window.contacts;
+  
+  // Kontakte-Variable deklarieren (wird später beim App-Start initialisiert)
+  let contacts = [];
   let currentFilter = 'all';
   let currentDate = new Date();
   async function importExcelFile(file) {
@@ -3519,6 +3520,7 @@
         } else {
           // Lokale Kontakte sind vorhanden - laden und anzeigen
           contacts = localContacts;
+          window.contacts = contacts; // Auch window.contacts setzen
           console.log('[Init] Loaded', contacts.length, 'contacts from localStorage');
           renderContacts();
           updateStreetFilter();
