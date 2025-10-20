@@ -3518,8 +3518,7 @@
           contacts = [];
         } else {
           // Lokale Kontakte sind vorhanden - laden und anzeigen
-          contacts = localContacts;
-          window.contacts = contacts; // Auch window.contacts setzen
+          window.contacts = contacts = localContacts; // Beide gleichzeitig setzen!
           console.log('[Init] Loaded', contacts.length, 'contacts from localStorage');
           renderContacts();
           updateStreetFilter();
