@@ -1498,8 +1498,9 @@
       daysGrid.appendChild(dayDiv);
     }
   }
-  window.contacts = JSON.parse(localStorage.getItem('contacts')) || [];
-  let contacts = window.contacts;
+  
+  // Kontakte-Variable deklarieren (wird später beim App-Start initialisiert)
+  let contacts = [];
   let currentFilter = 'all';
   let currentDate = new Date();
   async function importExcelFile(file) {
