@@ -3515,8 +3515,18 @@
         const localContacts = JSON.parse(localStorage.getItem('contacts')||'[]');
         if (!localContacts || !Array.isArray(localContacts)) {
           localStorage.setItem('contacts','[]');
+          contacts = [];
+        } else {
+          // Lokale Kontakte sind vorhanden - laden und anzeigen
+          contacts = localContacts;
+          console.log('[Init] Loaded', contacts.length, 'contacts from localStorage');
+          renderContacts();
+          updateStreetFilter();
         }
-      } catch(_e) { localStorage.setItem('contacts','[]'); }
+      } catch(_e) { 
+        localStorage.setItem('contacts','[]'); 
+        contacts = [];
+      }
 
       // Originale Initialisierung: Immer zuerst zur Adressliste (Kontaktliste)
       showSection('contacts');

@@ -1076,7 +1076,12 @@
             const tbody = document.getElementById('projectsTableBody');
             tbody.innerHTML = '';
             
-            Object.values(projectsData).forEach(project => {
+            // Sortiere Projekte alphabetisch nach Namen
+            const sortedProjects = Object.values(projectsData).sort((a, b) => 
+                a.name.localeCompare(b.name, 'de', { sensitivity: 'base' })
+            );
+            
+            sortedProjects.forEach(project => {
                 const vpCount = project.vps.size;
                 const statusPercent = project.totalWE > 0 ? 
                     Math.round((project.completions / project.totalWE) * 100) : 0;
