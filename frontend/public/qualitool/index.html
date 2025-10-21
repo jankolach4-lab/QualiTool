@@ -1836,12 +1836,20 @@
     while (streetFilter.options.length > 1) {
       streetFilter.remove(1);
     }
-    Array.from(streets).sort().forEach(street => {
+    const streetsList = Array.from(streets).sort();
+    streetsList.forEach(street => {
       const option = document.createElement('option');
       option.value = street;
       option.textContent = street;
       streetFilter.appendChild(option);
     });
+    
+    // NEU: Straßenliste in localStorage cachen für App-Neustart
+    try {
+      localStorage.setItem('qt_streets_cache', JSON.stringify(streetsList));
+    } catch(e) {
+      console.warn('[updateStreetFilter] Could not cache streets:', e);
+    }
   }
   function getStatusLabel(status) {
     if (!status) return 'Kein Status';
