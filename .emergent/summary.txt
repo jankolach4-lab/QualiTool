@@ -1,26 +1,28 @@
 <analysis>
-The AI engineer's work primarily focused on expanding a Next.js dashboard and troubleshooting a linked legacy QualiTool (React App) running in the same container. Key dashboard enhancements included adding a project projection tool (initially , then Supabase persistence), integrating a geocoding/polygon tool, and implementing an interactive map displaying project completions by address. The map required extensive debugging for accurate house number geocoding, multi-resident marker grouping, and subtle UI integration. A significant portion of the trajectory involved tackling persistent synchronization issues between the QualiTool and Supabase, especially when users manually added/deleted entries or when the app ran on an Android APK. This led to a deep dive into Supabase client initialization, session management, and auto-sync trigger mechanisms, which remains the central challenge at the end of the trajectory. UI/UX refinements were also made throughout for both applications.
+The AI engineer's work primarily focused on refining and expanding the existing QualiTool (a legacy React application running within an iframe in a Next.js dashboard) and the Admin Dashboard. The core challenge initially was fixing the QualiTool's automatic Supabase synchronization, which was plagued by JavaScript syntax errors, script execution order issues, and incorrect variable scoping. This involved extensive debugging and iterative fixes within  of the QualiTool.
+
+Following the successful resolution of the auto-sync, the work shifted to UI/UX improvements for the QualiTool. This included redesigning the address list layout, implementing a street filter with odd/even house number sorting, and refining status prioritization logic. Further iterations focused on column width adjustments, integrating a Zusatz field into the address line, and removing unnecessary debug/sync buttons from the sidebar. A significant recurring issue was the persistence of the street filter after app restarts in the Android APK, leading to multiple attempts at fixing scope and caching.
+
+Towards the end, the engineer began work on the Admin Dashboard to sort projects alphabetically, which also faced persistence issues. Finally, the user requested combining the Aktivitätenkalender and Statusübersicht into a new Dashboard section within the QualiTool sidebar, leading to the creation of a backup and the initial removal of old sidebar buttons. The trajectory highlights the iterative nature of development, the need for robust debugging, and careful management of UI and data consistency in a mixed-technology codebase.
 </analysis>
 
 <product_requirements>
-The Qualifizierungstool admin dashboard provides real-time analytics for projects and VPs. It needs:
--   **Overall View:** Total projects, VPs, and residential units (WE).
--   **Project Table:** Details for Project (City), WE, VP count, completions, status percentage, progress bar; clickable rows. Alternating row colors, no colored badges. Map button to open project-specific completion map.
--   **Project Analytics:** Charts for daily completions, daily status changes, status breakdown, status table. Daily charts side-by-side, status breakdown next to status table.
--   **Project Projection Tool:** Input for start/end dates, manual total WE, federal state for holiday-aware completion forecasting. Forecast capped at total WE, whole number for completions, 2 decimals for percentage. Settings must persist in Supabase.
--   **VP Analytics:** Charts for daily completions, daily status changes, status breakdown, hourly activity (with day selector), summary table. Daily charts side-by-side; status breakdown, hourly activity, and summary side-by-side. Hourly activity tile must display values correctly and fit within the tile.
--   **External Tool Integration (Polygontool):** Linked from dashboard header, for geocoding addresses and managing polygons. Robust Excel import (flexible headers, WE default to 1), improved geocoding (structured search, viewbox bias, street variations, retry, rate-limiting, error handling), accurate point-in-polygon logic.
--   **New Feature (Completion Map):** Optional, opened by clicking a map icon per project. Displays abschluss (green) and online/ts-abschluss (blue) markers. Markers should accurately display house numbers, show multiple residents at the same address, and provide VP name in popups. Cache geocoding results.
--   **QualiTool (Legacy App):** Critical need for stable Supabase synchronization for manual additions/deletions. Sidebar must function correctly on web and Android APK (tablet), with all sections displaying properly. Excel Export should work.
+The Qualifizierungstool admin dashboard provides real-time analytics for projects and VPs, featuring an overall view of total projects, VPs, and residential units. It includes a project table with details (city, WE, VP count, completions, status percentage, progress bar) and a map button to open a project-specific completion map. Project Analytics offers charts for daily completions, status changes, and breakdowns. A Project Projection Tool forecasts completions based on start/end dates, manual total WE, and federal state. VP Analytics provides similar charts, including hourly activity. The Polygontool, linked from the dashboard, is for geocoding and polygon management. A new Completion Map feature displays abschluss (green) and online/ts-abschluss (blue) markers with accurate house numbers and VP names. The critical QualiTool (legacy app) needs stable Supabase synchronization, a functional sidebar on web/Android APK, and Excel Export for general contacts. Recent additions include:
+- A new layout for the address list in QualiTool: PLZ/Ort (smaller font) above Straße/Nr. (bold, smaller font), with more space for WE, Name, Status.
+- A street filter in QualiTool to sort by even/odd house numbers.
+- A special status priority rule for Kein Eintritt persönlich and Kein Interesse based on recency.
+- CSV Export for WE-Korrekturen in QualiTool.
+- Alphabetical sorting for the project list in the Admin Dashboard.
+- A new Dashboard section in QualiTool combining Statistik anzeigen and Aktivitätenkalender.
 </product_requirements>
 
 <key_technical_concepts>
--   **Frontend:** Next.js (React, TypeScript), HTML, CSS, Chart.js, Leaflet (mapping).
+-   **Frontend:** Next.js (React, TypeScript), HTML, CSS, Chart.js, Leaflet (mapping), Capacitor (Android APK).
 -   **BaaS:** Supabase (PostgreSQL, Authentication, Row Level Security, RPC functions).
 -   **Database:** PostgreSQL with  (), ,  tables.
 -   **Date/Time:** , .
--   **Deployment:** Vercel, Capacitor (for Android APK).
 -   **Geocoding:** Nominatim (OpenStreetMap).
+-   **Data Processing:** SheetJS/XLSX (for Excel/CSV operations).
 </key_technical_concepts>
 
 <code_architecture>
@@ -28,61 +30,44 @@ The Qualifizierungstool admin dashboard provides real-time analytics for project
 
 **Key files and changes:**
 
--   ****: Loads , , . Integrates core components.
+-   ****:
+    *   **Importance**: The core legacy QualiTool application.
+    *   **Changes**: Extensive work on Supabase auto-synchronization (fixing syntax errors, script loading order, consolidating  calls, ensuring session loading, implementing  and  with ). UI/UX improvements:
+        *   Address list layout: PLZ/Ort (smaller) on top, Straße/Nr. (bold, smaller) below.
+        *   Column widths adjusted for Adresse, WE, Name, Status, Datum.
+        *   Added new dropdown for Street filter with Alle Hausnummern, Nur gerade Hausnummern, Nur ungerade Hausnummern options.
+        *   Status prioritization logic modified for Kein Eintritt persönlich and Kein Interesse to prioritize by recency if newer.
+        *   WE-Korrekturen Export changed from XLSX to CSV.
+        *   Removed Debug-Panel and Synchronize buttons from the sidebar.
+        *   Filter persistence for Street filter after data changes.
+        *   Attempted various fixes for Street filter not persisting after APK restart (scope fixes, setTimeout, localStorage caching, all reverted due to breaking other functionality or not working).
+        *   Creation of a new Dashboard section, removal of old Statistik anzeigen and Aktivitätenkalender sidebar buttons.
+-   ****:
+    *   **Importance**: Login page for QualiTool.
+    *   **Changes**:  and  implemented to ensure user data row exists in Supabase upon login, critical for auto-sync.
+-   ****:
+    *   **Importance**: Admin Dashboard displaying project analytics.
+    *   **Changes**: Implemented alphabetical sorting for the projects list within the  function.
 -   ** (CREATED)**:
-    -   **Importance**: New page for the project-specific completion map.
-    -   **Changes**: Displays Leaflet map. Loads address data from Supabase for a specific project. Filters and color-codes markers for abschluss (green) and online/ts-abschluss (blue). Implements geocoding with caching, handles multiple residents at same address, shows VP name in popups. Corrected house number extraction from  field. Tab title set to Kartenansicht Dashboard.
--   ****:
-    -   **Importance**: Displays project details.
-    -   **Changes**: Added a subtle map icon button (🗺️) to each project row, linking to the new  page for that project.
--   ****:
-    -   **Importance**: Displays VP-specific analytics.
-    -   **Changes**: Fixed a bug where the hourly activity chart was not being created ( was missing in ). Corrected layout and Chart.js options to prevent the hourly activity chart from overflowing its card.
--   ****:
-    -   **Importance**: Geocoding and polygon management tool.
-    -   **Changes**: Implemented robust geocoding with retry mechanisms, improved rate-limiting, better error handling, and enhanced candidate selection for accuracy.
--   ****:
-    -   **Importance**: The legacy QualiTool application, responsible for data entry and Supabase synchronization.
-    -   **Changes**: Extensive work on Supabase synchronization:
-        -   Fixed uid=0(root) gid=0(root) groups=0(root) omission in .
-        -   Implemented  and  logic.
-        -   Harden sync with various triggers (on user action, periodic, online/offline events, mutation observer).
-        -   Added a manual Force Sync button.
-        -   Addressed mobile/APK specific issues for the sidebar (event propagation,  handlers, Capacitor init).
-        -   Removed/simplified complex, conflicting auto-sync logic.
-        -   Attempted to consolidate Supabase client initialization.
-    -   **Sidebar fixes**: Addressed issues where the sidebar was unresponsive or displayed all sections simultaneously on mobile/APK.
--   ****:
-    -   **Importance**: Login page for QualiTool.
-    -   **Changes**: Checked for redirect issues, but relative path was deemed acceptable.
--   ** (CREATED)**:
-    -   **Importance**: Used for GitHub Actions Android APK build process.
-    -   **Changes**: A simple HTML file to redirect to  to satisfy the build script's expectations.
--   **Supabase Schema ( table)**: Created to store project-specific settings.
-
+    *   **Importance**: Backup of the QualiTool's main page before major dashboard structure changes.
 </code_architecture>
 
 <pending_tasks>
--   **Implement Excel Export**: Deferred to the end (QualiTool).
--   **Fix WE-Korrekturen Sync**: Deferred to later.
+-   **QualiTool WE-Korrekturen Sync**: Deferred to later.
 -   **Admin User Management**: Admin whitelist RLS setup and optional client-side checks for  table.
 -   **Projection Tool Enhancements**: Optional UI hints, Bundesland selection persistence in Supabase, alternative rate models, small badge with forecast on project card.
 -   **Polygontool Enhancements**: Further geocoding improvements or integration of a second geocoding provider. Standard behavior for points exactly on the polygon boundary.
--   **QualiTool Supabase Auto-Synchronization**: This is the immediate, unaddressed pending task.
+-   **QualiTool Straßenfilter persistence (APK)**: The street filter still disappears after app restart in the APK; this remains an unresolved, acknowledged problem.
+-   **Implement combined Dashboard view in QualiTool**: The implementation has just started by removing old sidebar buttons.
+-   **Fix Dashboard alphabetical sorting**: The dashboard's project list sorting is still not working despite code changes, possibly due to caching or other JS errors.
 </pending_tasks>
 
 <current_work>
-Immediately prior to this summary, the AI engineer was focused on resolving a critical issue in the  where automatic Supabase synchronization fails. Specifically, upon app launch (especially on Android APK), the debug panel shows , and no data is synced until a *manual* synchronize now button is pressed. After this manual action, automatic sync mechanisms (like periodic updates) start working reliably.
+Immediately prior to this summary, the AI engineer was working on integrating the Aktivitätenkalender and Statusübersicht into a new Dashboard section within the QualiTool sidebar. The user explicitly requested to combine these two existing sections into a single new view, accessible via a new sidebar button, and to remove the old individual buttons. The user also specified that the app should continue to start with the contact list as the default view.
 
-The AI engineer has performed extensive work in  to:
-1.  **Simplify and re-implement auto-sync logic**: Removing previous complex and potentially conflicting mechanisms.
-2.  **Add aggressive auto-sync triggers**: Including on user actions, periodic checks, and network events.
-3.  **Address Supabase session loading**: Attempts were made to  and ensure  is called at the correct time.
-4.  **Consolidate Supabase client initialization**: Identified and attempted to resolve the issue of multiple  calls that could lead to inconsistent session states. The latest attempt involved ensuring  is consistently used.
-
-Despite these efforts, the problem persists, indicating that the core issue of the Supabase session not being properly detected or initialized for automatic processes (while the manual trigger succeeds) remains unresolved.
+The AI engineer successfully created a backup of  at  to ensure a rollback point. Following this, the first step of the plan was executed: removing the old Statistik anzeigen and Aktivitätenkalender buttons from the sidebar. The AI engineer is currently in the process of identifying the content of the  and  sections within  to move them into the new dashboard section.
 </current_work>
 
 <optional_next_step>
-Diagnose precisely what the manual synchronize now button does that the automatic sync logic currently does not.
+Locate and move the existing Statistik and Aktivitätenkalender HTML content into the new Dashboard section within .
 </optional_next_step>
