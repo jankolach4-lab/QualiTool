@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Debug Test</title>
+<style>
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 20px;
+    background: #f7f8fa;
+  }
+
+  .bar-chart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    height: 200px;
+    gap: 2px;
+    padding: 10px 5px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin: 20px 0;
+  }
+
+  .bar-item {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 28px;
+    max-width: 35px;
+  }
+
+  .bar {
+    width: 100%;
+    background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+    border-radius: 4px 4px 0 0;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+
+  .bar-value {
+    font-size: 10px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 4px;
+    min-height: 12px;
+  }
+
+  .bar-label {
+    font-size: 9px;
+    color: #6b7280;
+    margin-top: 5px;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<h1>Debug: Werden Balken gerendert?</h1>
+<div id="output" style="background: white; padding: 20px; margin: 20px 0; border-radius: 8px;">
+  Warte auf JavaScript...
+</div>
+
+<div id="testChart" class="bar-chart"></div>
+
+<script>
+  const output = document.getElementById('output');
+  
+  function log(msg) {
+    output.innerHTML += msg + '<br>';
+    console.log(msg);
+  }
+  
+  log('JavaScript startet...');
+  
+  // Test-Daten
+  const testData = [
+    { day: 1, value: 0 },
+    { day: 2, value: 2 },
+    { day: 3, value: 4 },
+    { day: 4, value: 6 },
+    { day: 5, value: 8 },
+    { day: 6, value: 10 },
+    { day: 7, value: 8 },
+    { day: 8, value: 6 },
+    { day: 9, value: 4 },
+    { day: 10, value: 2 },
+  ];
+  
+  log('Test-Daten erstellt: ' + testData.length + ' Elemente');
+  
+  const container = document.getElementById('testChart');
+  log('Container gefunden: ' + (container ? 'JA' : 'NEIN'));
+  
+  if (!container) {
+    log('FEHLER: Container nicht gefunden!');
+  } else {
+    const maxValue = Math.max(...testData.map(d => d.value), 1);
+    log('Max-Wert: ' + maxValue);
+    
+    testData.forEach((item, index) => {
+      log(`Rendering Bar ${index + 1}: Tag ${item.day}, Wert ${item.value}`);
+      
+      const barItem = document.createElement('div');
+      barItem.className = 'bar-item';
+      
+      let heightPercent = 0;
+      if (item.value > 0) {
+        heightPercent = (item.value / maxValue) * 100;
+        heightPercent = Math.max(heightPercent, 3);
+      }
+      
+      log(`  Höhe: ${heightPercent}%`);
+      
+      const barValue = document.createElement('div');
+      barValue.className = 'bar-value';
+      barValue.textContent = item.value > 0 ? item.value : '';
+      
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      
+      if (item.value > 0) {
+        bar.style.height = `${heightPercent}%`;
+      } else {
+        bar.style.height = '0%';
+        bar.style.visibility = 'hidden';
+      }
+      
+      bar.title = `Tag ${item.day}: ${item.value}`;
+      
+      const barLabel = document.createElement('div');
+      barLabel.className = 'bar-label';
+      barLabel.textContent = item.day;
+      
+      barItem.appendChild(barValue);
+      barItem.appendChild(bar);
+      barItem.appendChild(barLabel);
+      
+      container.appendChild(barItem);
+    });
+    
+    log('Rendering abgeschlossen!');
+    log('Anzahl Balken im Container: ' + container.children.length);
+  }
+</script>
+
+</body>
+</html>
