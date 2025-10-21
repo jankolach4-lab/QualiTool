@@ -2476,6 +2476,17 @@
           const cnt = document.getElementById('visitRecommendationContent'); if (cnt) cnt.style.display='block';
           break;
         }
+        case 'dashboard': {
+          // Dashboard: Kombiniert Statistik und Kalender
+          setDisp('.statistics-section','block');
+          const ss = document.getElementById('statusStats'); if (ss) ss.style.display='block';
+          if (typeof updateStatistics==='function') updateStatistics();
+          
+          setDisp('.calendar-section','block');
+          const cal = document.getElementById('calendar'); if (cal) cal.style.display='block';
+          if (typeof renderCalendar==='function') renderCalendar();
+          break;
+        }
         case 'pdf-corrections': {
           const mount = document.getElementById('weCorrectionsSection');
           if (mount) { if (typeof renderWeCorrectionsList==='function') renderWeCorrectionsList(mount); mount.style.display='block'; }
