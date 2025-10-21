@@ -1639,6 +1639,8 @@
       
       container.appendChild(barItem);
     });
+    
+    console.log('[renderBarChart]', containerId, 'rendered', data.length, 'bars');
   }
   window.contacts = JSON.parse(localStorage.getItem('contacts')) || [];
   let contacts = window.contacts;
