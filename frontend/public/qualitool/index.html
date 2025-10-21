@@ -1455,48 +1455,67 @@
       <div class="forecast">Forecast: <strong>${forecast}</strong> Abschlüsse</div>
     `;
   
-    const daysGrid = document.getElementById('calendarDays');
-    daysGrid.innerHTML = '';
-  
-    const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    let firstDayIndex = firstDay.getDay();
-    firstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
-  
-    for (let i = 0; i < firstDayIndex; i++) {
-      const emptyDay = document.createElement('div');
-      emptyDay.className = 'calendar-day';
-      daysGrid.appendChild(emptyDay);
-    }
-  
+    // Sammle Daten für alle Tage im Monat
     const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-  
-    for (let day = 1; day <= lastDay.getDate(); day++) {
+    const daysInMonth = lastDay.getDate();
+    
+    const dailyCompletions = [];
+    const dailyQualis = [];
+    let maxCompletions = 0;
+    let maxQualis = 0;
+    
+    for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-      const dayOfWeek = date.getDay();
-  
-      const dayDiv = document.createElement('div');
-      dayDiv.className = 'calendar-day';
-  
       const stats = getDayStats(date);
-  
-      if (stats.total > 0 || stats.completions > 0) {
-        dayDiv.classList.add('has-entries');
-        if (stats.completions > 0) {
-          dayDiv.classList.add('has-completions');
-        }
-        dayDiv.innerHTML = `
-          <div class="day-number">${day}</div>
-          <div class="day-stats">
-            <div class="qualis">${stats.total} Qualis</div>
-            <div class="completions">${stats.completions} Abschl.</div>
-          </div>
-        `;
-      } else {
-        dayDiv.innerHTML = `<div class="day-number">${day}</div>`;
-      }
-  
-      daysGrid.appendChild(dayDiv);
+      
+      dailyCompletions.push({ day, value: stats.completions });
+      dailyQualis.push({ day, value: stats.total });
+      
+      maxCompletions = Math.max(maxCompletions, stats.completions);
+      maxQualis = Math.max(maxQualis, stats.total);
     }
+    
+    // Render Abschlüsse Chart
+    renderBarChart('completionsChart', dailyCompletions, maxCompletions, 'completions-bar');
+    
+    // Render Qualis Chart
+    renderBarChart('qualisChart', dailyQualis, maxQualis, 'qualis-bar');
+  }
+  
+  function renderBarChart(containerId, data, maxValue, barClass) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    // Mindesthöhe für Visualisierung
+    const effectiveMax = maxValue > 0 ? maxValue : 1;
+    
+    data.forEach(item => {
+      const barItem = document.createElement('div');
+      barItem.className = 'bar-item';
+      
+      const heightPercent = effectiveMax > 0 ? (item.value / effectiveMax) * 100 : 0;
+      
+      const barValue = document.createElement('div');
+      barValue.className = 'bar-value';
+      barValue.textContent = item.value > 0 ? item.value : '';
+      
+      const bar = document.createElement('div');
+      bar.className = `bar ${barClass}`;
+      bar.style.height = `${heightPercent}%`;
+      bar.title = `Tag ${item.day}: ${item.value}`;
+      
+      const barLabel = document.createElement('div');
+      barLabel.className = 'bar-label';
+      barLabel.textContent = item.day;
+      
+      barItem.appendChild(barValue);
+      barItem.appendChild(bar);
+      barItem.appendChild(barLabel);
+      
+      container.appendChild(barItem);
+    });
   }
   window.contacts = JSON.parse(localStorage.getItem('contacts')) || [];
   let contacts = window.contacts;
