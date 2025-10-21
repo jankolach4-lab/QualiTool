@@ -1534,6 +1534,8 @@
     // Mindesthöhe für Visualisierung
     const effectiveMax = maxValue > 0 ? maxValue : 1;
     
+    const isCompletionsChart = barClass === 'completions-bar';
+    
     data.forEach(item => {
       const barItem = document.createElement('div');
       barItem.className = 'bar-item';
@@ -1545,7 +1547,24 @@
       barValue.textContent = item.value > 0 ? item.value : '';
       
       const bar = document.createElement('div');
-      bar.className = `bar ${barClass}`;
+      
+      // Farbcodierung für Abschlüsse
+      if (isCompletionsChart && item.value > 0) {
+        if (item.value === 1) {
+          bar.className = 'bar completions-1';
+        } else if (item.value === 2) {
+          bar.className = 'bar completions-2';
+        } else if (item.value === 3) {
+          bar.className = 'bar completions-3';
+        } else if (item.value === 4) {
+          bar.className = 'bar completions-4';
+        } else {
+          bar.className = 'bar completions-5plus';
+        }
+      } else {
+        bar.className = `bar ${barClass}`;
+      }
+      
       bar.style.height = `${heightPercent}%`;
       bar.title = `Tag ${item.day}: ${item.value}`;
       
