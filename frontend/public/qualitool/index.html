@@ -1251,7 +1251,17 @@
         </div>
       </div>
 
-      <!-- 3. Calendar section -->
+      <!-- 3. Statistics section (oben im Dashboard) -->
+      <div class="statistics-section">
+        <h3 class="statistics-header" onclick="toggleStatistics()">Statusauswertung</h3>
+        <div id="statusStats" style="display: none;">
+          <div class="statistics-grid" id="statsGrid">
+            <!-- Statistics will be inserted here dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Calendar section (unten im Dashboard) -->
       <div class="calendar-section">
         <h3 class="calendar-header" onclick="toggleCalendar()">Aktivitäten-Kalender</h3>
         <div id="calendar" style="display: none;">
@@ -1275,16 +1285,6 @@
               <div>So</div>
             </div>
             <div id="calendarDays"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4. Statistics section -->
-      <div class="statistics-section">
-        <h3 class="statistics-header" onclick="toggleStatistics()">Statusauswertung</h3>
-        <div id="statusStats" style="display: none;">
-          <div class="statistics-grid" id="statsGrid">
-            <!-- Statistics will be inserted here dynamically -->
           </div>
         </div>
       </div>
