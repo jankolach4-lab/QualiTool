@@ -1826,22 +1826,42 @@
     }, 50);
   }
   function updateStreetFilter() {
+    console.log('[updateStreetFilter] Called');
     const streetFilter = document.getElementById('streetFilter');
+    
+    // Null-Check für DOM-Element
+    if (!streetFilter) {
+      console.warn('[updateStreetFilter] streetFilter element not found!');
+      return;
+    }
+    
+    // Fallback-Kette für contacts
+    const contactsArray = window.contacts || contacts || [];
+    console.log('[updateStreetFilter] Using contacts array with', contactsArray.length, 'entries');
+    
     const streets = new Set();
-    contacts.forEach(contact => {
+    contactsArray.forEach(contact => {
       if (contact.strasse) {
         streets.add(contact.strasse);
       }
     });
+    
+    console.log('[updateStreetFilter] Found', streets.size, 'unique streets');
+    
+    // Lösche alle Optionen außer "Alle Straßen"
     while (streetFilter.options.length > 1) {
       streetFilter.remove(1);
     }
+    
+    // Füge sortierte Straßen hinzu
     Array.from(streets).sort().forEach(street => {
       const option = document.createElement('option');
       option.value = street;
       option.textContent = street;
       streetFilter.appendChild(option);
     });
+    
+    console.log('[updateStreetFilter] Street filter updated with', streetFilter.options.length - 1, 'streets');
   }
   function getStatusLabel(status) {
     if (!status) return 'Kein Status';
