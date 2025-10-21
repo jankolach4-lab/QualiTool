@@ -1583,7 +1583,13 @@
       const barItem = document.createElement('div');
       barItem.className = 'bar-item';
       
-      const heightPercent = effectiveMax > 0 ? (item.value / effectiveMax) * 100 : 0;
+      // Berechne Höhe: bei 0 = 0%, bei Werten > 0 mindestens 3% für Sichtbarkeit
+      let heightPercent = 0;
+      if (item.value > 0) {
+        heightPercent = (item.value / effectiveMax) * 100;
+        // Mindesthöhe von 3% für sichtbare Balken
+        heightPercent = Math.max(heightPercent, 3);
+      }
       
       const barValue = document.createElement('div');
       barValue.className = 'bar-value';
@@ -1604,8 +1610,11 @@
         } else {
           bar.className = 'bar completions-5plus';
         }
-      } else {
+      } else if (item.value > 0) {
         bar.className = `bar ${barClass}`;
+      } else {
+        bar.className = 'bar';
+        bar.style.visibility = 'hidden'; // Verstecke leere Balken
       }
       
       bar.style.height = `${heightPercent}%`;
