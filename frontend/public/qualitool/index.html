@@ -684,22 +684,43 @@
   .bar-chart {
     display: flex;
     align-items: flex-end;
-    justify-content: space-between;
+    justify-content: flex-start;
     height: 200px;
-    gap: 3px;
+    gap: 2px;
     padding: 10px 5px;
     background: white;
     border-radius: 6px;
     border: 1px solid #e5e7eb;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .bar-chart::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .bar-chart::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+
+  .bar-chart::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  .bar-chart::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
   }
 
   .bar-item {
-    flex: 1;
+    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-end;
-    min-width: 20px;
+    min-width: 28px;
+    max-width: 35px;
   }
 
   .bar {
@@ -715,6 +736,27 @@
     background: linear-gradient(180deg, #10b981 0%, #059669 100%);
   }
 
+  /* Farbcodierung für Abschlüsse */
+  .bar.completions-1 {
+    background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  }
+
+  .bar.completions-2 {
+    background: linear-gradient(180deg, #fb923c 0%, #f97316 100%);
+  }
+
+  .bar.completions-3 {
+    background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%);
+  }
+
+  .bar.completions-4 {
+    background: linear-gradient(180deg, #86efac 0%, #4ade80 100%);
+  }
+
+  .bar.completions-5plus {
+    background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  }
+
   .bar:hover {
     opacity: 0.8;
     transform: translateY(-2px);
@@ -725,6 +767,7 @@
     font-weight: 600;
     color: #374151;
     margin-bottom: 4px;
+    min-height: 12px;
   }
 
   .bar-label {
