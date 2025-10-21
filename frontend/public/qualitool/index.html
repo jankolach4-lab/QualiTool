@@ -1574,7 +1574,7 @@
   
   function renderBarChart(containerId, data, maxValue, barClass) {
     const container = document.getElementById(containerId);
-    console.log('[renderBarChart]', containerId, 'container:', container, 'data length:', data.length, 'maxValue:', maxValue);
+    console.log('[renderBarChart]', containerId, 'data:', data.length, 'items, maxValue:', maxValue);
     
     if (!container) {
       console.error('[renderBarChart] Container not found:', containerId);
@@ -1583,12 +1583,19 @@
     
     container.innerHTML = '';
     
+    // Wenn keine Daten vorhanden, zeige eine Nachricht
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div style="padding: 20px; text-align: center; color: #6b7280;">Keine Daten vorhanden</div>';
+      console.warn('[renderBarChart] No data to render');
+      return;
+    }
+    
     // Mindesthöhe für Visualisierung
     const effectiveMax = maxValue > 0 ? maxValue : 1;
     
     const isCompletionsChart = barClass === 'completions-bar';
     
-    data.forEach(item => {
+    data.forEach((item, index) => {
       const barItem = document.createElement('div');
       barItem.className = 'bar-item';
       
@@ -1622,11 +1629,16 @@
       } else if (item.value > 0) {
         bar.className = `bar ${barClass}`;
       } else {
+        // Auch leere Balken anzeigen, aber unsichtbar
         bar.className = 'bar';
-        bar.style.visibility = 'hidden'; // Verstecke leere Balken
+        bar.style.backgroundColor = '#f3f4f6';
+        bar.style.height = '2px'; // Minimale Höhe für Platzhalter
       }
       
-      bar.style.height = `${heightPercent}%`;
+      if (item.value > 0) {
+        bar.style.height = `${heightPercent}%`;
+      }
+      
       bar.title = `Tag ${item.day}: ${item.value}`;
       
       const barLabel = document.createElement('div');
@@ -1640,7 +1652,7 @@
       container.appendChild(barItem);
     });
     
-    console.log('[renderBarChart]', containerId, 'rendered', data.length, 'bars');
+    console.log('[renderBarChart]', containerId, 'successfully rendered', data.length, 'bars');
   }
   window.contacts = JSON.parse(localStorage.getItem('contacts')) || [];
   let contacts = window.contacts;
