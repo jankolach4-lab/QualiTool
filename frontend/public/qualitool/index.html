@@ -1561,6 +1561,10 @@
       maxQualis = Math.max(maxQualis, stats.total);
     }
     
+    // Debug: Log data
+    console.log('[renderCalendar] dailyCompletions:', dailyCompletions.length, 'max:', maxCompletions);
+    console.log('[renderCalendar] dailyQualis:', dailyQualis.length, 'max:', maxQualis);
+    
     // Render Abschlüsse Chart
     renderBarChart('completionsChart', dailyCompletions, maxCompletions, 'completions-bar');
     
@@ -1570,7 +1574,12 @@
   
   function renderBarChart(containerId, data, maxValue, barClass) {
     const container = document.getElementById(containerId);
-    if (!container) return;
+    console.log('[renderBarChart]', containerId, 'container:', container, 'data length:', data.length, 'maxValue:', maxValue);
+    
+    if (!container) {
+      console.error('[renderBarChart] Container not found:', containerId);
+      return;
+    }
     
     container.innerHTML = '';
     
