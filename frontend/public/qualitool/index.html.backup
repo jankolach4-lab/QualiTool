@@ -1,0 +1,5042 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<!-- Meta tags and title -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qualifizierungs-Tool</title>
+<!-- Qualifizierungs-Tool -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<link rel="icon" type="image/png" href="qt-logo.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="apple-touch-icon" href="qt-logo.png">
+<link rel="icon" type="image/png" href="qt-logo.png">
+</head>
+
+<body>
+<script>
+  // Früher Redirect zur Login-Seite, falls kein Offline-Flag und kein letzter Nutzer vorhanden.
+  (function(){
+    try {
+      var offlineAllowed = localStorage.getItem('offline_allowed') === 'true';
+      var lastUser = localStorage.getItem('last_user_id');
+      if (!offlineAllowed || !lastUser) {
+        // Falls eine aktive Supabase-Session existiert, leitet login.html ohnehin direkt zurück.
+        window.location.replace('./login.html');
+      }
+    } catch (e) { /* ignore */ }
+  })();
+</script>
+<!-- HTML structure -->
+<style>
+  /* Global styles */
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --text: #111827;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --accent: #2563eb; /* blue */
+    --accent-600: #1d4ed8;
+    --accent-700: #1e40af;
+    --teal: #14b8a6;   /* teal */
+    --teal-600: #0d9488;
+    --neutral-900: #111827;
+    --neutral-700: #374151;
+    --neutral-200: #e5e7eb;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+    --shadow-sm: 0 1px 6px rgba(0,0,0,0.06);
+    --radius: 10px;
+    --space-1: 6px;
+    --space-2: 10px;
+    --space-3: 14px;
+    --space-4: 18px;
+  }
+
+  * { 
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    line-height: 1.4;
+  }
+
+  .page-layout {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    width: 58px;
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-700) 100%);
+    padding: var(--space-2);
+    color: white;
+    flex-shrink: 0;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    overflow-y: auto;
+    z-index: 999;
+    border-right: 1px solid rgba(255,255,255,0.12);
+    pointer-events: auto;
+  }
+
+  .sidebar-nav {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+  }
+
+  .sidebar-nav li { margin: 10px 0; }
+
+  .sidebar-nav a {
+    color: white;
+    text-decoration: none;
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px;
+    transition: background 0.2s, transform .15s ease;
+    outline: none;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  .sidebar-nav a:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }
+  .sidebar-nav a.active { background: rgba(255,255,255,0.22); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2); }
+  .sidebar-nav a svg { width: 24px; height: 24px; }
+
+  .main-content {
+    flex: 1;
+    padding: var(--space-3);
+    background: var(--bg);
+    overflow-y: auto;
+    margin-left: 58px;
+    height: 100vh;
+  }
+
+  .container {
+    max-width: 1120px;
+    margin: 0 auto;
+    background: var(--surface);
+    padding: 16px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+  }
+
+  .import-section {
+    margin-bottom: 15px;
+  }
+
+  .import-section h3 {
+    color: #2563eb;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.3em;
+    margin: 0;
+    padding: 15px 0;
+    cursor: pointer;
+    position: relative;
+    padding-right: 15px;
+  }
+
+  .import-content {
+    display: none;
+  }
+
+  .import-section.expanded {
+    border-left: 2px solid #2563eb; /* noch schmaler */
+  }
+  .entry-section.expanded {
+    border-left: 2px solid #2563eb; /* gleich wie Import-Sektion */
+  }
+
+  .import-section.expanded .import-content {
+    display: block;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .import-content p {
+    margin-bottom: 15px;
+  }
+
+  .import-content .import-btn {
+    display: inline-block;
+    min-width: 200px;
+    margin: 8px 8px; /* mehr horizontaler Abstand */
+  }
+  .import-export-buttons { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+
+  .entry-section h2 {
+    color: #2563eb;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.3em;
+    cursor: pointer;
+    position: relative;
+    padding-right: 15px;
+  }
+
+  .entry-section .entry-content {
+    display: none;
+  }
+
+  .entry-section.expanded .entry-content {
+    display: block;
+  }
+
+  h1 {
+    color: #000000; 
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.7em; 
+  }
+
+  h2, h3 {
+    color: #2563eb;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.3em;
+  }
+
+  .form-group {
+    margin-bottom: 15px;
+    display: inline-block;
+    margin-right: 0;
+    width: calc(16.66% - 10px);
+  }
+
+  input, .status-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-top: 6px;
+    transition: all 0.2s;
+    font-size: 14px;
+    background: #fafafa;
+  }
+
+  input:focus, .status-select:focus {
+    background: #ffffff;
+    border-color: #2563eb;
+    outline: none;
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  }
+
+  button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .2s ease, transform .15s ease, box-shadow .15s ease;
+    margin: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .2px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  button:hover { background: var(--accent-600); transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+  .delete-all-btn { background: #ef4444; }
+  .delete-all-btn:hover { background: #dc2626; }
+
+  .contact-list {
+    margin-top: 30px;
+    overflow-y: auto; 
+    flex: 1;
+    max-height: calc(100vh - 400px); 
+    min-height: 40px; /* ensure visible area even when empty */
+    display: block;
+  }
+
+  .contact-card {
+    background: var(--surface);
+    border: none;
+    padding: 14px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background .2s ease, transform .15s ease, box-shadow .15s ease;
+    box-shadow: var(--shadow-sm);
+    border-left: 3px solid transparent;
+  }
+
+  .contact-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+    background: #fcfdff;
+  }
+
+  .contact-info {
+    display: grid;
+    grid-template-columns: minmax(170px, 170px) minmax(30px, 30px) minmax(135px, 1fr) minmax(100px, 1fr) minmax(50px, 50px);
+    gap: 8px 10px;
+    align-items: center;
+    font-size: 14px;
+    margin-bottom: 4px;
+    text-align: left;
+    justify-content: start;
+  }
+  
+  .address-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1.2;
+    min-width: 170px;
+  }
+  
+  .address-line-1,
+  .address-line-2 {
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  
+  .address-line-1 {
+    font-weight: normal;
+  }
+  
+  .address-line-2 {
+    font-weight: bold;
+  }
+  
+  .unit-date {
+    text-align: right;
+    justify-content: flex-end;
+  }
+  
+  .status-date {
+    font-size: 12px;
+    font-weight: normal;
+    text-align: right;
+    justify-self: end;
+    margin-left: auto;
+    color: #666;
+  }
+
+  .contact-info p {
+    text-align: left;
+    justify-self: start;
+    margin-right: 0;
+    white-space: nowrap;
+  }
+
+  .unit-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 150px;
+  }
+
+  .unit-info p {
+    margin: 0;
+    padding: 0;
+    white-space: nowrap;
+    line-height: inherit;
+  }
+
+  .unit-info p:first-child {
+    margin-top: 0;
+  }
+
+  .delete-btn {
+    background: #ef4444;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    display: none; 
+    margin: 5px;
+  }
+
+  .contact-card.expanded .delete-btn {
+    display: block; 
+  }
+
+  .delete-btn:hover {
+    background: #dc2626;
+  }
+
+  .search-box {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .street-filter-container {
+    margin: 15px 0;
+    text-align: center;
+    display: none; 
+  }
+
+  .street-filter {
+    width: 300px;
+    margin: 0;
+    padding: 8px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 14px;
+    background: white;
+  }
+
+  .street-filter:focus {
+    border-color: #2563eb;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  }
+
+  .import-section,
+  .entry-section {
+    margin-bottom: 15px;
+  }
+
+  .residents-section {
+    margin-top: 12px;
+    padding: 15px;
+    border-radius: 8px;
+  }
+
+  .resident-entry {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 15px 0;
+    padding: 12px;
+    background: white;
+    border-radius: 8px;
+    border-bottom: 2px solid #2563eb; 
+    margin-bottom: 20px; 
+  }
+
+  .resident-entry:last-child {
+    border-bottom: none;
+  }
+
+  .unit-management {
+    margin-bottom: 15px;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+  }
+
+  .unit-btn {
+    font-size: 13px;
+    padding: 8px 16px;
+    margin: 5px;
+  }
+
+  .expanded {
+    border-left: 4px solid #2563eb;
+  }
+
+  .history-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    margin: 2px 0;
+    border-radius: 4px;
+    font-size: 0.85em;
+    line-height: 1.1;
+    background: #f9fafb;
+    border-left: 1px solid #e5e7eb;
+  }
+
+  .history-status {
+    font-weight: 500;
+    font-size: 0.85em;
+  }
+
+  .history-date {
+    color: #6b7280;
+    font-size: 0.8em;
+    white-space: nowrap;
+  }
+
+  .delete-history {
+    padding: 1px 4px;
+    font-size: 11px;
+    color: #6b7280;
+    background: none;
+    border: none;
+    cursor: pointer;
+    opacity: 0.6;
+  }
+
+  .delete-history:hover {
+    opacity: 1;
+    color: #ef4444;
+  }
+
+  .status-history {
+    margin-top: 6px;
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 3px;
+    background: #ffffff;
+  }
+
+  .delete-all-btn {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .delete-all-btn:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+  }
+
+  .status-filters {
+    margin: 12px 0 24px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    background: var(--surface);
+    padding: 8px 8px 4px 8px;
+    border-radius: 8px;
+  }
+
+  .filter-btn,
+  .status-filters button {
+    background: #f1f5f9;
+    color: #64748b;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin: 3px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .filter-btn.active,
+  .status-filters button.active {
+    background: #2563eb;
+    color: white;
+  }
+
+  .filter-btn:hover,
+  .status-filters button:hover {
+    background: #e2e8f0;
+    transform: translateY(-1px);
+  }
+
+  .filter-btn.active:hover,
+  .status-filters button.active:hover {
+    background: #1d4ed8;
+  }
+
+  input[id="plz"],
+  input[id="street_plz"] {
+    width: 80px;
+    max-width: 100%;
+  }
+
+  .contact-info.empty-status {
+    color: #9ca3af;
+  }
+
+  .entry-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .tab-buttons {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  #singleEntry, #streetEntry {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  #contactForm, #streetForm {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .entry-section button[type="submit"] {
+    display: block;
+    margin: 20px auto;
+    min-width: 200px;
+  }
+
+  .file-input {
+    display: none;
+  }
+
+  #fileName {
+    display: block;
+    margin-top: 10px;
+    color: #6b7280;
+    font-size: 0.9em;
+  }
+
+  .statistics-section {
+    margin: 10px 0;
+    padding: 16px 18px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .calendar-section {
+    margin: 10px 0;
+    padding: 16px 18px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .calendar-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 10px;
+  }
+
+  .calendar-controls button {
+    background: #f1f5f9;
+    color: #64748b;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .calendar-controls button:hover {
+    background: #e2e8f0;
+    transform: translateY(-1px);
+  }
+
+  .calendar-controls h4 {
+    font-size: 1.2em;
+    color: #2563eb;
+    margin: 0;
+  }
+
+  .calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .calendar-weekdays div {
+    background: #f8fafc;
+    padding: 10px;
+    text-align: center;
+    font-weight: 600;
+    color: #64748b;
+    border-radius: 6px;
+  }
+
+  #calendarDays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+
+  .calendar-day {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px;
+    min-height: 100px;
+    position: relative;
+  }
+
+  .calendar-day .day-number {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    color: #64748b;
+    font-size: 0.9em;
+  }
+
+  .calendar-day.has-entries {
+    background: #f0f9ff;
+    border-color: #bae6fd;
+  }
+
+  .calendar-day.has-completions {
+    background: #dcfce7;
+    border-color: #86efac;
+  }
+
+  .calendar-day .day-stats {
+    margin-top: 25px;
+    font-size: 0.85em;
+  }
+
+  .calendar-day .qualis {
+    color: #0369a1;
+    margin-bottom: 4px;
+  }
+
+  .calendar-day .completions {
+    color: #15803d;
+  }
+
+  #calendar {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .calendar-header {
+    cursor: pointer;
+    margin-bottom: 15px;
+  }
+
+  .statistics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    padding: 15px;
+  }
+
+  .stat-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .stat-number {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #1f2937;
+  }
+
+  .stat-label {
+    font-size: 14px;
+    color: #4b5563;
+    margin-bottom: 5px;
+  }
+
+  .stat-percentage {
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  /* Status-specific background colors for stat cards */
+  .stat-card.status-offen {
+    background-color: #e5e7eb;
+    border-left: 4px solid #9ca3af;
+  }
+
+  .stat-card.status-nicht-angetroffen {
+    background-color: #fee2e2;
+    border-left: 4px solid #ef4444;
+  }
+
+  .stat-card.status-kein-eintritt {
+    background-color: #fef3c7;
+    border-left: 4px solid #f59e0b;
+  }
+
+  .stat-card.status-wiedervorlage {
+    background-color: #dbeafe;
+    border-left: 4px solid #3b82f6;
+  }
+
+  .stat-card.status-termin {
+    background-color: #dcfce7;
+    border-left: 4px solid #22c55e;
+  }
+
+  .stat-card.status-beraten {
+    background-color: #fef3c7;
+    border-left: 4px solid #f59e0b;
+  }
+
+  .stat-card.status-kein-interesse {
+    background-color: #fce7f3;
+    border-left: 4px solid #ec4899;
+  }
+
+  .stat-card.status-abschluss {
+    background-color: #ccfbf1;
+    border-left: 4px solid #14b8a6;
+  }
+
+  .stat-card.status-nicht-vermarktbar {
+    background-color: #fef2f2;
+    border-left: 4px solid #dc2626;
+  }
+
+  .stat-card.status-blacklist {
+    background-color: #292524;
+    border-left: 4px solid #1c1917;
+    color: white;
+  }
+
+  .stat-card.status-blacklist .stat-number,
+  .stat-card.status-blacklist .stat-label,
+  .stat-card.status-blacklist .stat-percentage {
+    color: white;
+  }
+
+  .status-history {
+    margin-top: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .history-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    margin: 6px 0;
+    border-radius: 6px;
+  }
+
+  .history-status {
+    font-weight: 500;
+  }
+
+  .history-date {
+    color: #6b7280;
+    font-size: 0.9em;
+  }
+
+  /* New CSS rules */
+  .notes-section {
+    margin-top: 10px;
+  }
+
+  .notes-textarea {
+    width: 100%;
+    height: 4em; /* Makes textarea approximately 2 lines tall */
+    min-height: 4em;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+    background: #fafafa;
+    transition: all 0.2s ease;
+  }
+
+  .notes-textarea:focus {
+    background: #ffffff;
+    border-color: #2563eb;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  }
+
+  .visit-recommendation-box {
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    margin: 15px 0;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .visit-recommendation-box h3 {
+    color: #2563eb;
+    margin: 0;
+    padding: 10px;
+    text-align: center;
+  }
+
+  #recommendationResults {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .recommended-contact {
+    background: #f0f9ff;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border-left: 4px solid #3b82f6;
+  }
+
+  .last-visit-time {
+    color: #6b7280;
+    font-size: 0.9em;
+    margin-top: 5px;
+  }
+  
+  /* Add this CSS rule to define the highlight color for addresses with Abschluss status */
+  .contact-info.has-abschluss {
+    background-color: #dcfce7 !important; 
+    border-left: 4px solid #22c55e !important; 
+  }
+
+  .visit-recommendation-controls {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .recommendation-type-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: #64748b;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .recommendation-type-btn.active {
+    background: #2563eb;
+    color: white;
+  }
+
+  /* Add new style for inactive residents */
+  .inactive-resident {
+    color: red;
+    font-weight: bold;
+  }
+
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+  }
+
+  .modal-content {
+    background-color: var(--surface);
+    margin: 6% auto;
+    padding: 22px 24px;
+    border-radius: var(--radius);
+    width: 520px;
+    text-align: left;
+    box-shadow: var(--shadow);
+  }
+
+  .modal-content h3 {
+    margin-bottom: 18px;
+    color: var(--accent);
+    font-size: 1.25em;
+    font-weight: 700;
+    text-align: left;
+  }
+
+  .modal-content > div {
+    margin-bottom: 20px;
+  }
+
+  .modal-content label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .modal-content input[type="number"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 5px;
+  }
+
+  .modal-content textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    resize: vertical;
+  }
+
+  .modal-content .button-group {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+  .modal-content input[type="checkbox"] {
+    margin-right: 8px;
+  }
+
+  .modal-content .checkbox-wrapper {
+    margin-bottom: 25px;
+    padding: 15px;
+    background: #f9fafb;
+    border-radius: 6px;
+   border: 1px solid #e5e7eb;
+  }
+
+  .status-onlineabschluss {
+    background-color: #d1fae5 !important; 
+    border-left: 4px solid #059669 !important; 
+  }
+  .contact-info.status-onlineabschluss {
+    background-color: #dbeafe !important; 
+    border-left: 4px solid #2563eb !important; 
+  }
+
+  /* Add to calendar controls area */
+  .calendar-summary {
+    text-align: center;
+    margin: 15px 0;
+    padding: 15px;
+    background: #f3f4f6;
+    border-radius: 8px;
+  }
+
+  .calendar-summary strong {
+    color: #2563eb;
+    font-size: 1.1em;
+  }
+
+  .forecast {
+    color: #059669;
+    margin-top: 8px;
+  }
+  
+  .status-abschl-anderer-vp {
+    background-color: #f0f9ff !important; 
+    border-left: 4px solid #60a5fa !important; 
+  }
+
+  .contact-info.status-abschl-anderer-vp {
+    background-color: #dbeafe !important; 
+    border-left: 4px solid #2563eb !important; 
+  }
+  
+  .we-correct-btn {
+    font-size: 13px;
+    padding: 8px 16px;
+    margin: 5px;
+  }
+
+  .we-corrections-history {
+    background-color: #f3f4f6;
+    padding: 8px;
+    margin-top: 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  .we-correction-entry {
+    background-color: white;
+    padding: 8px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    border-left: 3px solid #f59e0b;
+    font-size: 0.85em;
+    line-height: 1.3;
+  }
+
+  .we-correction-entry p {
+    margin: 2px 0;
+  }
+
+  /* Add style for clickable correction entries */
+  .we-correction-entry {
+    cursor: pointer;
+  }
+
+  .we-correction-entry:hover {
+    background-color: #f3f4f6;
+  }
+
+  /* Add new styles for kein-interesse status */
+  .status-kein-interesse-red {
+    background-color: #fee2e2 !important; 
+    border-left: 4px solid #ef4444 !important; 
+  
+  }
+
+  /* Add new style for status-beraten */
+  .contact-info.status-beraten {
+    background-color: #fef9c3 !important; 
+    border-left: 4px solid #facc15 !important; 
+  }
+
+  /* Ensure this style has high specificity to override other status styles */
+  .contact-card .contact-info.status-beraten {
+    background-color: #fef9c3 !important;
+    border-left: 4px solid #facc15 !important;
+  }
+</style>
+
+<!-- HTML structure -->
+<div class="page-layout">
+  <nav class="sidebar">
+    <ul class="sidebar-nav">
+      <li><a href="#contacts" data-section="contacts" class="active" title="Kontaktliste" onclick="return navTo('contacts')" ontouchstart="return navTo('contacts')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"/>
+          <line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/>
+          <line x1="3" y1="12" x2="3.01" y2="12"/>
+          <line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+      </a></li>
+
+      <li><a href="#import" data-section="import" title="Daten importieren" onclick="return navTo('import')" ontouchstart="return navTo('import')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+      </a></li>
+      <li><a href="#add" data-section="add" title="Neue Adresse hinzufügen" onclick="return navTo('add')" ontouchstart="return navTo('add')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"></circle>
+          <line x1="12" y1="8" x2="12" y2="16"></line>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+      </a></li>
+      <li><a href="#stats" data-section="stats" title="Statistik anzeigen" onclick="return navTo('stats')" ontouchstart="return navTo('stats')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="4" height="10" rx="1"></rect>
+          <rect x="10" y="7" width="4" height="14" rx="1"></rect>
+          <rect x="17" y="3" width="4" height="18" rx="1"></rect>
+        </svg>
+      </a></li>
+      <li><a href="#calendar" data-section="calendar" title="Aktivitätenkalender" onclick="return navTo('calendar')" ontouchstart="return navTo('calendar')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+          <rect x="7" y="14" width="3" height="3" rx="0.5"></rect>
+          <rect x="12" y="14" width="3" height="3" rx="0.5"></rect>
+        </svg>
+      </a></li>
+      <li><a href="#recommendations" data-section="recommendations" title="Besuchsempfehlungen" onclick="return navTo('recommendations')" ontouchstart="return navTo('recommendations')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 10c0 6-9 12-9 12S3 16 3 10a9 9 0 1 1 18 0z"></path>
+          <circle cx="12" cy="10" r="3"></circle>
+        </svg>
+      </a></li>
+      <li><a href="#pdf-corrections" data-section="pdf-corrections" title="WE-Korrekturen" onclick="return navTo('pdf-corrections')" ontouchstart="return navTo('pdf-corrections')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <polyline points="8 14 12 18 16 14"></polyline>
+        </svg>
+      </a></li>
+    </ul>
+  </nav>
+  
+  <div class="main-content">
+    <div class="container">
+      <div id="weCorrectionsSection" style="display:none"></div>
+
+      <!-- 1. Import section -->
+      <div class="import-section collapsed">
+        <h3 onclick="toggleImportSection()">Adressen importieren</h3>
+        <div class="import-content" style="display:block;">
+          <p>Unterstütztes Format: Excel (XLSX, XLS)</p>
+          <p>Erforderliche Spalten: PLZ, Ort, Straße, Nr., Zusatz, WE</p>
+          <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls">
+          <span id="fileName"></span>
+          <div class="import-export-buttons" style="display:flex;">
+            <button onclick="document.getElementById('excelImport').click()" class="import-btn">Excel importieren</button>
+            <button onclick="exportToExcel()" class="import-btn">Excel exportieren</button>
+            <button onclick="exportToCSV()" class="import-btn">CSV exportieren</button>
+            <input type="file" id="excelImport" style="display: none" accept=".xlsx,.xls" onchange="importFromExcel(this.files[0])">
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Entry section -->
+      <div class="entry-section collapsed">
+        <h2 onclick="toggleEntrySection()">Adresse hinzufügen</h2>
+        <div class="entry-content">
+          <div class="tab-buttons">
+            <button onclick="showForm('single')" id="singleBtn" class="active">Einzelne Adresse</button>
+            <button onclick="showForm('street')" id="streetBtn">Komplette Straße</button>
+          </div>
+
+          <div id="singleEntry">
+            <form id="contactForm" onsubmit="addContact(event)">
+              <div class="form-group">
+                <input type="text" id="plz" placeholder="PLZ" maxlength="5" pattern="\d{5}" required>
+              </div>
+              <div class="form-group">
+                <input type="text" id="ort" placeholder="Ort" required>
+              </div>
+              <div class="form-group">
+                <input type="text" id="strasse" placeholder="Straße" required>
+              </div>
+              <div class="form-group">
+                <input type="text" id="nummer" placeholder="Nr." required>
+              </div>
+              <div class="form-group">
+                <input type="text" id="zusatz" placeholder="Zusatz">
+              </div>
+              <div class="form-group">
+                <input type="text" id="we" placeholder="WE">
+              </div>
+              <button type="submit">Kontakt hinzufügen</button>
+            </form>
+          </div>
+
+          <div id="streetEntry" style="display: none;">
+            <form id="streetForm" onsubmit="addStreet(event)">
+              <div class="form-group">
+                <input type="text" id="street_plz" placeholder="PLZ" maxlength="5" pattern="\d{5}" required>
+              </div>
+              <div class="form-group">
+                <input type="text" id="street_ort" placeholder="Ort" required>
+              </div>
+              <div class="form-group">
+                <input type="text" id="street_strasse" placeholder="Straße" required>
+              </div>
+              <div class="form-group">
+                <input type="number" id="street_start" placeholder="Hausnr. von" required>
+              </div>
+              <div class="form-group">
+                <input type="number" id="street_end" placeholder="Hausnr. bis" required>
+              </div>
+              <button type="submit">Straße hinzufügen</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Calendar section -->
+      <div class="calendar-section">
+        <h3 class="calendar-header" onclick="toggleCalendar()">Aktivitäten-Kalender</h3>
+        <div id="calendar" style="display: none;">
+          <div class="calendar-controls">
+            <button onclick="previousMonth()">&lt;</button>
+            <h4 id="currentMonth"></h4>
+            <button onclick="nextMonth()">&gt;</button>
+          </div>
+          <div class="calendar-summary">
+            <strong>Summary</strong>
+            <p class="forecast">&nbsp;</p>
+          </div>
+          <div class="calendar-grid">
+            <div class="calendar-weekdays">
+              <div>Mo</div>
+              <div>Di</div>
+              <div>Mi</div>
+              <div>Do</div>
+              <div>Fr</div>
+              <div>Sa</div>
+              <div>So</div>
+            </div>
+            <div id="calendarDays"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Statistics section -->
+      <div class="statistics-section">
+        <h3 class="statistics-header" onclick="toggleStatistics()">Statusauswertung</h3>
+        <div id="statusStats" style="display: none;">
+          <div class="statistics-grid" id="statsGrid">
+            <!-- Statistics will be inserted here dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Visit recommendation section -->
+      <div class="visit-recommendation-box">
+        <h3 onclick="toggleVisitRecommendation()">Besuchsempfehlung</h3>
+        <div id="visitRecommendationContent" style="display: none; padding: 15px;">
+          <div class="visit-recommendation-controls">
+            <button onclick="this.classList.add('active'); this.nextElementSibling.classList.remove('active'); document.querySelector('.time-selection').style.display = 'flex'; showVisitRecommendations()" class="recommendation-type-btn active!">Nach Besuchszeit</button>
+            <button onclick="this.classList.add('active'); this.previousElementSibling.classList.remove('active'); document.querySelector('.time-selection').style.display = 'none'; showInactiveRecommendations()" class="recommendation-type-btn">Inaktive Adressen (&gt; 3 Wochen)</button>
+          </div>
+          <div class="time-selection" style="display: flex; gap: 15px; align-items: center; justify-content: center; margin-bottom: 15px;">
+            <div>
+              <label for="startTime">Von:</label>
+              <input type="time" id="startTime" min="06:00" max="23:00" value="06:00">
+            </div>
+            <div>
+              <label for="endTime">Bis:</label>
+              <input type="time" id="endTime" min="06:00" max="23:00" value="23:00">
+            </div>
+            <button onclick="showVisitRecommendations()">Empfehlungen anzeigen</button>
+          </div>
+          <div id="recommendationResults"></div>
+        </div>
+      </div>
+
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Kontakte durchsuchen..." onkeyup="applyFilters()">
+        <button onclick="deleteAllContacts()" class="delete-all-btn">Alle Adressen löschen</button>
+        <button onclick="showDeleteByPLZDialog()" class="delete-all-btn" style="background: #ef4444;">Nach PLZ löschen</button>
+        <button onclick="showDeleteStreetDialog()" class="delete-all-btn" style="background: #ef4444;">Nach Straße löschen</button>
+      </div>
+
+      <!-- Status filters -->
+      <div class="status-filters">
+        <button onclick="filterByStatus('all')" class="filter-btn active">Alle</button>
+        <button onclick="filterByStatus('nicht-angetroffen')" class="filter-btn">Nicht angetroffen</button>
+        <button onclick="filterByStatus('kein-eintritt')" class="filter-btn">Kein Eintritt persönlich</button>
+        <button onclick="filterByStatus('wiedervorlage')" class="filter-btn">Wiedervorlage</button>
+        <button onclick="filterByStatus('termin')" class="filter-btn">Termin</button>
+        <button onclick="filterByStatus('beraten')" class="filter-btn">Bereits beraten</button>
+        <button onclick="filterByStatus('kein-interesse')" class="filter-btn">Kein Interesse</button>
+        <button onclick="filterByStatus('abschluss')" class="filter-btn">Abschluss</button>
+        <button onclick="filterByStatus('onlineabschluss')" class="filter-btn">Online/TS</button>
+        <button onclick="filterByStatus('abschl-anderer-vp')" class="filter-btn">Abschl. anderer VP</button>
+      </div>
+
+      <!-- Street filter -->
+      <div class="street-filter-container">
+        <select id="streetFilter" class="street-filter" onchange="applyFilters()">
+          <option value="all">Alle Straßen</option>
+        </select>
+        <select id="houseNumberFilter" class="street-filter" onchange="applyFilters()">
+          <option value="all">Alle Hausnummern</option>
+          <option value="even">Nur gerade</option>
+          <option value="odd">Nur ungerade</option>
+        </select>
+      </div>
+
+      <!-- Contact list -->
+      <div class="contact-list" id="contactList">
+        <!-- Kontakte werden hier dynamisch eingefügt -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="deletePLZDialog" style="display:none" class="modal">
+  <div class="modal-content">
+    <h3>Adressen nach PLZ löschen</h3>
+    <input type="text" id="plzToDelete" placeholder="PLZ eingeben" maxlength="5" pattern="\d{5}">
+    <div class="button-group">
+      <button onclick="deleteByPLZ()">Löschen</button>
+      <button onclick="closeDeletePLZDialog()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<div id="deleteStreetDialog" style="display:none" class="modal">
+  <div class="modal-content">
+    <h3>Adressen nach Straße löschen</h3>
+    <select id="streetToDelete" multiple style="width: 100%; margin-bottom: 15px; height: 200px;">
+      <option value>Straßen auswählen</option>
+    </select>
+    <div class="button-group">
+      <button onclick="deleteByStreet()">Löschen</button>
+      <button onclick="closeDeleteStreetDialog()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<div id="weCorrectModal" class="modal">
+  <div class="modal-content">
+    <h3>Falsche WE melden</h3>
+    <div class="checkbox-wrapper">
+      <label>
+        <input type="checkbox" id="manualCurrentWe">
+        Manuelle Eingabe der aktuellen WE-Anzahl
+      </label>
+    </div>
+    <div class="checkbox-wrapper">
+      <label>
+        <input type="checkbox" id="hasGEE">
+        GEE/VGM vorhanden
+      </label>
+    </div>
+    <div>
+      <label for="currentWeCount">Aktuelle WE-Anzahl:</label>
+      <input type="number" id="currentWeCount">
+    </div>
+    <div>
+      <label for="correctedWeCount">Korrigierte WE-Anzahl:</label>
+      <input type="number" id="correctedWeCount">
+    </div>
+    <div>
+      <label for="weCorrectReason">Begründung:</label>
+      <textarea id="weCorrectReason" rows="4" placeholder="Bitte geben Sie den Grund für die WE-Korrektur an..."></textarea>
+    </div>
+    <div class="button-group">
+      <button onclick="closeWeCorrectModal()">Abbrechen</button>
+      <button onclick="saveWeCorrection()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Load external libraries dynamically to avoid blocking/aborted requests in some environments
+  (function(){
+    var s1=document.createElement('script'); s1.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'; s1.async=true; document.head.appendChild(s1);
+    var s2=document.createElement('script'); s2.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s2.async=true; document.head.appendChild(s2);
+  })();
+</script>
+
+<script src="./capacitor-bridge.js"></script>
+<script>
+  // Helper für sicheres DOM‑Handling
+  function $el(sel){ return document.querySelector(sel); }
+  function setDisp(sel, val){ const n=$el(sel); if(n) n.style.display = val; }
+
+  function renderCalendar() {
+    const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+    document.getElementById('currentMonth').textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+  
+    const currentCompletions = getMonthStats(currentDate.getFullYear(), currentDate.getMonth());
+    const totalWorkdays = countWorkdaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
+    const forecast = calculateForecast(currentCompletions, new Date(), totalWorkdays);
+
+    const calendarDiv = document.getElementById('calendar');
+    let summaryDiv = calendarDiv.querySelector('.calendar-summary');
+    if (!summaryDiv) {
+      summaryDiv = document.createElement('div');
+      summaryDiv.className = 'calendar-summary';
+      calendarDiv.insertBefore(summaryDiv, calendarDiv.firstChild);
+    }
+  
+    summaryDiv.innerHTML = `
+      <div>Abschlüsse diesen Monat: <strong>${currentCompletions}</strong></div>
+      <div class="forecast">Forecast: <strong>${forecast}</strong> Abschlüsse</div>
+    `;
+  
+    const daysGrid = document.getElementById('calendarDays');
+    daysGrid.innerHTML = '';
+  
+    const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    let firstDayIndex = firstDay.getDay();
+    firstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+  
+    for (let i = 0; i < firstDayIndex; i++) {
+      const emptyDay = document.createElement('div');
+      emptyDay.className = 'calendar-day';
+      daysGrid.appendChild(emptyDay);
+    }
+  
+    const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+      const dayOfWeek = date.getDay();
+  
+      const dayDiv = document.createElement('div');
+      dayDiv.className = 'calendar-day';
+  
+      const stats = getDayStats(date);
+  
+      if (stats.total > 0 || stats.completions > 0) {
+        dayDiv.classList.add('has-entries');
+        if (stats.completions > 0) {
+          dayDiv.classList.add('has-completions');
+        }
+        dayDiv.innerHTML = `
+          <div class="day-number">${day}</div>
+          <div class="day-stats">
+            <div class="qualis">${stats.total} Qualis</div>
+            <div class="completions">${stats.completions} Abschl.</div>
+          </div>
+        `;
+      } else {
+        dayDiv.innerHTML = `<div class="day-number">${day}</div>`;
+      }
+  
+      daysGrid.appendChild(dayDiv);
+    }
+  }
+  window.contacts = JSON.parse(localStorage.getItem('contacts')) || [];
+  let contacts = window.contacts;
+  let currentFilter = 'all';
+  let currentDate = new Date();
+  async function importExcelFile(file) {
+    try {
+      const workbook = await readExcelFile(file);
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(firstSheet, {
+        header: 1
+      });
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row[0]) continue;
+        contacts.push({
+          id: Date.now() + i,
+          plz: row[0]?.toString() || '',
+          ort: row[1]?.toString() || '',
+          strasse: row[2]?.toString() || '',
+          nummer: row[3]?.toString() || '',
+          zusatz: row[4]?.toString() || '',
+          we: row[5]?.toString() || '',
+          residents: []
+        });
+      }
+      contacts = sortContacts(contacts);
+      saveContacts();
+      updateStreetFilter();
+      renderContacts();
+      alert(`Import erfolgreich: ${rows.length - 1} Adressen importiert`);
+    } catch (err) {
+      console.error('Import failed:', err);
+      alert('Fehler beim Import: ' + err.message);
+    }
+  }
+  function readExcelFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, {
+            type: 'array'
+          });
+          resolve(workbook);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = err => reject(err);
+      reader.readAsArrayBuffer(file);
+    });
+  }
+  function filterByStatus(status) {
+    document.querySelector('.status-filters').innerHTML = `
+      <button onclick="filterByStatus('all')" class="filter-btn ${status === 'all' ? 'active' : ''}">Alle</button>
+      <button onclick="filterByStatus('nicht-angetroffen')" class="filter-btn ${status === 'nicht-angetroffen' ? 'active' : ''}">Nicht angetroffen</button>
+      <button onclick="filterByStatus('kein-eintritt')" class="filter-btn ${status === 'kein-eintritt' ? 'active' : ''}">Kein Eintritt persönlich</button>
+      <button onclick="filterByStatus('wiedervorlage')" class="filter-btn ${status === 'wiedervorlage' ? 'active' : ''}">Wiedervorlage</button>
+      <button onclick="filterByStatus('termin')" class="filter-btn ${status === 'termin' ? 'active' : ''}">Termin</button>
+      <button onclick="filterByStatus('beraten')" class="filter-btn ${status === 'beraten' ? 'active' : ''}">Bereits beraten</button>
+      <button onclick="filterByStatus('kein-interesse')" class="filter-btn ${status === 'kein-interesse' ? 'active' : ''}">Kein Interesse</button>
+      <button onclick="filterByStatus('abschluss')" class="filter-btn ${status === 'abschluss' ? 'active' : ''}">Abschluss</button>
+      <button onclick="filterByStatus('onlineabschluss')" class="filter-btn ${status === 'onlineabschluss' ? 'active' : ''}">Online/TS</button>
+      <button onclick="filterByStatus('abschl-anderer-vp')" class="filter-btn ${status === 'abschl-anderer-vp' ? 'active' : ''}">Abschl. anderer VP</button>
+    `;
+    currentFilter = status;
+    applyFilters();
+  }
+  function sortContacts(contactsToSort) {
+    return contactsToSort.sort((a, b) => {
+      const streetCompare = (a.strasse || '').localeCompare(b.strasse || '');
+      if (streetCompare !== 0) return streetCompare;
+      const numA = parseInt(a.nummer) || 0;
+      const numB = parseInt(b.nummer) || 0;
+      return numA - numB;
+    });
+  }
+  function toggleImportSection() {
+    const section = document.querySelector('.import-section');
+    if (!section) return;
+    const content = section.querySelector('.import-content');
+    const btns = section.querySelector('.import-export-buttons');
+    const willExpand = !section.classList.contains('expanded');
+    section.classList.toggle('collapsed', !willExpand);
+    section.classList.toggle('expanded', willExpand);
+    if (content) content.style.display = willExpand ? 'block' : 'none';
+    if (btns) btns.style.display = willExpand ? 'flex' : 'none';
+  }
+  function toggleEntrySection() {
+    const section = document.querySelector('.entry-section');
+    section.classList.toggle('collapsed');
+    section.classList.toggle('expanded');
+  }
+  function showForm(type) {
+    document.getElementById('singleEntry').style.display = type === 'single' ? 'block' : 'none';
+    document.getElementById('streetEntry').style.display = type === 'street' ? 'block' : 'none';
+    document.getElementById('singleBtn').classList.toggle('active', type === 'single');
+    document.getElementById('streetBtn').classList.toggle('active', type === 'street');
+  }
+  function addStreet(event) {
+    event.preventDefault();
+    const plz = document.getElementById('street_plz').value;
+    const ort = document.getElementById('street_ort').value;
+    const strasse = document.getElementById('street_strasse').value;
+    const start = parseInt(document.getElementById('street_start').value);
+    const end = parseInt(document.getElementById('street_end').value);
+    for (let nummer = start; nummer <= end; nummer++) {
+      const contact = {
+        id: Date.now() + nummer,
+        plz: plz,
+        ort: ort,
+        strasse: strasse,
+        nummer: nummer.toString(),
+        zusatz: '',
+        we: '',
+        residents: []
+      };
+      contacts.push(contact);
+    }
+    contacts = sortContacts(contacts);
+    saveContacts();
+    updateStreetFilter();
+    renderContacts();
+    event.target.reset();
+  }
+  function addContact(event) {
+    event.preventDefault();
+    const contact = {
+      id: Date.now(),
+      plz: document.getElementById('plz').value,
+      ort: document.getElementById('ort').value,
+      strasse: document.getElementById('strasse').value,
+      nummer: document.getElementById('nummer').value,
+      zusatz: document.getElementById('zusatz').value,
+      we: document.getElementById('we').value,
+      residents: []
+    };
+    contacts.push(contact);
+    contacts = sortContacts(contacts);
+    saveContacts();
+    updateStreetFilter();
+    renderContacts();
+    event.target.reset();
+  }
+  function toggleActive(id) {
+    document.querySelectorAll('.contact-card').forEach(card => {
+      card.classList.remove('active');
+    });
+    const card = document.querySelector(`[data-id="${id}"]`);
+    if (card) {
+      card.classList.add('active');
+    }
+  }
+  function toggleResidents(id) {
+    const card = document.querySelector(`[data-id="${id}"]`);
+    const residentsSection = card.querySelector('.residents-section');
+    const deleteBtn = card.querySelector('.delete-btn');
+    if (residentsSection.style.display === 'block') {
+      // SCHLIESSEN → SYNC TRIGGERN
+      residentsSection.style.display = 'none';
+      card.classList.remove('expanded');
+      card.classList.remove('active');
+      deleteBtn.style.display = 'none';
+      
+      // SOFORTIGER SYNC beim Schließen einer Adresse
+      console.log('[toggleResidents] Address closed, triggering immediate sync');
+      try {
+        if (typeof enqueueFullContactsSnapshot === 'function') {
+          enqueueFullContactsSnapshot();
+        }
+        if (typeof flushQueue === 'function') {
+          flushQueue(); // SOFORT, nicht flushSoon()
+        }
+      } catch(e) {
+        console.error('[toggleResidents] Sync failed:', e);
+      }
+    } else {
+      residentsSection.style.display = 'block';
+      card.classList.add('expanded');
+      deleteBtn.style.display = 'inline-block';
+      toggleActive(id);
+    }
+  }
+  function saveResident(contactId, unitNumber, field) {
+    const currentStreet = document.getElementById('streetFilter').value;
+    const contact = contacts.find(c => c.id === contactId);
+    if (!contact || !contact.residents) return;
+    let resident = contact.residents.find(r => r.unit === unitNumber);
+    if (!resident) {
+      resident = {
+        unit: unitNumber,
+        name: '',
+        phone: '',
+        status: '',
+        notes: '',
+        mieter: false,
+        statusHistory: []
+      };
+      contact.residents.push(resident);
+    }
+  
+    // Now you can modify resident properties safely
+    if (field === 'name') {
+      const input = document.querySelector(`input[data-unit="${unitNumber}"][data-contact="${contactId}"]`);
+      resident.name = input.value;
+    } else if (field === 'phone') {
+      const input = document.querySelector(`input[type="tel"][data-unit="${unitNumber}"][data-contact="${contactId}"]`);
+      resident.phone = input.value;
+    } else if (field === 'status') {
+      const select = document.querySelector(`select[data-unit="${unitNumber}"][data-contact="${contactId}"]`);
+      const newStatus = select.value;
+      if (!resident.statusHistory) {
+        resident.statusHistory = [];
+      }
+      resident.statusHistory.push({
+        status: newStatus,
+        date: new Date().toISOString(),
+        timestamp: Date.now()
+      });
+      resident.status = newStatus;
+      select.selectedIndex = 0;
+      select.className = "status-select";
+    } else if (field === 'notes') {
+      const textarea = document.querySelector(`textarea[data-unit="${unitNumber}"][data-contact="${contactId}"]`);
+      resident.notes = textarea.value;
+    } else if (field === 'mieter') {
+      const checkbox = document.querySelector(`input[type="checkbox"][data-unit="${unitNumber}"][data-contact="${contactId}"]`);
+      resident.mieter = checkbox.checked;
+    }
+    saveContacts();
+    updateStatistics();
+    applyFilters();
+  }
+  function deleteContact(id) {
+    contacts = contacts.filter(contact => contact.id !== id);
+    saveContacts();
+    updateStreetFilter();
+    renderContacts();
+  }
+  function deleteAllContacts() {
+    if (confirm('Möchten Sie wirklich alle Adressen löschen?')) {
+      contacts = [];
+      saveContacts();
+      // Filter beibehalten nach Speichern
+      renderContacts();
+    }
+  }
+  function addUnit(contactId) {
+    const contact = contacts.find(c => c.id === contactId);
+    if (!contact.we) contact.we = "0";
+    contact.we = (parseInt(contact.we) + 1).toString();
+    saveContacts();
+    renderContacts();
+  }
+  function deleteUnit(contactId) {
+    const contact = contacts.find(c => c.id === contactId);
+    if (contact.we && parseInt(contact.we) > 0) {
+      const currentUnits = parseInt(contact.we);
+      if (contact.residents) {
+        contact.residents = contact.residents.filter(r => parseInt(r.unit) < currentUnits);
+      }
+      contact.we = (currentUnits - 1).toString();
+      saveContacts();
+      // Filter beibehalten nach Speichern
+      renderContacts();
+    }
+  }
+  function saveContacts() {
+    console.log('[SaveContacts] Saving contacts to localStorage and triggering IMMEDIATE sync');
+    // Speichere in localStorage (WICHTIG für Auto-Sync!)
+    localStorage.setItem('contacts', JSON.stringify(contacts));
+    try { window.contacts = contacts; } catch(_) {}
+    try { setLocalContacts(getUserIdFromLocalStorage(), contacts); } catch(_){}
+    
+    // WICHTIG: enqueueFullContactsSnapshot() statt enqueueContactsSnapshot()
+    // um Hash-Check zu umgehen und IMMER zu synchronisieren
+    try { 
+      if (typeof enqueueFullContactsSnapshot === 'function') {
+        enqueueFullContactsSnapshot(); 
+        console.log('[SaveContacts] Full snapshot enqueued (no hash check)');
+      } else {
+        console.warn('[SaveContacts] enqueueFullContactsSnapshot not yet defined');
+      }
+    } catch(e) { 
+      console.error('[SaveContacts] enqueueFullContactsSnapshot failed:', e);
+    }
+    
+    // Status-Diffs auch enqueuen (zusätzlich)
+    try {
+      if (typeof rescanAndEnqueueStatusDiffs === 'function') {
+        rescanAndEnqueueStatusDiffs();
+        console.log('[SaveContacts] Status diffs enqueued');
+      }
+    } catch(e) {
+      console.error('[SaveContacts] rescanAndEnqueueStatusDiffs failed:', e);
+    }
+    
+    // SOFORT flushen (nicht flushSoon!)
+    try {
+      if (typeof flushQueue === 'function') {
+        flushQueue();
+        console.log('[SaveContacts] IMMEDIATE flush triggered');
+      }
+    } catch(e) {
+      console.error('[SaveContacts] flushQueue failed:', e);
+    }
+    
+    // Nach dem Speichern Filter erneut anwenden, um aktive Filter beizubehalten
+    setTimeout(() => {
+      const streetFilter = document.getElementById('streetFilter');
+      const houseNumberFilter = document.getElementById('houseNumberFilter');
+      const searchInput = document.getElementById('searchInput');
+      
+      // Prüfe ob irgendein Filter aktiv ist
+      const hasActiveFilter = 
+        (streetFilter && streetFilter.value !== 'all') ||
+        (houseNumberFilter && houseNumberFilter.value !== 'all') ||
+        (searchInput && searchInput.value.trim() !== '') ||
+        currentFilter !== 'all';
+      
+      if (hasActiveFilter) {
+        console.log('[SaveContacts] Re-applying filters after save');
+        applyFilters();
+      }
+    }, 50);
+  }
+  function updateStreetFilter() {
+    const streetFilter = document.getElementById('streetFilter');
+    const streets = new Set();
+    contacts.forEach(contact => {
+      if (contact.strasse) {
+        streets.add(contact.strasse);
+      }
+    });
+    while (streetFilter.options.length > 1) {
+      streetFilter.remove(1);
+    }
+    const streetsList = Array.from(streets).sort();
+    streetsList.forEach(street => {
+      const option = document.createElement('option');
+      option.value = street;
+      option.textContent = street;
+      streetFilter.appendChild(option);
+    });
+    
+    // NEU: Straßenliste in localStorage cachen für App-Neustart
+    try {
+      localStorage.setItem('qt_streets_cache', JSON.stringify(streetsList));
+    } catch(e) {
+      console.warn('[updateStreetFilter] Could not cache streets:', e);
+    }
+  }
+  function getStatusLabel(status) {
+    if (!status) return 'Kein Status';
+    const statusLabels = {
+      'offen': 'Offen',
+      'nicht-angetroffen': 'Nicht angetroffen',
+      'kein-eintritt': 'Kein Eintritt persönlich',
+      'wiedervorlage': 'Wiedervorlage',
+      'termin': 'Termin',
+      'beraten': 'Bereits beraten',
+      'kein-interesse': 'Kein Interesse',
+      'abschluss': 'Abschluss',
+      'onlineabschluss': 'Online/TS',
+      'nicht-vermarktbar': 'Nicht vermarktbar',
+      'blacklist': 'Blacklist',
+      'abschl-anderer-vp': 'Abschl. anderer VP'
+    };
+    return statusLabels[status] || status;
+  }
+  function renderContacts(contactsToRender = contacts) {
+    contactsToRender = sortContacts([...contactsToRender]);
+    const expandedCards = new Set(Array.from(document.querySelectorAll('.contact-card.expanded')).map(card => card.getAttribute('data-id')));
+    const contactList = document.getElementById('contactList');
+    contactList.innerHTML = '';
+    contactsToRender.forEach(contact => {
+      const contactCard = document.createElement('div');
+      contactCard.className = 'contact-card';
+      contactCard.setAttribute('data-id', contact.id);
+      const weCount = contact.manualCurrentWe !== undefined ? contact.manualCurrentWe : parseInt(contact.we) || 0;
+
+      let residentInputs = `
+        <div class="unit-management">
+          <button onclick="event.stopPropagation(); deleteContact(${contact.id})" class="delete-btn" title="Löschen">Adresse löschen</button>
+          <button type="button" onclick="event.stopPropagation(); addUnit(${contact.id})" class="unit-btn">
+            + WE
+          </button>
+          <button type="button" onclick="event.stopPropagation(); deleteUnit(${contact.id})" class="unit-btn delete-unit">
+            - WE
+          </button>
+          <button type="button" onclick="event.stopPropagation(); openWeCorrectModal(${contact.id})" class="unit-btn we-correct-btn">
+            falsche WE melden
+          </button>
+        </div>
+      `;
+      if (contact.weCorrections && contact.weCorrections.length > 0) {
+        residentInputs += `
+          <div class="we-corrections-history">
+            <h4 style="margin: 0 0 5px 0; font-size: 0.95em;">WE-Korrekturen</h4>
+            ${contact.weCorrections?.map((correction, index) => `
+              <div class="we-correction-entry" onclick="editWeCorrection(${contact.id}, ${index})">
+                <p>Von ${correction.originalWe} auf ${correction.correctedWe} WE | ${correction.hasGEE ? 'GEE: Ja' : 'GEE: Nein'}</p>
+                <p style="color: #666;">Grund: ${correction.reason}</p>
+                <p style="color: #888; font-size: 0.8em;">${new Date(correction.date).toLocaleDateString('de-DE')}</p>
+              </div>
+            `).join('') || ''}
+          </div>
+        `;
+      }
+      for (let i = 1; i <= weCount; i++) {
+        const resident = contact.residents?.find(r => r.unit === i) || {
+          name: '',
+          phone: '',
+          status: '',
+          notes: '',
+          mieter: false,
+          statusHistory: []
+        };
+        const historyHtml = resident.statusHistory ? resident.statusHistory.sort((a, b) => b.timestamp - a.timestamp).map(entry => `
+            <div class="history-entry status-${entry.status}">
+              <span class="history-status">${getStatusLabel(entry.status)}</span>
+              <span class="history-date">${new Date(entry.date).toLocaleDateString('de-DE')} ${new Date(entry.date).toLocaleTimeString('de-DE', {
+        hour: '2-digit',
+        minute: '2-digit'
+      })}</span>
+              <button 
+                class="delete-history" 
+                onclick="event.stopPropagation(); deleteHistoryEntry(${contact.id}, ${i}, ${entry.timestamp})" 
+                title="Eintrag löschen"
+              >×</button>
+            </div>
+          `).join('') : '';
+        const selectHtml = `
+          <select 
+            class="status-select status-${resident.status}"
+            data-unit="${i}"
+            data-contact="${contact.id}"
+            onchange="saveResident(${contact.id}, ${i}, 'status')"
+          >
+            <option value="">Status auswählen</option>
+            <option value="offen">Offen</option>
+            <option value="nicht-angetroffen">Nicht angetroffen</option>
+            <option value="kein-eintritt">Kein Eintritt persönlich</option>
+            <option value="wiedervorlage">Wiedervorlage</option>
+            <option value="termin">Termin</option>
+            <option value="beraten">Bereits beraten</option>
+            <option value="kein-interesse">Kein Interesse</option>
+            <option value="abschluss">Abschluss</option>
+            <option value="abschl-anderer-vp">Abschl. anderer VP</option>
+            <option value="nicht-vermarktbar">Nicht vermarktbar</option>
+            <option value="blacklist">Blacklist</option>
+            <option value="onlineabschluss">Online/TS</option>
+          </select>`;
+        residentInputs += `
+          <div class="resident-entry">
+            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+              <input 
+                type="text" 
+                placeholder="Bewohner WE ${i}" 
+                value="${resident.name}"
+                data-unit="${i}"
+                data-contact="${contact.id}"
+                onchange="saveResident(${contact.id}, ${i}, 'name')"
+                style="flex: 2;"
+              >
+              <input
+                type="tel"
+                placeholder="Telefon WE ${i}"
+                value="${resident.phone || ''}"
+                data-unit="${i}"
+                data-contact="${contact.id}"
+                onchange="saveResident(${contact.id}, ${i}, 'phone')"
+                style="flex: 1;"
+              >
+              <label style="display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+                <input 
+                  type="checkbox" 
+                  ${resident.mieter ? 'checked' : ''}
+                  data-unit="${i}"
+                  data-contact="${contact.id}"
+                  onchange="saveResident(${contact.id}, ${i}, 'mieter')"
+                >
+                Mieter
+              </label>
+            </div>
+            ${selectHtml}
+            <div class="status-history">
+              ${historyHtml}
+            </div>
+            <div class="notes-section">
+              <textarea 
+                class="notes-textarea"
+                placeholder="Notizen für WE ${i} eingeben..."
+                data-unit="${i}"
+                data-contact="${contact.id}"
+                onchange="saveResident(${contact.id}, ${i}, 'notes')"
+                onblur="saveResident(${contact.id}, ${i}, 'notes')"
+              >${resident.notes || ''}</textarea>
+            </div>
+          </div>
+        `;
+      }
+      contactCard.innerHTML = `
+        <div class="contact-info ${!contact.residents?.[0]?.name && !contact.residents?.[0]?.status ? 'empty-status' : ''}
+          ${contact.residents?.some(r => getHighestPriorityStatus(r) === 'abschluss') ? 'has-abschluss' : ''}
+          ${contact.residents?.some(r => getHighestPriorityStatus(r) === 'onlineabschluss') ? 'status-onlineabschluss' : ''}
+          ${contact.residents?.some(r => getHighestPriorityStatus(r) === 'abschl-anderer-vp') ? 'status-abschl-anderer-vp' : ''}
+          ${contact.residents?.some(r => getHighestPriorityStatus(r) === 'beraten') ? 'status-beraten' : ''}
+          ${contact.residents?.some(r => getHighestPriorityStatus(r) === 'kein-interesse') && 
+            contact.residents.every(r => !['abschluss', 'onlineabschluss', 'beraten', 'abschl-anderer-vp'].includes(getHighestPriorityStatus(r))) ? 'status-kein-interesse-red' : ''}" 
+          onclick="toggleResidents(${contact.id})">
+          <div class="address-block">
+            <div class="address-line-1">${contact.plz} ${contact.ort}</div>
+            <div class="address-line-2">${contact.strasse} ${contact.nummer}${contact.zusatz ? ` ${contact.zusatz}` : ''}</div>
+          </div>
+          <p>${contact.we ? `${contact.we} WE` : ''}</p>
+          <div class="unit-info">
+            ${contact.residents?.map((resident, index) => {
+      const isInactive = resident?.statusHistory?.length > 0 ? Date.now() - resident.statusHistory.sort((a, b) => b.timestamp - a.timestamp)[0].timestamp > 28 * 24 * 60 * 60 * 1000 : !resident?.status;
+      const nameClass = isInactive && getHighestPriorityStatus(resident) !== 'abschluss' ? 'inactive-resident' : '';
+      return `
+              <p>WE${index + 1}: <strong class="${nameClass}">${resident?.name || '-'}${resident?.notes ? '<span style="color: red">*</span>' : ''}</strong>${resident?.mieter ? ' (M)' : ''}${resident?.phone ? ` <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1-2 2a16 16 0 0 1-15 -15a2 2 0 0 1 2 -2"></path></svg>` : ''}</p>
+            `;
+    }).join('') || '<p>-</p>'}
+          </div>
+          <div class="unit-info">
+            ${contact.residents?.map((resident, index) => `
+              <p>${getStatusLabel(getHighestPriorityStatus(resident)) || 'Kein Status'}</p>
+            `).join('') || '<p>Kein Status</p>'}
+          </div>
+          <div class="unit-info unit-date">
+            ${contact.residents?.map((resident, index) => {
+              const lastStatusChange = resident?.statusHistory?.length > 0 
+                ? resident.statusHistory.sort((a, b) => b.timestamp - a.timestamp)[0]
+                : null;
+              const dateStr = lastStatusChange 
+                ? new Date(lastStatusChange.date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
+                : '';
+              return `<p class="status-date">${dateStr}</p>`;
+            }).join('') || '<p class="status-date"></p>'}
+          </div>
+        </div>
+        <div class="residents-section" style="display: none;">
+          ${residentInputs}
+        </div>
+      `;
+      if (expandedCards.has(contact.id.toString())) {
+        contactCard.classList.add('expanded');
+        const residentsSection = contactCard.querySelector('.residents-section');
+        residentsSection.style.display = 'block';
+      }
+      contactList.appendChild(contactCard);
+    });
+    updateStatistics();
+  }
+
+  function applyFilters() {
+    const searchTerm = (document.getElementById('searchInput').value || '').toLowerCase();
+    const selectedStreet = document.getElementById('streetFilter').value;
+    const selectedHouseNumber = document.getElementById('houseNumberFilter').value;
+    const filteredContacts = contacts.filter(contact => {
+      if (!contact) return false;
+      const searchMatch = (contact.plz?.toString() || '').includes(searchTerm) || 
+                         (contact.ort?.toLowerCase() || '').includes(searchTerm) || 
+                         (contact.strasse?.toLowerCase() || '').includes(searchTerm) || 
+                         (contact.nummer?.toString() || '').includes(searchTerm) || 
+                         (contact.zusatz?.toLowerCase() || '').includes(searchTerm) || 
+                         (contact.we?.toString()?.toLowerCase() || '').includes(searchTerm) || 
+                         contact.residents?.some(resident => resident?.name?.toLowerCase()?.includes(searchTerm)) || 
+                         false;
+      const statusMatch = currentFilter === 'all' || 
+                         currentFilter !== 'offen' && 
+                         currentFilter !== 'blacklist' && 
+                         currentFilter !== 'nicht-vermarktbar' && 
+                         contact.residents?.some(resident => getHighestPriorityStatus(resident) === currentFilter) || 
+                         false;
+      const streetMatch = selectedStreet === 'all' || contact.strasse === selectedStreet;
+      
+      // Hausnummer-Filter: gerade/ungerade
+      let houseNumberMatch = true;
+      if (selectedHouseNumber !== 'all' && contact.nummer) {
+        // Extrahiere numerischen Teil der Hausnummer (z.B. "123a" -> 123)
+        const numericPart = parseInt(contact.nummer.toString().match(/\d+/)?.[0] || '0');
+        if (selectedHouseNumber === 'even') {
+          houseNumberMatch = numericPart % 2 === 0;
+        } else if (selectedHouseNumber === 'odd') {
+          houseNumberMatch = numericPart % 2 !== 0;
+        }
+      }
+      
+      return searchMatch && statusMatch && streetMatch && houseNumberMatch;
+    });
+    renderContacts(filteredContacts);
+    document.getElementById('streetFilter').value = selectedStreet;
+    document.getElementById('houseNumberFilter').value = selectedHouseNumber;
+  }
+
+  function getStatusPriority(status) {
+    const priorities = {
+      'abschluss': 12,
+      'onlineabschluss': 11,
+      'abschl-anderer-vp': 10,
+      'beraten': 9,
+      'termin': 8,
+      'wiedervorlage': 7,
+      'kein-eintritt': 6,
+      'kein-interesse': 5,
+      'nicht-vermarktbar': 4,
+      'blacklist': 3,
+      'nicht-angetroffen': 2,
+      'offen': 1,
+      '': 0
+    };
+    return priorities[status] || 0;
+  }
+
+  function getHighestPriorityStatus(resident) {
+    if (!resident?.statusHistory?.length) {
+      return resident?.status || '';
+    }
+
+    // Sortiere Historie nach Datum (neueste zuerst)
+    const sortedHistory = [...resident.statusHistory].sort((a, b) => b.timestamp - a.timestamp);
+    
+    // Finde höchsten Status nach normaler Priorität
+    const highestByPriority = resident.statusHistory.reduce((highestStatus, entry) => {
+      const currentPriority = getStatusPriority(entry.status);
+      const highestPriority = getStatusPriority(highestStatus);
+      return currentPriority > highestPriority ? entry.status : highestStatus;
+    }, '');
+    
+    // SONDERREGEL: "kein-eintritt" oder "kein-interesse" NACH höher priorisiertem Status
+    const newestEntry = sortedHistory[0];
+    const newestStatus = newestEntry?.status;
+    
+    // Prüfe ob neuester Status einer der beiden speziellen Statusse ist
+    if (newestStatus === 'kein-eintritt' || newestStatus === 'kein-interesse') {
+      // Prüfe ob es einen älteren Status mit höherer Priorität gibt
+      const hasOlderHigherPriorityStatus = sortedHistory.some((entry, index) => {
+        if (index === 0) return false; // Überspringe neuesten Status
+        return getStatusPriority(entry.status) > getStatusPriority(newestStatus);
+      });
+      
+      // Wenn ja, dann verwende den neueren (speziellen) Status
+      if (hasOlderHigherPriorityStatus) {
+        return newestStatus;
+      }
+    }
+    
+    // Sonst normale Prioritätslogik
+    return highestByPriority;
+  }
+
+  function toggleCalendar() {
+    const calendarDiv = document.getElementById('calendar');
+    calendarDiv.style.display = calendarDiv.style.display === 'none' ? 'block' : 'none';
+    if (calendarDiv.style.display === 'block') {
+      renderCalendar();
+    }
+  }
+
+  function getDayStats(date) {
+    let startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    let endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    let total = 0;
+    let completions = 0;
+    contacts.forEach(contact => {
+      if (contact.residents) {
+        contact.residents.forEach(resident => {
+          if (resident.statusHistory) {
+            resident.statusHistory.forEach(entry => {
+              const entryDate = new Date(entry.date);
+              if (entryDate >= startOfDay && entryDate <= endOfDay) {
+                total++;
+                // Only count 'abschluss' status
+                if (entry.status === 'abschluss') {
+                  completions++;
+                }
+              }
+            });
+          }
+        });
+      }
+    });
+    return { total, completions };
+  }
+
+  function getMonthStats(year, month) {
+    let totalCompletions = 0;
+    contacts.forEach(contact => {
+      if (contact.residents) {
+        contact.residents.forEach(resident => {
+          if (resident.statusHistory) {
+            resident.statusHistory.forEach(entry => {
+              const entryDate = new Date(entry.date);
+              if (entryDate.getFullYear() === year && entryDate.getMonth() === month) {
+                // Only count 'abschluss' status
+                if (entry.status === 'abschluss') {
+                  totalCompletions++;
+                }
+              }
+            });
+          }
+        });
+      }
+    });
+    return totalCompletions;
+  }
+
+  function calculateForecast(currentCompletions, currentDay, totalWorkdaysInMonth) {
+    const workdaysElapsed = countWorkdaysSoFar(currentDay);
+    if (workdaysElapsed === 0) return 0;
+    const completionsPerWorkday = currentCompletions / workdaysElapsed;
+    return Math.round(completionsPerWorkday * totalWorkdaysInMonth);
+  }
+
+  function countWorkdaysSoFar(currentDate) {
+    let workdays = 0;
+    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    while (startOfMonth <= currentDate) {
+      if (startOfMonth.getDay() !== 0 && startOfMonth.getDay() !== 6) {
+        workdays++;
+      }
+      startOfMonth.setDate(startOfMonth.getDate() + 1);
+    }
+    return workdays;
+  }
+
+  function countWorkdaysInMonth(year, month) {
+    let workdays = 0;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      if (date.getDay() !== 0 && date.getDay() !== 6) {
+        workdays++;
+      }
+    }
+    return workdays;
+  }
+
+  function previousMonth() {
+    currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    renderCalendar();
+  }
+
+  function nextMonth() {
+    currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+    renderCalendar();
+  }
+
+  function toggleVisitRecommendation() {
+    const content = document.getElementById('visitRecommendationContent');
+    content.style.display = content.style.display === 'none' ? 'block' : 'none';
+    if (content.style.display === 'block') {
+      document.querySelectorAll('.recommendation-type-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.querySelector('.recommendation-type-btn:first-child').classList.add('active');
+    }
+  }
+
+  function showVisitRecommendations() {
+    const startTime = document.getElementById('startTime').value;
+    const endTime = document.getElementById('endTime').value;
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+    const recommendations = [];
+    contacts.forEach(contact => {
+      if (contact.residents) {
+        contact.residents.forEach(resident => {
+          if (resident.statusHistory) {
+            const lastStatus = resident.status;
+            if (lastStatus === 'nicht-angetroffen') {
+              const lastEntry = resident.statusHistory.filter(entry => entry.status === 'nicht-angetroffen').sort((a, b) => b.timestamp - a.timestamp)[0];
+              if (lastEntry) {
+                const visitTime = new Date(lastEntry.date);
+                const visitMinutes = visitTime.getHours() * 60 + visitTime.getMinutes();
+                if (visitMinutes < startMinutes || visitMinutes > endMinutes) {
+                  recommendations.push({
+                    contact: contact,
+                    resident: resident,
+                    unit: resident.unit,
+                    lastVisit: visitTime
+                  });
+                }
+              }
+            }
+          }
+        });
+      }
+    });
+    displayRecommendations(recommendations);
+  }
+
+  function timeToMinutes(timeString) {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    return hours * 60 + minutes;
+  }
+
+  function displayRecommendations(recommendations) {
+    const resultsDiv = document.getElementById('recommendationResults');
+    if (recommendations.length === 0) {
+      resultsDiv.innerHTML = `
+        <p style="text-align: center; padding: 15px;">Keine Empfehlungen für diesen Zeitraum gefunden.</p>
+        <button onclick="clearRecommendations()" class="delete-btn" style="position: static; margin: 10px auto; display: block;">Liste leeren</button>
+      `;
+      return;
+    }
+    recommendations.sort((a, b) => {
+      const streetCompare = (a.contact.strasse || '').localeCompare(b.contact.strasse || '');
+      if (streetCompare !== 0) return streetCompare;
+      const numA = parseInt(a.contact.nummer) || 0;
+      const numB = parseInt(b.contact.nummer) || 0;
+      return numA - numB;
+    });
+    resultsDiv.innerHTML = `
+      <button onclick="clearRecommendations()" class="delete-btn" style="position: static; margin: 10px auto; display: block;">Liste leeren</button>
+      ${recommendations.map(rec => `
+        <div class="recommended-contact">
+          <div><strong>${rec.contact.strasse} ${rec.contact.nummer}${rec.contact.zusatz ? ` ${rec.contact.zusatz}` : ''}</strong></div>
+          <div>WE ${rec.unit}: ${rec.resident.name || 'Unbekannt'}</div>
+          <div class="last-visit-time">
+            Letzter Besuch: ${rec.lastVisit.toLocaleString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })} Uhr
+          </div>
+        </div>
+      `).join('')}
+    `;
+  }
+
+  function clearRecommendations() {
+    const resultsDiv = document.getElementById('recommendationResults');
+    resultsDiv.innerHTML = '';
+  }
+
+  // Debug: unsichtbarer Click-Logger zur Diagnose von Tap-Problemen
+  (function setupClickLogger(){
+    try {
+      const loggerId = 'qt-debug-click-logger';
+      if (document.getElementById(loggerId)) return;
+      const log = document.createElement('div');
+      log.id = loggerId;
+      log.style.position = 'fixed';
+      log.style.bottom = '8px';
+      log.style.left = '8px';
+      log.style.padding = '4px 6px';
+      log.style.fontSize = '10px';
+      log.style.background = 'rgba(37,99,235,0.08)';
+      log.style.color = '#111';
+      log.style.border = '1px solid rgba(37,99,235,0.25)';
+      log.style.borderRadius = '6px';
+      log.style.pointerEvents = 'none';
+      log.style.zIndex = '2147483647';
+      log.style.opacity = '0'; // unsichtbar
+      document.body.appendChild(log);
+
+      function write(msg){
+        try {
+          const ts = new Date().toLocaleTimeString('de-DE');
+          log.textContent = `[${ts}] ${msg}`;
+          // console.log('[QT-Click]', msg);
+        } catch(_){}
+      }
+
+      // Diagnose-Logger deaktiviert
+      /* document.addEventListener('click', (e) => {
+        const t = e.target;
+        const isSidebar = !!t.closest && !!t.closest('.sidebar-nav');
+        const href = t.getAttribute && t.getAttribute('href');
+        const sec = href && href.startsWith('#') ? href.slice(1) : null;
+        write(`Click target=${t.tagName}${isSidebar? ' [sidebar]':''} href=${href||'-'} sec=${sec||'-'}`);
+      }, { capture: true }); */
+
+      // Pointer-Events Diagnose
+      document.querySelectorAll('.sidebar, .sidebar *').forEach(el => {
+        const pe = window.getComputedStyle(el).pointerEvents;
+        if (pe === 'none') {
+          console.warn('[QT] pointer-events:none auf', el);
+        }
+      });
+
+      // Z-Index Diagnose: prüfe Overlay über Sidebar
+      setTimeout(() => {
+        const sidebar = document.querySelector('.sidebar');
+        if (!sidebar) return;
+        const rect = sidebar.getBoundingClientRect();
+        const el = document.elementFromPoint(rect.left + 10, rect.top + 10);
+        if (el && !sidebar.contains(el)) {
+          console.warn('[QT] Element über der Sidebar erkannt:', el);
+        }
+      }, 1000);
+    } catch(e){ console.warn('Click-Logger Setup fehlgeschlagen:', e); }
+  })();
+
+  // Global verfügbar: navTo Fallback
+  window.navTo = function(sectionId){
+    try { showSection(sectionId); } catch(e) { console.error('[navTo]', e); }
+    return false;
+  };
+
+  function $el(sel){ return document.querySelector(sel); }
+  function setDisp(sel, val){ const n=$el(sel); if(n) n.style.display=val; }
+  function addCls(sel, cls){ const n=$el(sel); if(n) n.classList.add(cls); }
+  function rmCls(sel, cls){ document.querySelectorAll(sel).forEach(n=>n.classList.remove(cls)); }
+
+  function showSection(sectionId) {
+    try {
+      console.log('[ShowSection] Switching to:', sectionId);
+      
+      rmCls('.sidebar-nav a','active');
+      const navLink = document.querySelector(`.sidebar-nav a[href="#${sectionId}"]`);
+      if (navLink) navLink.classList.add('active');
+
+      document.querySelectorAll('.expanded').forEach(section => section.classList.remove('expanded'));
+
+      // WICHTIG: Alle Sektionen explizit ausblenden
+      const allSections = [
+        '.import-section',
+        '.entry-section', 
+        '.calendar-section',
+        '.statistics-section',
+        '.visit-recommendation-box',
+        '.search-box',
+        '.status-filters',
+        '.contact-list',
+        '.street-filter-container'
+      ];
+      
+      allSections.forEach(selector => {
+        document.querySelectorAll(selector).forEach(el => {
+          el.style.display = 'none';
+          console.log('[ShowSection] Hidden:', selector);
+        });
+      });
+      // Defensive: Nur setzen, wenn Container existiert
+      if (document.querySelector('.import-export-buttons')) {
+        setDisp('.import-export-buttons','flex');
+      }
+      const weSecHide = document.getElementById('weCorrectionsSection');
+      if (weSecHide) { weSecHide.style.display = 'none'; weSecHide.innerHTML = ''; }
+
+      switch (sectionId) {
+        case 'contacts': {
+          const we2 = document.getElementById('weCorrectionsSection');
+          if (we2) { we2.style.display='none'; we2.innerHTML=''; }
+          setDisp('.search-box','flex');
+          setDisp('.status-filters','flex');
+          setDisp('.contact-list','block');
+          setDisp('.street-filter-container','block');
+          if (typeof filterByStatus==='function') filterByStatus('all');
+          break;
+        }
+        case 'import': {
+          setDisp('.import-section','block');
+          addCls('.import-section','expanded');
+          break;
+        }
+        case 'add': {
+          setDisp('.entry-section','block');
+          addCls('.entry-section','expanded');
+          break;
+        }
+        case 'stats': {
+          setDisp('.statistics-section','block');
+          const ss = document.getElementById('statusStats'); if (ss) ss.style.display='block';
+          if (typeof updateStatistics==='function') updateStatistics();
+          break;
+        }
+        case 'calendar': {
+          setDisp('.calendar-section','block');
+          const cal = document.getElementById('calendar'); if (cal) cal.style.display='block';
+          if (typeof renderCalendar==='function') renderCalendar();
+          break;
+        }
+        case 'recommendations': {
+          setDisp('.visit-recommendation-box','block');
+          const cnt = document.getElementById('visitRecommendationContent'); if (cnt) cnt.style.display='block';
+          break;
+        }
+        case 'pdf-corrections': {
+          const mount = document.getElementById('weCorrectionsSection');
+          if (mount) { if (typeof renderWeCorrectionsList==='function') renderWeCorrectionsList(mount); mount.style.display='block'; }
+          break;
+        }
+        default: {
+          setDisp('.search-box','flex');
+          setDisp('.status-filters','flex');
+          setDisp('.contact-list','block');
+          setDisp('.street-filter-container','block');
+          break;
+        }
+      }
+    } catch(e) {
+      console.error('showSection error:', e);
+    }
+
+  }
+
+  // Hash-Fallback: Wenn der Hash sich ändert (Default-Anchor), Sektion anzeigen
+  window.addEventListener('hashchange', () => {
+    const sec = (location.hash||'').slice(1);
+    if (sec) showSection(sec);
+  });
+
+  function renderWeCorrectionsList(mountEl) {
+    const container = mountEl || document.querySelector('#weCorrectionsSection');
+    if (!container) return;
+
+    // Kopf
+    container.innerHTML = '';
+    const title = document.createElement('h2');
+    title.textContent = 'WE-Korrekturen';
+    title.style.marginTop = '10px';
+
+    const listWrap = document.createElement('div');
+    listWrap.style.marginTop = '10px';
+
+    const rows = [];
+    contacts.forEach(contact => {
+      (contact.weCorrections || []).forEach((c) => {
+        rows.push({
+          adresse: `${contact.strasse || ''} ${contact.nummer || ''}${contact.zusatz ? ' ' + contact.zusatz : ''}`.trim(),
+          ort: `${contact.plz || ''} ${contact.ort || ''}`.trim(),
+          originalWe: c.originalWe,
+          correctedWe: c.correctedWe,
+          hasGEE: c.hasGEE ? 'Ja' : 'Nein',
+          reason: c.reason || '',
+          date: c.date ? new Date(c.date).toLocaleString('de-DE') : ''
+        });
+      });
+    });
+
+    if (rows.length === 0) {
+      listWrap.innerHTML = '<p style="text-align:center; padding: 10px; color:#6b7280;">Keine WE-Korrekturen vorhanden.</p>';
+    } else {
+      const table = document.createElement('table');
+      table.style.width = '100%';
+      table.style.borderCollapse = 'collapse';
+      table.style.fontSize = '14px';
+
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      const headers = ['Adresse', 'Ort', 'Ursprüngliche WE', 'Korrigierte WE', 'GEE/VGM', 'Begründung', 'Datum'];
+      headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        th.style.textAlign = 'left';
+        th.style.padding = '8px 6px';
+        th.style.borderBottom = '1px solid #e5e7eb';
+        headRow.appendChild(th);
+      });
+      thead.appendChild(headRow);
+
+      const tbody = document.createElement('tbody');
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        [r.adresse, r.ort, r.originalWe, r.correctedWe, r.hasGEE, r.reason, r.date].forEach(val => {
+          const td = document.createElement('td');
+          td.textContent = String(val ?? '');
+          td.style.padding = '8px 6px';
+          td.style.borderBottom = '1px solid #f3f4f6';
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(thead);
+      table.appendChild(tbody);
+      listWrap.appendChild(table);
+
+      // Export-Button (Excel) oben rechts
+      const exportBar = document.createElement('div');
+      exportBar.style.display = 'flex';
+      exportBar.style.justifyContent = 'flex-end';
+      exportBar.style.margin = '10px 0';
+      const btn = document.createElement('button');
+      btn.textContent = 'WE-Korrekturen exportieren (CSV)';
+      btn.className = 'import-btn';
+      btn.onclick = () => exportWECorrectionsToCSV();
+      exportBar.appendChild(btn);
+
+      container.appendChild(title);
+      container.appendChild(exportBar);
+      container.appendChild(listWrap);
+    }
+  }
+
+
+  function showDeleteByPLZDialog() {
+    document.getElementById('deletePLZDialog').style.display = 'block';
+  }
+
+  function closeDeletePLZDialog() {
+    document.getElementById('deletePLZDialog').style.display = 'none';
+    document.getElementById('plzToDelete').value = '';
+  }
+
+  function deleteByPLZ() {
+    const plzToDelete = document.getElementById('plzToDelete').value;
+    if (!plzToDelete || plzToDelete.length !== 5) {
+      alert('Bitte geben Sie eine gültige PLZ ein');
+      return;
+    }
+    const countBefore = contacts.length;
+    contacts = contacts.filter(contact => contact.plz !== plzToDelete);
+    const deleted = countBefore - contacts.length;
+    if (deleted > 0) {
+      alert(`${deleted} Adressen wurden gelöscht`);
+      saveContacts();
+      // Filter beibehalten nach Speichern
+      renderContacts();
+      updateStreetFilter();
+    } else {
+      alert('Keine Adressen mit dieser PLZ gefunden');
+    }
+    closeDeletePLZDialog();
+  }
+
+  function showDeleteStreetDialog() {
+    const dialog = document.getElementById('deleteStreetDialog');
+    const select = document.getElementById('streetToDelete');
+    while (select.options.length > 1) {
+      select.remove(1);
+    }
+    const streets = [...new Set(contacts.map(c => c.strasse))].sort();
+    streets.forEach(street => {
+      const option = document.createElement('option');
+      option.value = street;
+      option.textContent = street;
+      select.appendChild(option);
+    });
+    select.multiple = true;
+    dialog.style.display = 'block';
+  }
+
+  function closeDeleteStreetDialog() {
+    document.getElementById('deleteStreetDialog').style.display = 'none';
+    document.getElementById('streetToDelete').value = '';
+  }
+
+  function deleteByStreet() {
+    const streetSelect = document.getElementById('streetToDelete');
+    const selectedStreets = Array.from(streetSelect.selectedOptions).map(option => option.value).filter(street => street);
+    if (selectedStreets.length === 0) {
+      alert('Bitte wählen Sie mindestens eine Straße aus');
+      return;
+    }
+    const countBefore = contacts.length;
+    contacts = contacts.filter(contact => !selectedStreets.includes(contact.strasse));
+    const deleted = countBefore - contacts.length;
+    if (deleted > 0) {
+      alert(`${deleted} Adressen wurden gelöscht`);
+      saveContacts();
+      // Filter beibehalten nach Speichern
+      renderContacts();
+      updateStreetFilter();
+    } else {
+      alert('Keine Adressen in den ausgewählten Straßen gefunden');
+    }
+    closeDeleteStreetDialog();
+  }
+
+  // Helper: Plattform/Nativ erkennen
+  function isNativeApp() {
+    try { 
+      return !!window.Capacitor && typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() !== 'web'; 
+    } catch(_) { 
+      return false; 
+    }
+  }
+  // Helper: robust file download handling (works in preview/iframe)
+  function triggerDownload(blob, filename){
+    // iOS Safari/Android Browser compatibility: ensure filename is safe
+    filename = (filename || 'export.csv').replace(/[\/:*?"<>|]+/g, '-');
+    try {
+      if (window.showSaveFilePicker) {
+        const opts = { suggestedName: filename, types: [{ description: 'Datei', accept: { 'application/octet-stream': ['.bin'], 'text/csv': ['.csv'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }] };
+        return window.showSaveFilePicker(opts)
+          .then(handle => handle.createWritable())
+          .then(writable => writable.write(blob).then(() => writable.close()))
+          .catch(() => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename; a.target = (window.top!==window.self)?'_blank':'_self';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(()=>URL.revokeObjectURL(url), 30000);
+          });
+      }
+    } catch(_){ /* fallthrough */ }
+    // Fallback: anchor click
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.target = (window.top!==window.self)?'_blank':'_self';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 30000);
+  }
+
+  async function ensureXLSXReady(){
+    if (window.XLSX) return true;
+    for (let i=0;i<20;i++) { // up to ~4s
+      await new Promise(r=>setTimeout(r,200));
+      if (window.XLSX) return true;
+    }
+    return false;
+  }
+
+  // Helper: Blob -> Base64 (ohne Prefix)
+  function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => {
+        const res = String(reader.result || '');
+        const base64 = res.includes(',') ? res.split(',', 2)[1] : res;
+        resolve(base64);
+      };
+      reader.readAsDataURL(blob);
+    });
+  }
+  function getCapPlugin(name){
+    try {
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins[name]) return window.Capacitor.Plugins[name];
+      if (window.__CapHelper && window.__CapHelper.getPlugin) return window.__CapHelper.getPlugin(name);
+    } catch(_){}
+    return null;
+  }
+
+  // Android: Download in öffentlichen Downloads-Ordner speichern (Option A)
+  async function ensureAndroidFsPermissions(Filesystem){
+    try {
+      if (!Filesystem) return;
+      if (Filesystem.checkPermissions) {
+        const p = await Filesystem.checkPermissions();
+        // p kann je nach Capacitor-Version verschieden aussehen; bei fehlender Freigabe nachfragen
+        if ((p.publicStorage && p.publicStorage !== 'granted') || (p.write && p.write !== 'granted')) {
+          await Filesystem.requestPermissions();
+        }
+      } else if (Filesystem.requestPermissions) {
+        await Filesystem.requestPermissions();
+      }
+    } catch(_){}
+  }
+
+  async function saveToDownloadsAndroid(base64, filename, mime){
+    const Filesystem = getCapPlugin('Filesystem');
+    if (!Filesystem) throw new Error('Capacitor Filesystem nicht verfügbar');
+    await ensureAndroidFsPermissions(Filesystem);
+
+    const tryWrite = async (directoryKey) => {
+      return Filesystem.writeFile({ path: `Download/${filename}`, data: base64, directory: directoryKey, recursive: true });
+    };
+
+    // Versuche zuerst EXTERNAL_STORAGE (neuere Capacitor-Versionen), dann EXTERNAL
+    try {
+      await tryWrite('EXTERNAL_STORAGE');
+    } catch(e1){
+      try { 
+        await tryWrite('EXTERNAL'); 
+      } catch(e2){ 
+        throw e2 || e1; 
+      }
+    }
+
+    // Optional: URI ermitteln
+    let uri = null;
+    try {
+      uri = await Filesystem.getUri({ path: `Download/${filename}`, directory: 'EXTERNAL' });
+    } catch(_){}
+
+    alert(`Datei gespeichert: Download/${filename}`);
+    return uri?.uri || null;
+  }
+
+  async function exportToCSV() {
+    const headers = ['PLZ', 'Ort', 'Strasse', 'Nummer', 'Zusatz', 'WE', 'BewohnerName', 'BewohnerTelefon', 'Status', 'Notizen', 'IstMieter', 'StatusVerlauf'];
+    let csvContent = headers.join(',') + '\n';
+    contacts.forEach(contact => {
+      if (!contact.residents || contact.residents.length === 0) {
+        const row = [contact.plz || '', contact.ort || '', contact.strasse || '', contact.nummer || '', contact.zusatz || '', contact.we || '', '', '', '', '', '', ''].map(field => `"${(field + '').replace(/"/g, '""')}"`);
+        csvContent += row.join(',') + '\n';
+      } else {
+        contact.residents.forEach(resident => {
+          const row = [contact.plz || '', contact.ort || '', contact.strasse || '', contact.nummer || '', contact.zusatz || '', contact.we || '', resident.name || '', resident.phone || '', resident.status || '', resident.notes || '', resident.mieter ? 'true' : 'false', JSON.stringify(resident.statusHistory || [])].map(field => `"${(field + '').replace(/"/g, '""')}"`);
+          csvContent += row.join(',') + '\n';
+        });
+      }
+    });
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const place = (contacts && contacts[0] && contacts[0].ort) ? String(contacts[0].ort).replace(/\s+/g,'-').toLowerCase() : 'ort';
+    const d = new Date();
+    const pad = n => (n<10?('0'+n):n);
+    const filename = `qualifizierungen_${place}_${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}.csv`;
+
+    // Native App (APK): über Filesystem speichern + Share-Dialog öffnen
+    if (isNativeApp()) {
+      (async () => {
+        try {
+          const base64 = await blobToBase64(blob);
+          const Filesystem = getCapPlugin('Filesystem');
+          const Share = getCapPlugin('Share');
+          if (!Filesystem || !Share) throw new Error('Capacitor Plugins nicht verfügbar');
+
+          await Filesystem.writeFile({ path: filename, data: base64, directory: 'CACHE', recursive: false });
+          const uriRes = await Filesystem.getUri({ path: filename, directory: 'CACHE' });
+          await Share.share({ title: 'Qualis exportieren (CSV)', url: uriRes.uri, dialogTitle: 'Datei teilen / speichern' });
+        } catch (err) {
+          console.warn('Native CSV-Export fehlgeschlagen, Fallback Browser:', err?.message||err);
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url; link.download = filename; link.click();
+          URL.revokeObjectURL(url);
+        }
+      })();
+      return;
+    }
+
+    // Browser: klassisch speichern
+    if ('showSaveFilePicker' in window) {
+      const opts = { suggestedName: filename, types: [{ description: 'CSV-Datei', accept: { 'text/csv': ['.csv'] } }] };
+      window.showSaveFilePicker(opts)
+        .then(handle => handle.createWritable())
+        .then(writable => writable.write(blob).then(() => writable.close()))
+        .catch(() => {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a'); link.href = url; link.download = filename; link.click();
+          URL.revokeObjectURL(url);
+        });
+    } else {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a'); link.href = url; link.download = filename; link.click();
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  function getMonthStats(year, month) {
+    let totalCompletions = 0;
+    contacts.forEach(contact => {
+      if (contact.residents) {
+        contact.residents.forEach(resident => {
+          if (resident.statusHistory) {
+            resident.statusHistory.forEach(entry => {
+              const entryDate = new Date(entry.date);
+              if (entryDate.getFullYear() === year && entryDate.getMonth() === month) {
+                // Only count 'abschluss' status
+                if (entry.status === 'abschluss') {
+                  totalCompletions++;
+                }
+              }
+            });
+          }
+        });
+      }
+    });
+    return totalCompletions;
+  }
+
+  function calculateForecast(currentCompletions, currentDay, totalWorkdaysInMonth) {
+    const workdaysElapsed = countWorkdaysSoFar(currentDay);
+    if (workdaysElapsed === 0) return 0;
+    const completionsPerWorkday = currentCompletions / workdaysElapsed;
+    return Math.round(completionsPerWorkday * totalWorkdaysInMonth);
+  }
+
+  function countWorkdaysSoFar(currentDate) {
+    let workdays = 0;
+    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    while (startOfMonth <= currentDate) {
+      if (startOfMonth.getDay() !== 0 && startOfMonth.getDay() !== 6) {
+        workdays++;
+      }
+      startOfMonth.setDate(startOfMonth.getDate() + 1);
+    }
+    return workdays;
+  }
+
+  function countWorkdaysInMonth(year, month) {
+    let workdays = 0;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      if (date.getDay() !== 0 && date.getDay() !== 6) {
+        workdays++;
+      }
+    }
+    return workdays;
+  }
+
+  function deleteHistoryEntry(contactId, unitNumber, timestamp) {
+    const contact = contacts.find(c => c.id === contactId);
+    if (!contact || !contact.residents) return;
+    const resident = contact.residents.find(r => r.unit === unitNumber);
+    if (!resident || !resident.statusHistory) return;
+    resident.statusHistory = resident.statusHistory.filter(entry => entry.timestamp !== timestamp);
+    if (resident.statusHistory.length > 0) {
+      const lastEntry = resident.statusHistory.sort((a, b) => b.timestamp - a.timestamp)[0];
+      resident.status = lastEntry.status;
+    } else {
+      resident.status = '';
+    }
+    saveContacts();
+    renderContacts();
+  }
+
+  function openWeCorrectModal(contactId) {
+    const contact = contacts.find(c => String(c.id) === String(contactId));
+    if (!contact) return;
+    const modal = document.getElementById('weCorrectModal');
+    const currentWeCountInput = document.getElementById('currentWeCount');
+    const correctedWeCountInput = document.getElementById('correctedWeCount');
+    const weCorrectReasonInput = document.getElementById('weCorrectReason');
+    const manualCurrentWeInput = document.getElementById('manualCurrentWe');
+    const hasGEEInput = document.getElementById('hasGEE');
+    currentWeCountInput.value = (contact.manualCurrentWe !== undefined ? contact.manualCurrentWe : (contact.we || '0')) || '0';
+    correctedWeCountInput.value = (contact.we || '0');
+    weCorrectReasonInput.value = '';
+    manualCurrentWeInput.checked = (contact.manualCurrentWe !== undefined);
+    hasGEEInput.checked = false;
+    modal.dataset.contactId = String(contactId);
+    modal.style.display = 'block';
+  }
+
+  function saveWeCorrection() {
+    const modal = document.getElementById('weCorrectModal');
+    const contactIdStr = modal.dataset.contactId;
+    const contact = contacts.find(c => String(c.id) === String(contactIdStr));
+    if (!contact) return;
+    const manualCurrentWeInput = document.getElementById('manualCurrentWe');
+    const hasGEEInput = document.getElementById('hasGEE');
+    const currentWeCountInput = document.getElementById('currentWeCount');
+    const correctedWeCountInput = document.getElementById('correctedWeCount');
+    const weCorrectReasonInput = document.getElementById('weCorrectReason');
+    const currentWeCount = manualCurrentWeInput.checked ? parseInt(currentWeCountInput.value || '0') : parseInt(contact.we || '0') || 0;
+    const correctedWeCount = parseInt(correctedWeCountInput.value || '0') || 0;
+    const weCorrectReason = weCorrectReasonInput.value.trim();
+    const hasGEE = hasGEEInput.checked;
+    if (manualCurrentWeInput.checked) {
+      contact.manualCurrentWe = currentWeCount;
+    } else {
+      delete contact.manualCurrentWe;
+    }
+    const correction = {
+      originalWe: currentWeCount,
+      correctedWe: correctedWeCount,
+      reason: weCorrectReason,
+      hasGEE: hasGEE,
+      date: new Date().toISOString()
+    };
+    if (modal.dataset.isEdit === 'true') {
+      const correctionIndex = parseInt(modal.dataset.correctionIndex || '0') || 0;
+      contact.weCorrections[correctionIndex] = correction;
+    } else {
+      if (!contact.weCorrections) {
+        contact.weCorrections = [];
+      }
+      contact.weCorrections.push(correction);
+    }
+    contact.we = String(correctedWeCount);
+    if (correctedWeCount < (contact.residents?.length || 0)) {
+      contact.residents = contact.residents.slice(0, correctedWeCount);
+    } else if (correctedWeCount > (contact.residents?.length || 0)) {
+      contact.residents = contact.residents || [];
+      while (contact.residents.length < correctedWeCount) {
+        contact.residents.push({
+          unit: contact.residents.length + 1,
+          name: '',
+          phone: '',
+          status: '',
+          notes: '',
+          mieter: false,
+          statusHistory: []
+        });
+      }
+    }
+    saveContacts();
+    renderContacts();
+    closeWeCorrectModal();
+  }
+
+  function closeWeCorrectModal() {
+    const modal = document.getElementById('weCorrectModal');
+    modal.style.display = 'none';
+    modal.dataset.isEdit = 'false';
+    delete modal.dataset.correctionIndex;
+  }
+
+  function exportWECorrectionsToCSV() {
+    console.log('[Export WE-Korrekturen] Starting CSV export...');
+    console.log('[Export WE-Korrekturen] Contacts count:', contacts ? contacts.length : 0);
+    
+    // Sammle alle WE-Korrekturen
+    const corrections = [];
+    contacts.forEach(contact => {
+      if (contact.weCorrections && contact.weCorrections.length > 0) {
+        contact.weCorrections.forEach(correction => {
+          corrections.push({
+            adresse: `${contact.strasse} ${contact.nummer}${contact.zusatz ? ` ${contact.zusatz}` : ''}`,
+            ort: `${contact.plz} ${contact.ort}`,
+            urspruenglicheWE: correction.originalWe,
+            korrigierteWE: correction.correctedWe,
+            geeVorhanden: correction.hasGEE ? 'Ja' : 'Nein',
+            begruendung: correction.reason || '',
+            datum: new Date(correction.date).toLocaleDateString('de-DE')
+          });
+        });
+      }
+    });
+    
+    console.log('[Export WE-Korrekturen] Corrections found:', corrections.length);
+    
+    if (corrections.length === 0) {
+      alert('Keine WE-Korrekturen zum Exportieren vorhanden.');
+      return;
+    }
+    
+    // CSV Header
+    const headers = ['Adresse', 'Ort', 'Ursprüngliche WE', 'Korrigierte WE', 'GEE/VGM vorhanden', 'Begründung', 'Datum'];
+    
+    // CSV Zeilen
+    const csvRows = [headers.join(';')];
+    corrections.forEach(correction => {
+      const row = [
+        `"${correction.adresse}"`,
+        `"${correction.ort}"`,
+        correction.urspruenglicheWE,
+        correction.korrigierteWE,
+        correction.geeVorhanden,
+        `"${correction.begruendung}"`,
+        correction.datum
+      ];
+      csvRows.push(row.join(';'));
+    });
+    
+    // CSV erstellen
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const filename = `WE-Korrekturen_${new Date().toISOString().split('T')[0]}.csv`;
+    
+    console.log('[Export WE-Korrekturen] Creating download...');
+    
+    // Download
+    try {
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      console.log('[Export WE-Korrekturen] Download successful!');
+    } catch(e) {
+      console.error('[Export WE-Korrekturen] Download failed:', e);
+      alert('Fehler beim Export: ' + e.message);
+    }
+  }
+  
+  // Globale Verfügbarkeit sicherstellen
+  window.exportWECorrectionsToCSV = exportWECorrectionsToCSV;
+
+  function editWeCorrection(contactId, correctionIndex) {
+    const contact = contacts.find(c => c.id === contactId);
+    if (!contact || !contact.weCorrections) return;
+    const correction = contact.weCorrections[correctionIndex];
+    const modal = document.getElementById('weCorrectModal');
+    const currentWeCountInput = document.getElementById('currentWeCount');
+    const correctedWeCountInput = document.getElementById('correctedWeCount');
+    const weCorrectReasonInput = document.getElementById('weCorrectReason');
+    const manualCurrentWeInput = document.getElementById('manualCurrentWe');
+    const hasGEEInput = document.getElementById('hasGEE');
+    currentWeCountInput.value = correction.originalWe;
+    correctedWeCountInput.value = correction.correctedWe;
+    weCorrectReasonInput.value = correction.reason;
+    manualCurrentWeInput.checked = true;
+    hasGEEInput.checked = correction.hasGEE;
+    modal.dataset.contactId = contactId;
+    modal.dataset.correctionIndex = correctionIndex;
+    modal.dataset.isEdit = 'true';
+    modal.style.display = 'block';
+  }
+
+  function importFromExcel(file) {
+    const reader = new FileReader();
+
+    // Helper: mehrere mögliche Header-Namen erlauben
+    function getField(row, keys) {
+      for (const k of keys) {
+        if (Object.prototype.hasOwnProperty.call(row, k) && row[k] != null) return row[k];
+      }
+      return undefined;
+    }
+
+    function parseBoolean(val) {
+      if (typeof val === 'boolean') return val;
+      if (val == null) return false;
+      const s = String(val).trim().toLowerCase();
+      return ['true','1','ja','j','y','yes','wahr','x'].includes(s);
+    }
+
+    function safeParseJSON(val, fallback) {
+      try {
+        if (val == null || val === '') return fallback;
+        if (typeof val !== 'string') return Array.isArray(val) ? val : fallback;
+        return JSON.parse(val);
+      } catch(_e) { return fallback; }
+    }
+
+    reader.onload = function(e) {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(firstSheet);
+
+        // Nutzerentscheidung: Hinzufügen (OK) oder Überschreiben (Abbrechen)?
+        const shouldAppend = confirm("Möchten Sie die Daten aus der Excel-Datei zu den bestehenden Einträgen hinzufügen?\n\n- OK: Hinzufügen\n- Abbrechen: Bestehende Liste ersetzen");
+
+        // Temporäre Gruppierung nach Adresse
+        const addressMap = new Map();
+
+        rows.forEach(row => {
+          const plz = getField(row, ['PLZ']);
+          const ort = getField(row, ['Ort']);
+          const strasse = getField(row, ['Straße','Strasse']);
+          const nummer = getField(row, ['Nummer','Nr.']);
+          const zusatz = getField(row, ['Zusatz']) || '';
+          const we = getField(row, ['WE']);
+          const addressKey = `${plz}_${strasse}_${nummer}_${zusatz || ''}`;
+
+          if (!addressMap.has(addressKey)) {
+            addressMap.set(addressKey, {
+              id: Date.now() + Math.random(),
+              plz, ort, strasse, nummer, zusatz,
+              we,
+              manualCurrentWe: getField(row, ['Aktuelle WE']) || undefined,
+              weCorrections: safeParseJSON(getField(row, ['WE Korrekturen']), []),
+              residents: []
+            });
+          }
+
+          const hasBewohner = getField(row, ['Bewohner']);
+          const statusVal = getField(row, ['Status']);
+          if (hasBewohner || statusVal) {
+            const contact = addressMap.get(addressKey);
+            contact.residents.push({
+              unit: contact.residents.length + 1,
+              name: hasBewohner || '',
+              phone: getField(row, ['Telefon']) || '',
+              status: statusVal || '',
+              notes: getField(row, ['Notizen']) || '',
+              mieter: parseBoolean(getField(row, ['Mieter'])),
+              statusHistory: safeParseJSON(getField(row, ['Statusverlauf','StatusVerlauf']), [])
+            });
+          }
+        });
+
+        const importedContacts = Array.from(addressMap.values());
+
+        if (shouldAppend) {
+          contacts = sortContacts([...(contacts || []), ...importedContacts]);
+        } else {
+          contacts = sortContacts(importedContacts);
+        }
+
+        saveContacts();
+        updateStreetFilter();
+        renderContacts();
+
+        alert(`Import erfolgreich: ${importedContacts.length} Adressen ${shouldAppend ? 'hinzugefügt' : 'importiert'}`);
+
+      } catch (err) {
+        console.error('Import failed:', err);
+        alert('Fehler beim Import: ' + err.message);
+      }
+    };
+
+    reader.onerror = err => {
+      console.error('FileReader error:', err);
+      alert('Fehler beim Lesen der Datei');
+    };
+
+    reader.readAsArrayBuffer(file);
+  }
+
+  async function exportToExcel() {
+    if (!(await ensureXLSXReady())) return;
+    // Create array of objects in the format needed for XLSX
+    const exportData = contacts.map(contact => {
+      // For contacts without residents, create one row with basic info
+      if (!contact.residents || contact.residents.length === 0) {
+        return {
+          'PLZ': contact.plz,
+          'Ort': contact.ort,
+          'Straße': contact.strasse,
+          'Nummer': contact.nummer,
+          'Zusatz': contact.zusatz,
+          'WE': contact.we,
+          'Bewohner': '',
+          'Telefon': '',
+          'Status': '',
+          'Notizen': '',
+          'Mieter': '',
+          'Statusverlauf': '',
+          'Aktuelle WE': contact.manualCurrentWe || '',
+          'WE Korrekturen': JSON.stringify(contact.weCorrections || [])
+        };
+      }
+    
+      // For contacts with residents, create one row per resident
+      return contact.residents.map(resident => ({
+        'PLZ': contact.plz,
+        'Ort': contact.ort,
+        'Straße': contact.strasse,
+        'Nummer': contact.nummer,
+        'Zusatz': contact.zusatz,
+        'WE': contact.we,
+        'Bewohner': resident.name,
+        'Telefon': resident.phone,
+        'Status': resident.status,
+        'Notizen': resident.notes,
+        'Mieter': resident.mieter ? 'true' : 'false',
+        'Statusverlauf': JSON.stringify(resident.statusHistory || []),
+        'Aktuelle WE': contact.manualCurrentWe || '',
+        'WE Korrekturen': JSON.stringify(contact.weCorrections || [])
+      }));
+    }).flat();
+
+    // Create a new workbook and add the data
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    XLSX.utils.book_append_sheet(wb, ws, "Qualifizierungen");
+  
+    // Save/Share
+    const place = (contacts && contacts[0] && contacts[0].ort) ? String(contacts[0].ort).replace(/\s+/g,'-').toLowerCase() : 'ort';
+    const d = new Date();
+    const pad = n => (n<10?('0'+n):n);
+    const filename = `qualifizierungen_${place}_${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}.xlsx`;
+
+    // Native App: über Filesystem + Share teilen
+    if (isNativeApp()) {
+      try {
+        const wbArray = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([wbArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const base64 = await blobToBase64(blob);
+
+        // 1) Falls SAF-Plugin vorhanden, zuerst System-Dialog verwenden
+        const SaveAs = getCapPlugin('SaveAs');
+        if (SaveAs && typeof SaveAs.createDocumentAndWrite === 'function') {
+          try {
+            await SaveAs.createDocumentAndWrite({ filename, mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', base64 });
+            return;
+          } catch(e){
+            if (String(e||'').includes('user_cancelled')) return; // Nutzer hat abgebrochen
+            console.warn('SAF SaveAs fehlgeschlagen, versuche direkten Download/Share:', e);
+          }
+        }
+
+        // 2) Android 10 (API 29): Versuche direkten Download in öffentlichen Ordner
+        try {
+          await saveToDownloadsAndroid(base64, filename, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+          return;
+        } catch(eDown){
+          console.warn('Direkter Download fehlgeschlagen, versuche Share:', eDown?.message||eDown);
+        }
+
+        // 3) Fallback: CACHE + Share-Dialog
+        const Filesystem = getCapPlugin('Filesystem');
+        const Share = getCapPlugin('Share');
+        if (!Filesystem || !Share) throw new Error('Capacitor Plugins nicht verfügbar');
+        await Filesystem.writeFile({ path: filename, data: base64, directory: 'CACHE', recursive: false });
+        const uriRes = await Filesystem.getUri({ path: filename, directory: 'CACHE' });
+        try {
+          // Capacitor 6+: Share unterstützt files + mimeType
+          await Share.share({
+            title: 'Qualis exportieren (Excel)',
+            dialogTitle: 'Datei teilen / speichern',
+            files: [uriRes.uri],
+            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          });
+        } catch(_e) {
+          // Fallback auf url
+          await Share.share({ title: 'Qualis exportieren (Excel)', url: uriRes.uri, dialogTitle: 'Datei teilen / speichern' });
+        }
+        return;
+
+      } catch (err) {
+        console.warn('Native Excel-Export fehlgeschlagen, Fallback Browser:', err?.message||err);
+        try {
+          const wbArray = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+          const blob = new Blob([wbArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          triggerDownload(blob, filename);
+        } catch(e) { console.error('Export Fallback fehlgeschlagen:', e); }
+      }
+      return;
+    }
+
+    // Browser: Download via Blob (robust in Preview/iframe)
+    try {
+      const wbArray = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      triggerDownload(blob, filename);
+    } catch(e) {
+      console.error('Export fehlgeschlagen:', e);
+      alert('Export fehlgeschlagen: '+(e.message||e));
+    }
+  }
+
+  // MOBILE/CAPACITOR: deviceready event support
+  function initializeApp() {
+    console.log('[Init] Application initializing...');
+    
+    // awaitSupabase() wird NICHT hier aufgerufen, sondern im Early-Init-Block nach der Definition
+    // (siehe Script-Block nach Zeile ~3770)
+    
+    // Force initial section display (contacts)
+    setTimeout(() => {
+      console.log('[Init] Setting initial section to contacts');
+      showSection('contacts');
+    }, 100);
+    
+    // Hardening: stelle sicher, dass Import-Sektion initial klickbar ist und Buttons sichtbar werden
+    try {
+      const h3 = document.querySelector('.import-section h3');
+      if (h3) {
+        h3.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); toggleImportSection(); }, { passive:false });
+        h3.addEventListener('touchstart', (e)=>{ e.preventDefault(); e.stopPropagation(); toggleImportSection(); }, { passive:false });
+      }
+      const section = document.querySelector('.import-section');
+      if (section && section.classList.contains('expanded')) {
+        const content = section.querySelector('.import-content');
+        const btns = section.querySelector('.import-export-buttons');
+        if (content) content.style.display = 'block';
+        if (btns) btns.style.display = 'flex';
+      }
+    } catch(_) {}
+
+    // Initial Hash berücksichtigen (z.B. Direktaufruf mit #import)
+    const initial = (location.hash||'').slice(1);
+    console.log('[Init] Completed - initial hash:', initial);
+  }
+  
+  // Support both web and Capacitor environments
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('[Event] DOMContentLoaded fired');
+    initializeApp();
+    
+    // KEIN sofortiger Sync hier - wird von initLocal() mit Session-Check gemacht
+  });
+  
+  // Capacitor-specific initialization
+  document.addEventListener('deviceready', () => {
+    console.log('[Event] deviceready fired (Capacitor/Cordova detected)');
+    // Re-initialize to ensure everything works on native
+    setTimeout(() => {
+      initializeApp();
+      // KEIN separater Sync - wird von initLocal() mit Session-Check gemacht
+    }, 200);
+    if (initial) {
+      try { showSection(initial); } catch(e) { console.warn('init hash failed', e); }
+    }
+    // MOBILE/NATIVE APP FIX: Touch + Click Events für Sidebar
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+      // Sicherstellen, dass Sidebar immer klickbar ist
+      sidebar.style.pointerEvents = 'auto';
+      sidebar.style.zIndex = '999';
+      sidebar.style.webkitTapHighlightColor = 'transparent';
+      
+      // Unified handler für Click UND Touch
+      function handleSidebarInteraction(e) {
+        console.log('[QT Sidebar] Interaction detected, type:', e.type, 'target:', e.target);
+        
+        const a = e.target.closest && e.target.closest('a[href^="#"]');
+        if (!a) {
+          console.log('[QT Sidebar] No link found, checking for SVG...');
+          // Fallback: Wenn auf SVG/Icon geklickt wurde
+          const listItem = e.target.closest('li');
+          if (listItem) {
+            const link = listItem.querySelector('a');
+            if (link) {
+              const sectionId = (link.getAttribute('href')||'').slice(1);
+              console.log('[QT Sidebar] Section from li:', sectionId);
+              if (sectionId) {
+                e.preventDefault();
+                e.stopPropagation();
+                showSection(sectionId);
+                return;
+              }
+            }
+          }
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        const sectionId = (a.getAttribute('href')||'').slice(1);
+        console.log('[QT Sidebar] Section from link:', sectionId);
+        if (sectionId) showSection(sectionId);
+      }
+      
+      // Beide Events registrieren (Touch für Mobile, Click für Desktop)
+      sidebar.addEventListener('touchstart', handleSidebarInteraction, { passive: false, capture: true });
+      sidebar.addEventListener('click', handleSidebarInteraction, { passive: false, capture: true });
+    }
+
+    document.querySelectorAll('.sidebar-nav a').forEach(link => {
+      // Sicherstellen, dass Links klickbar sind
+      link.style.pointerEvents = 'auto';
+      link.style.cursor = 'pointer';
+      link.style.webkitTapHighlightColor = 'transparent';
+      link.style.webkitTouchCallout = 'none';
+      
+      function handleLinkInteraction(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const sectionId = (this.getAttribute('href')||'').replace('#', '');
+        console.log('[QT Sidebar Link] Interaction on section:', sectionId, 'type:', e.type);
+        if (!sectionId) return;
+        showSection(sectionId);
+      }
+      
+      // Beide Events für jeden Link
+      link.addEventListener('touchstart', handleLinkInteraction, { passive: false });
+      link.addEventListener('click', handleLinkInteraction, { passive: false });
+    });
+  
+    // Supabase Client Init (einmalig; Wiederverwendung wenn vorhanden)
+    let supa = null;
+    try {
+      if (window.supa) {
+        supa = window.supa;
+      } else if (window.supabase && typeof window.supabase.createClient === 'function') {
+        const SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
+        supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
+        window.supa = supa;
+      }
+    } catch (e) {
+      console.warn('Supabase init skipped (offline):', e?.message || e);
+      supa = null;
+    }
+
+    async function requireAuthOrRedirect(){
+      try {
+        // Offline-/No-CDN-Fallback ZUERST prüfen, wenn bereits einmal eingeloggt wurde
+        const offlineAllowed = localStorage.getItem('offline_allowed') === 'true';
+        const lastUser = localStorage.getItem('last_user_id');
+        if (offlineAllowed && lastUser) {
+          return { id: lastUser };
+        }
+        
+        // Online-Fall: Supabase verfügbar -> Sitzung prüfen
+        if (supa) {
+          const { data: { session } } = await supa.auth.getSession();
+          if (!session) { window.location.href = './login.html'; return null; }
+          return session.user;
+        }
+        
+        // Sonst zur Login-Seite leiten
+        window.location.href = './login.html';
+        return null;
+      } catch (e) {
+        console.warn('Auth check failed; redirecting to login unless offline allowed:', e?.message || e);
+        const offlineAllowed = localStorage.getItem('offline_allowed') === 'true';
+        const lastUser = localStorage.getItem('last_user_id');
+        if (offlineAllowed && lastUser) { return { id: lastUser }; }
+        window.location.href = './login.html';
+        return null;
+      }
+    }
+
+    class CloudSync {
+      constructor(){ this.syncing = false; }
+      async getCloudContacts(){
+        const { data, error } = await supa.from('user_contacts').select('contacts').maybeSingle();
+        if (error && error.code !== 'PGRST116') throw error;
+        return (data && data.contacts) ? data.contacts : [];
+      }
+      async upsertCloud(contacts){
+        const { data: { user } } = await supa.auth.getUser();
+        const { error } = await supa.from('user_contacts').upsert({ user_id: user.id, contacts }, { onConflict: 'user_id' });
+        if (error) throw error;
+      }
+    }
+
+    const cloudSync = new CloudSync();
+
+    // Logout support (minimal, ohne UI-Layout zu verändern)
+    async function signOut() {
+      try {
+        await supa.auth.signOut();
+      } catch (e) {
+        console.warn('Signout Warnung:', e?.message || e);
+      } finally {
+        try { localStorage.removeItem('contacts'); } catch(_e) {}
+        window.location.href = './login.html';
+      }
+    }
+
+    // Globale Navigation als Fallback (funktioniert auch ohne Listener)
+    window.navTo = function(sectionId){
+      try { showSection(sectionId); } catch(e) { console.error(e); }
+      return false;
+    };
+
+    // Hook into existing lifecycle after DOMContentLoaded at the bottom, without UI changes
+
+
+    // Initialisieren sobald DOM geladen ist (direkt ausführen)
+    (async () => {
+      const user = await requireAuthOrRedirect();
+      if (!user) return;
+
+      // Vorhandene lokale Daten laden
+      try {
+        const localContacts = JSON.parse(localStorage.getItem('contacts')||'[]');
+        if (!localContacts || !Array.isArray(localContacts)) {
+          localStorage.setItem('contacts','[]');
+          contacts = [];
+        } else {
+          // Lokale Kontakte sind vorhanden - laden und anzeigen
+          window.contacts = contacts = localContacts; // Beide gleichzeitig setzen!
+          console.log('[Init] Loaded', contacts.length, 'contacts from localStorage');
+          renderContacts();
+          updateStreetFilter();
+        }
+      } catch(_e) { 
+        localStorage.setItem('contacts','[]'); 
+        contacts = [];
+      }
+
+      // Originale Initialisierung: Immer zuerst zur Adressliste (Kontaktliste)
+      showSection('contacts');
+      filterByStatus('all');
+      
+      // NEU: Gecachte Straßenliste beim Start laden (vor updateStreetFilter)
+      try {
+        const cachedStreets = JSON.parse(localStorage.getItem('qt_streets_cache') || '[]');
+        if (cachedStreets && cachedStreets.length > 0) {
+          const streetFilter = document.getElementById('streetFilter');
+          if (streetFilter) {
+            // Lösche alte Einträge (außer "Alle Straßen")
+            while (streetFilter.options.length > 1) {
+              streetFilter.remove(1);
+            }
+            // Füge gecachte Straßen ein
+            cachedStreets.forEach(street => {
+              const option = document.createElement('option');
+              option.value = street;
+              option.textContent = street;
+              streetFilter.appendChild(option);
+            });
+            console.log('[Init] Loaded', cachedStreets.length, 'streets from cache');
+          }
+        }
+      } catch(e) {
+        console.warn('[Init] Could not load cached streets:', e);
+      }
+      
+      // Verzögerter Aufruf um sicherzustellen, dass DOM vollständig geladen ist
+      setTimeout(() => {
+        updateStreetFilter();
+      }, 100);
+
+      // saveContacts erweitern, ohne UI zu ändern
+      const _save = window.saveContacts;
+      window.saveContacts = function(){
+        try { _save && _save(); } catch(e) { console.error(e); }
+        // Snapshot + zeitnahes Flushen (einmal pro Speichervorgang)
+        try { enqueueContactsSnapshot(); flushSoon(); } catch(_) {}
+      };
+
+      // Erste Synchronisierung: Cloud -> Lokal (keine UI-Änderung)
+      try {
+        const cloud = await cloudSync.getCloudContacts();
+        if (Array.isArray(cloud) && cloud.length > 0) {
+          localStorage.setItem('contacts', JSON.stringify(cloud));
+          renderContacts();
+          updateStreetFilter();
+        }
+      } catch(e){ console.warn('Initiale Cloud-Sync Warnung:', e.message||e); }
+    })();
+
+    // XLSX lädt bereits dynamisch oben; zusätzlicher Loader entfernt, um Fehler zu vermeiden.
+  });
+
+
+  function updateStatistics() {
+    const statsGrid = document.getElementById('statsGrid');
+    if (!statsGrid) return;
+
+    // Reset statistics grid
+    statsGrid.innerHTML = '';
+
+    // Initialize counters for each status
+    const statusCounts = {
+      'offen': 0,
+      'nicht-angetroffen': 0,
+      'kein-eintritt': 0,
+      'wiedervorlage': 0,
+      'termin': 0,
+      'beraten': 0,
+      'kein-interesse': 0,
+      'abschluss': 0,
+      'onlineabschluss': 0,
+      'nicht-vermarktbar': 0,
+      'blacklist': 0,
+      'abschl-anderer-vp': 0
+    };
+
+    let totalUnits = 0;
+    let totalStatusChanges = 0;
+    let totalCompletions = 0;
+
+    // Count statuses and total status changes
+    contacts.forEach(contact => {
+      const weCount = parseInt(contact.we) || 0;
+      totalUnits += weCount;
+    
+      if (contact.residents) {
+        contact.residents.forEach(resident => {
+          const highestStatus = getHighestPriorityStatus(resident);
+          if (highestStatus && statusCounts.hasOwnProperty(highestStatus)) {
+            statusCounts[highestStatus]++;
+            if (highestStatus === 'abschluss' || highestStatus === 'onlineabschluss') {
+              totalCompletions++;
+            }
+          }
+          // Count total status changes from history
+          if (resident.statusHistory) {
+            totalStatusChanges += resident.statusHistory.length;
+          }
+        });
+      }
+    });
+
+    // Calculate total processed units (units with any status)
+    const processedUnits = Object.values(statusCounts).reduce((a, b) => a + b, 0);
+
+    // Create and append stat cards
+    Object.entries(statusCounts).forEach(([status, count]) => {
+      const percentage = totalUnits > 0 ? (count / totalUnits * 100).toFixed(1) : '0.0';
+      const card = document.createElement('div');
+      card.className = `stat-card status-${status}`;
+      card.innerHTML = `
+        <div class="stat-number">${count}</div>
+        <div class="stat-label">${getStatusLabel(status)}</div>
+        <div class="stat-percentage">${percentage}%</div>
+      `;
+      statsGrid.appendChild(card);
+    });
+
+    // Add total stats for units
+    const totalCard = document.createElement('div');
+    totalCard.className = 'stat-card';
+    const totalPercentage = totalUnits > 0 ? (processedUnits / totalUnits * 100).toFixed(1) : '0.0';
+    totalCard.innerHTML = `
+      <div>${processedUnits} / ${totalUnits}</div>
+      <div class="stat-label">Bearbeitete Einheiten</div>
+      <div class="stat-percentage">${totalPercentage}%</div>
+    `;
+    statsGrid.appendChild(totalCard);
+
+    // Add total status changes card
+    const statusChangesCard = document.createElement('div');
+    statusChangesCard.className = 'stat-card';
+    const changesPerCompletion = totalCompletions > 0 ? (totalStatusChanges / totalCompletions).toFixed(1) : '0.0';
+    statusChangesCard.innerHTML = `
+      <div>${totalStatusChanges}</div>
+      <div class="stat-label">Statusänderungen gesamt</div>
+      <div class="stat-percentage">${changesPerCompletion} pro Abschluss</div>
+    `;
+    statsGrid.appendChild(statusChangesCard);
+  }
+
+  function toggleStatistics() {
+    const statsDiv = document.getElementById('statusStats');
+    statsDiv.style.display = statsDiv.style.display === 'none' ? 'block' : 'none';
+    if (statsDiv.style.display === 'block') {
+      updateStatistics();
+    }
+  }
+</script>
+
+<!-- Auto-Sync Patch: Supabase Kontakte + Status-Events mit Offline-Queue -->
+<script>
+(function(){
+  // 1) Konfiguration: aus globalen Variablen lesen, ansonsten Fallback auf die Werte aus login.html
+  const DEFAULT_SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
+  const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
+  const SUPABASE_URL = window.SUPABASE_URL || DEFAULT_SUPABASE_URL;
+
+  // Frühe No-Op Stubs global bereitstellen (werden in init überschrieben)
+  try {
+    window.enqueueContactsSnapshot = window.enqueueContactsSnapshot || function(){};
+    window.rescanAndEnqueueStatusDiffs = window.rescanAndEnqueueStatusDiffs || function(){};
+    window.flushSoon = window.flushSoon || function(){};
+    window.flushQueue = window.flushQueue || function(){};
+  } catch(_) {}
+
+})();
+</script>
+
+<script>
+  // Globaler Shim: stellt sicher, dass window.manualDirectSyncNow immer existiert,
+  // auch wenn die echte Implementierung später geladen wird.
+  (function(){
+    if (typeof window.manualDirectSyncNow !== 'function') {
+      window.__mdsn_impl = null;
+      window.manualDirectSyncNow = async function(){
+        for (let i = 0; i < 50; i++) {
+          if (typeof window.__mdsn_impl === 'function') {
+            return await window.__mdsn_impl();
+          }
+          await new Promise(r => setTimeout(r, 100));
+        }
+        throw new Error('manualDirectSyncNow impl missing');
+      };
+    }
+  })();
+</script>
+
+<!-- Sichtbares Sync/Debug Panel -->
+<div id="debugModal" class="modal" style="display:none;">
+  <div class="modal-content" style="max-width: 860px; width: 92%; max-height: 80vh; overflow: auto;">
+    <h3>Sync / Debug</h3>
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-bottom:8px;">
+      <button id="dbgSyncBtn" class="unit-btn">Jetzt synchronisieren</button>
+      <button id="dbgSessBtn" class="unit-btn">Session prüfen</button>
+      <button id="dbgRefreshBtn" class="unit-btn">Aktualisieren</button>
+      <button id="dbgCopyBtn" class="unit-btn">In Zwischenablage</button>
+      <button id="dbgCloseBtn" class="unit-btn" style="background:#111827;">Schließen</button>
+      <button id="dbgClearBtn" class="unit-btn" style="background:#ef4444;">Lokale Kontakte leeren</button>
+      <button id="dbgClearSyncBtn" class="unit-btn" style="background:#b91c1c;">Leeren + Sync</button>
+    </div>
+    <pre id="debugContent" style="background:#0b1020; color:#e5e7eb; padding:12px; border-radius:8px; font-size:12px; line-height:1.4; white-space:pre-wrap; word-break:break-word;">
+    </pre>
+  </div>
+</div>
+
+<script>
+  // Debug Overlay Logic (nur aktiv mit ?debug=1)
+  (function(){
+    let tapCount = 0, tapTimer = null;
+
+    async function getSupabaseUserId(){
+      try {
+        const client = window.supa || (window.supabase && window.supabase.createClient ? null : null);
+        if (window.supa && window.supa.auth){
+          const { data: { user } } = await window.supa.auth.getUser();
+          return user?.id || null;
+        }
+      } catch(_) {}
+      return null;
+    }
+
+    function safeParse(str){ try { return JSON.parse(str || 'null'); } catch(_e) { return str || null; } }
+
+    async function collectDebug(){
+      const info = {};
+      info.now = new Date().toISOString();
+      info.online = navigator.onLine;
+      info.userId = await getSupabaseUserId();
+      info.last_event_err = safeParse(localStorage.getItem('qt_last_event_err'));
+      info.last_sync_try = safeParse(localStorage.getItem('qt_last_sync_try'));
+      let q = safeParse(localStorage.getItem('qt_sync_queue_v1')) || [];
+      info.queue_total = Array.isArray(q) ? q.length : 0;
+      info.queue_events = Array.isArray(q) ? q.filter(it => it && it.type === 'event') : [];
+      info.dead_contacts = safeParse(localStorage.getItem('qt_dead_contacts')) || [];
+      try { const cs = JSON.parse(localStorage.getItem('contacts')||'[]'); info.contacts_count = Array.isArray(cs)? cs.length : 0; } catch(_){ info.contacts_count = 'err'; }
+      return info;
+    }
+
+    async function renderDebug(){
+      const pre = document.getElementById('debugContent');
+      const data = await collectDebug();
+      pre.textContent = JSON.stringify(data, null, 2);
+    }
+
+    function openDebug(){
+      const modal = document.getElementById('debugModal');
+      if (!modal) return;
+      modal.style.display = 'block';
+      renderDebug();
+    }
+
+    function clearLocalContacts(){
+      try{
+        // Kontakte vollständig entfernen (nicht nur auf [] setzen)
+        localStorage.removeItem('contacts');
+        const uid = localStorage.getItem('last_user_id');
+        if (uid) { try { localStorage.removeItem(`contacts:${uid}`); } catch(_e){} }
+        localStorage.removeItem('qt_last_contacts_hash');
+        // Erneut Snapshot der (nun leeren) Kontakte einreihen und flushen
+        if (typeof window.enqueueFullContactsSnapshot === 'function') {
+          window.enqueueFullContactsSnapshot();
+        }
+        if (typeof window.flushSoon === 'function') {
+          window.flushSoon();
+        }
+      }catch(_e){ }
+    }
+    function closeDebug(){
+      const modal = document.getElementById('debugModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function copyDebug(){
+      try{
+        const txt = document.getElementById('debugContent').textContent || '';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(()=>{ /* noop */ });
+        } else {
+          const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+        }
+      }catch(_){}
+    }
+
+    // Buttons explizit binden (robust gegen Event Delegation)
+    window.addEventListener('DOMContentLoaded', function(){
+      try{
+        const closeBtn = document.getElementById('dbgCloseBtn');
+        const copyBtn = document.getElementById('dbgCopyBtn');
+        const refreshBtn = document.getElementById('dbgRefreshBtn');
+        const sessBtn = document.getElementById('dbgSessBtn');
+        const syncBtn = document.getElementById('dbgSyncBtn');
+        if (closeBtn) closeBtn.addEventListener('click', function(ev){ ev.preventDefault(); closeDebug(); });
+        if (copyBtn) copyBtn.addEventListener('click', function(ev){ ev.preventDefault(); copyDebug(); });
+        if (refreshBtn) refreshBtn.addEventListener('click', function(ev){ ev.preventDefault(); renderDebug(); });
+        if (sessBtn) sessBtn.addEventListener('click', async function(ev){ ev.preventDefault(); try{ const u = await (window.supa ? window.supa.auth.getUser() : { data: { user: null }}); const s = (u && u.data && u.data.user) ? `ok id=${u.data.user.id}` : 'keine Session'; setPanelStatus(`session: ${s}`); }catch(err){ setPanelStatus('session fehler: '+(err&&err.message||err)); } renderDebug(); });
+        if (syncBtn) syncBtn.addEventListener('click', async function(ev){ ev.preventDefault(); await runDirectSyncAndReport(); });
+        const clearBtn = document.getElementById('dbgClearBtn');
+        const clearSyncBtn = document.getElementById('dbgClearSyncBtn');
+        if (clearBtn) clearBtn.addEventListener('click', function(ev){ ev.preventDefault(); clearLocalContacts(); renderDebug(); alert('Lokale Kontakte geleert.'); });
+        if (clearSyncBtn) clearSyncBtn.addEventListener('click', async function(ev){ ev.preventDefault(); clearLocalContacts(); await runDirectSyncAndReport(); alert('Leeren + Sync ausgeführt.'); });
+      }catch(_){ }
+    });
+
+    function setPanelStatus(msg){
+      try{
+        const pre = document.getElementById('debugContent');
+        const data = safeParse(pre.textContent) || {};
+        data.status = msg;
+        pre.textContent = JSON.stringify(data, null, 2);
+      }catch(_){ }
+    }
+
+    async function runDirectSyncAndReport(){
+      try{
+        setPanelStatus('start');
+        const fn = (window && typeof window.manualDirectSyncNow === 'function') ? window.manualDirectSyncNow : null;
+        if (!fn) { throw new Error('manualDirectSyncNow not available on window'); }
+        const ok = await fn();
+        setPanelStatus(ok ? 'events_ok' : 'failed');
+      }catch(err){ setPanelStatus('error: '+(err&&err.message||err)); }
+      await renderDebug();
+    }
+
+    // Modal Klick außerhalb schließen (Delegation)
+    document.addEventListener('click', function(e){ if (e.target && e.target.id === 'debugModal') closeDebug(); }, { capture: true });
+
+    // Sidebar-Icon wurde entfernt (nicht mehr benötigt)
+  })();
+</script>
+
+<script>
+  const DEFAULT_SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
+  const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
+  
+  const SUPABASE_URL = window.SUPABASE_URL || DEFAULT_SUPABASE_URL;
+  const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
+
+  // 2) Warten bis supabase-js geladen ist und Client initialisieren (Session wird von supabase-js verwaltet)
+  let sb = null; // Supabase Client
+
+  function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+  async function awaitSupabase(maxMs=10000){
+    console.log('[awaitSupabase] Starting... window.supa exists:', !!window.supa, 'sb exists:', !!sb);
+    
+    // IMMER window.supa nutzen (zentraler Client)
+    if (window.supa) { 
+      sb = window.supa;
+      console.log('[awaitSupabase] Using existing window.supa');
+      return sb; 
+    }
+    
+    if (sb) { 
+      console.log('[awaitSupabase] Using existing local sb');
+      return sb; 
+    }
+
+    const start = Date.now();
+    console.log('[awaitSupabase] Waiting for supabase library...');
+    
+    // Warte auf supabase-js Library
+    while(!(window.supabase && window.supabase.createClient)){
+      if (Date.now()-start > maxMs) {
+        console.error('[awaitSupabase] Timeout waiting for supabase-js');
+        throw new Error('supabase-js nicht geladen');
+      }
+      await sleep(100);
+      
+      // Prüfe immer wieder ob window.supa gesetzt wurde
+      if (window.supa) { 
+        sb = window.supa;
+        console.log('[awaitSupabase] window.supa appeared during wait');
+        return sb; 
+      }
+    }
+    
+    // Erstelle NUR EINEN Client wenn noch keiner existiert
+    if (!sb && !window.supa) {
+      console.log('[awaitSupabase] Creating NEW Supabase client...');
+      
+      function getCapacitorStorage(){
+        try{
+          const P = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) || null;
+          if (!P) return null;
+          console.log('[awaitSupabase] Capacitor Preferences available');
+          return {
+            getItem: async (key) => { const r = await P.get({ key }); return (r && typeof r.value==='string') ? r.value : null; },
+            setItem: async (key, value) => { await P.set({ key, value: String(value ?? '') }); },
+            removeItem: async (key) => { await P.remove({ key }); }
+          };
+        }catch(e){ 
+          console.log('[awaitSupabase] Capacitor not available, using localStorage');
+          return null; 
+        }
+      }
+      
+      const capStore = getCapacitorStorage();
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { 
+        auth: { 
+          persistSession: true, 
+          storage: capStore || window.localStorage,
+          autoRefreshToken: true, 
+          detectSessionInUrl: false 
+        }
+      });
+      
+      // ZENTRAL: Setze window.supa
+      window.supa = sb;
+      console.log('[awaitSupabase] ✓ NEW client created and set as window.supa');
+      
+      // KRITISCH: Registriere Auth-State-Listener für automatische Sync-Trigger
+      // Dieser Listener wird gefeuert wenn Supabase die Session aus Storage lädt
+      sb.auth.onAuthStateChange((event, session) => {
+        console.log('[awaitSupabase] Auth state changed:', event, 'Session:', session ? `User ${session.user.id}` : 'null');
+        
+        // Wenn Session verfügbar ist und es ein SIGNED_IN oder INITIAL_SESSION event ist
+        if (session && session.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+          console.log('[awaitSupabase] ✓✓✓ Session loaded! Triggering auto-sync...');
+          
+          // Warte kurz, damit manualDirectSyncNow sicher definiert ist
+          setTimeout(async () => {
+            if (typeof window.manualDirectSyncNow === 'function') {
+              console.log('[awaitSupabase] Calling manualDirectSyncNow() after session load...');
+              try {
+                const result = await window.manualDirectSyncNow();
+                console.log('[awaitSupabase] Auto-sync after session load:', result ? 'SUCCESS ✓✓✓' : 'FAILED ✗');
+              } catch(e) {
+                console.error('[awaitSupabase] Auto-sync error:', e);
+              }
+            } else {
+              console.warn('[awaitSupabase] manualDirectSyncNow not available yet, will be handled by interval');
+            }
+          }, 1000);
+        }
+      });
+      
+      console.log('[awaitSupabase] ✓ Auth state listener registered');
+    }
+    
+    return sb;
+  }
+
+  // SOFORTIGE INITIALISIERUNG: Rufe awaitSupabase() auf sobald definiert
+  // Dies registriert den Auth-Listener so früh wie möglich
+  (function earlySupabaseInit(){
+    console.log('[EarlyInit] Triggering Supabase initialization immediately...');
+    awaitSupabase().then(async (client) => {
+      console.log('[EarlyInit] ✓ Supabase initialized, auth listener active');
+      
+      // KRITISCH: Stelle sicher, dass User-Zeile existiert (für Auto-Sync/Realtime)
+      try {
+        const { data: { user } } = await client.auth.getUser();
+        if (user && user.id) {
+          console.log('[EarlyInit] Ensuring user row exists for:', user.id);
+          const { error } = await client
+            .from('user_contacts')
+            .insert({ user_id: user.id, contacts: [] }, { ignoreDuplicates: true });
+          if (error && error.code !== '23505') {
+            console.warn('[EarlyInit] ensureUserRow error (may be OK):', error);
+          } else {
+            console.log('[EarlyInit] ✓ User row ensured');
+          }
+        }
+      } catch(e) {
+        console.warn('[EarlyInit] ensureUserRow failed:', e);
+      }
+    }).catch((e) => {
+      console.error('[EarlyInit] Supabase init error:', e);
+    });
+  })();
+
+  // 3) Storage/Queue Utilities
+  const QUEUE_KEY = 'qt_sync_queue_v1';
+  const LAST_HASH_KEY = 'qt_last_contacts_hash';
+
+  function getQueue(){
+    try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); } catch(_e) { return []; }
+  }
+  function setQueue(q){ localStorage.setItem(QUEUE_KEY, JSON.stringify(q||[])); }
+  function enqueue(item){ const q=getQueue(); q.push(item); setQueue(q); }
+
+  function stableStringify(obj){
+    try { return JSON.stringify(obj, Object.keys(obj).sort()); } catch(_e1) { try{ return JSON.stringify(obj);}catch(_e2){return '';} }
+  }
+
+  // 4) Kontakte lesen/vereinheitlichen (heuristisch)
+  function readLocalContactsRaw(){
+    // Primär nutzt diese Seite "contacts"; Login speichert optional unter "contacts:<userId>"
+    try {
+      const raw = JSON.parse(localStorage.getItem('contacts') || '[]');
+      if (Array.isArray(raw) && raw.length) return raw;
+    } catch(_e) {}
+    try {
+      const uid = localStorage.getItem('last_user_id');
+      if (uid){
+        const rawUser = JSON.parse(localStorage.getItem(`contacts:${uid}`) || '[]');
+        if (Array.isArray(rawUser) && rawUser.length){
+          // Spiegeln, damit die App wie gewohnt weiterarbeitet
+          localStorage.setItem('contacts', JSON.stringify(rawUser));
+          return rawUser;
+        }
+      }
+    } catch(_e) {}
+    return [];
+  }
+
+  function normalizeContacts(raw){
+    const arr = Array.isArray(raw) ? raw : [];
+    return arr.map(c => ({
+      id: c.id || Date.now() + Math.random(), // WICHTIG: ID beibehalten oder generieren
+      plz: (c.plz||'').toString().trim(),
+      ort: (c.ort||'').toString().trim(),
+      strasse: (c.strasse||'').toString().trim(),
+      nummer: (c.nummer||'').toString().trim(),
+      zusatz: (c.zusatz||'').toString().trim(),
+      we: (c.we||'').toString().trim(),
+      residents: Array.isArray(c.residents) ? c.residents.map(r => ({
+        unit: typeof r.unit === 'number' || typeof r.unit === 'string' ? r.unit.toString() : '',
+        name: (r.name||'').toString(),
+        phone: (r.phone||'').toString(),
+        notes: (r.notes||'').toString(),
+        mieter: !!r.mieter,
+        status: (r.status||'').toString(),
+        statusHistory: Array.isArray(r.statusHistory) ? r.statusHistory.map(e => ({
+          status: (e.status||'').toString(),
+          date: e.date || new Date().toISOString(),
+          timestamp: typeof e.timestamp === 'number' ? e.timestamp : Date.parse(e.date||'') || Date.now()
+        })) : []
+      })) : []
+    }));
+  }
+
+  function enqueueContactsSnapshot(){
+    try{
+      const normalized = normalizeContacts(readLocalContactsRaw());
+      const hash = stableStringify(normalized);
+      const lastHash = localStorage.getItem(LAST_HASH_KEY);
+      if (hash && hash !== lastHash){
+        enqueue({ type: 'contacts', data: normalized, ts: Date.now() });
+        localStorage.setItem(LAST_HASH_KEY, hash);
+      }
+    }catch(e){ console.warn('Kontakt-Snapshot fehlgeschlagen:', e); }
+  }
+
+  // Erzwinge Enqueue des kompletten Snapshots (ohne Hash-Prüfung)
+  function enqueueFullContactsSnapshot(){
+    try{
+      const normalized = normalizeContacts(readLocalContactsRaw());
+      enqueue({ type: 'contacts', data: normalized, ts: Date.now(), force: true });
+      try { localStorage.setItem(LAST_HASH_KEY, stableStringify(normalized)); } catch(_){ }
+    }catch(e){ console.warn('Full-Snapshot fehlgeschlagen:', e); }
+  }
+  try { window.enqueueFullContactsSnapshot = enqueueFullContactsSnapshot; } catch(_){ }
+
+  // Direkter Sync ohne Queue: Upsert + Events-RPC (2A)
+async function manualDirectSyncNow(){
+  const stamp = Date.now();
+  try{
+    localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'start' }));
+    const client = await awaitSupabase();
+    localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'client_ready' }));
+    const { data: { user } } = await client.auth.getUser();
+    localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'got_user', user: (user?{id:user.id,email:user.email}:null) }));
+    if (!user) throw new Error('Keine Session vorhanden');
+
+    const snapshot = normalizeContacts(readLocalContactsRaw());
+    localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: snapshot.length }));
+
+    // Primär: RPC mit p_user_id
+    try{
+      const { error } = await client.rpc('fn_public_upsert_user_contacts', { p_user_id: user.id, p_contacts: snapshot });
+      if (error) throw error;
+    }catch(e1){
+      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'rpc_upsert_failed', err: String(e1 && e1.message || e1) }));
+      // Fallback: Tabellen-Upsert
+      const { error: e2 } = await client.from('user_contacts').upsert({ user_id: user.id, contacts: snapshot }, { onConflict: 'user_id' });
+      if (e2) throw e2;
+    }
+    localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'upsert_ok' }));
+
+    // Events aus Snapshot erzeugen
+    const { error: e3 } = await client.rpc('fn_log_events_from_contacts_snapshot', { p_user_id: user.id, p_contacts: snapshot });
+    if (e3) throw e3;
+
+    localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'events_ok' }));
+    try { localStorage.removeItem('qt_last_event_err'); } catch(_){}
+    return true;
+  } catch(err){
+    try { localStorage.setItem('qt_last_event_err', JSON.stringify({ t: Date.now(), stage: 'manual_direct_sync', msg: String(err && err.message || err) })); } catch(_){}
+    return false;
+  }
+}
+// Globale Registrierung (überschreibt den Shim nur 1x)
+try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = manualDirectSyncNow; } catch(_){}
+
+// AUTO-SYNC FALLBACK mit konsolidiertem Supabase-Client
+// Dies ist ein Backup-Mechanismus falls der Auth-Listener nicht feuert
+(function autoInitialSyncFallback() {
+  console.log('[AutoSync] Setting up auto-sync FALLBACK (will run if auth listener doesnt trigger)...');
+  
+  let syncAttempts = 0;
+  const MAX_ATTEMPTS = 25; // 25 × 3s = 75 Sekunden
+  let syncInterval = null;
+  
+  async function tryDirectSync() {
+    syncAttempts++;
+    console.log(`[AutoSync-Fallback] Attempt ${syncAttempts}/${MAX_ATTEMPTS}...`);
+    
+    // Prüfe ob bereits erfolgreich
+    try {
+      const lastSync = localStorage.getItem('qt_last_sync_try');
+      if (lastSync) {
+        const parsed = JSON.parse(lastSync);
+        console.log('[AutoSync-Fallback] Last sync stage:', parsed.stage, 'userId:', parsed.user?.id || 'null');
+        
+        if (parsed.stage === 'events_ok') {
+          console.log('[AutoSync-Fallback] ✓✓✓ Already synced (events_ok)! Stopping fallback.');
+          if (syncInterval) clearInterval(syncInterval);
+          return;
+        }
+      }
+    } catch(e) {}
+    
+    // Prüfe ob window.supa und Session vorhanden
+    try {
+      if (!window.supa) {
+        console.log('[AutoSync-Fallback] window.supa not available yet, waiting...');
+        return;
+      }
+      
+      // WICHTIG: Warte explizit auf Session-Load mit mehreren Versuchen
+      let session = null;
+      for (let i = 0; i < 3; i++) {
+        const { data } = await window.supa.auth.getSession().catch(() => ({ data: { session: null }}));
+        if (data && data.session && data.session.user) {
+          session = data.session;
+          break;
+        }
+        if (i < 2) await new Promise(r => setTimeout(r, 500)); // Warte 500ms zwischen Versuchen
+      }
+      
+      if (!session || !session.user) {
+        console.log('[AutoSync-Fallback] No session yet (user not logged in or session still loading), waiting...');
+        return;
+      }
+      
+      console.log('[AutoSync-Fallback] ✓ Session found! User:', session.user.id);
+      
+      // JETZT synchronisieren via manualDirectSyncNow
+      const fn = (window && typeof window.manualDirectSyncNow === 'function') ? window.manualDirectSyncNow : null;
+      if (!fn) {
+        console.warn('[AutoSync-Fallback] window.manualDirectSyncNow not available yet');
+        return;
+      }
+      
+      console.log('[AutoSync-Fallback] Executing manualDirectSyncNow()...');
+      const result = await fn();
+      console.log('[AutoSync-Fallback] Sync result:', result ? 'SUCCESS ✓✓✓ events_ok' : 'FAILED ✗');
+      
+      if (result) {
+        console.log('[AutoSync-Fallback] ✓✓✓ AUTO-SYNC SUCCESSFUL via fallback!');
+        if (syncInterval) clearInterval(syncInterval);
+      }
+      
+    } catch(e) {
+      console.error('[AutoSync-Fallback] Error:', e);
+    }
+    
+    if (syncAttempts >= MAX_ATTEMPTS) {
+      console.warn('[AutoSync-Fallback] Max attempts reached. Stopping.');
+      if (syncInterval) clearInterval(syncInterval);
+    }
+  }
+  
+  // Starte nach 3 Sekunden, dann alle 3 Sekunden (häufiger als vorher)
+  console.log('[AutoSync-Fallback] Will start first attempt in 3 seconds...');
+  setTimeout(function() {
+    console.log('[AutoSync-Fallback] Starting fallback sync attempts...');
+    tryDirectSync(); // Erster Versuch
+    
+    // Dann alle 3 Sekunden wiederholen
+    syncInterval = setInterval(tryDirectSync, 3000);
+    window.__autoSyncInterval = syncInterval; // Zum Debugging
+  }, 3000);
+  
+  console.log('[AutoSync-Fallback] Setup complete - will check window.supa + session every 3s as backup');
+})();
+
+  // 5) Status-Event erfassen
+  function enqueueStatusEvent(evt){
+    // erwartet Felder: { plz, ort, strasse, nummer, zusatz, resident_key, status, occurred_at, notes }
+    try{
+      enqueue({ type: 'event', data: evt, ts: Date.now() });
+    }catch(e){ console.warn('Event-Queue fehlgeschlagen:', e); }
+  }
+
+  // 6) Flush-Logik
+  async function getUser(){
+    const client = await awaitSupabase();
+    const { data: { user } } = await client.auth.getUser();
+    return user;
+  }
+
+  async function flushQueue(){
+    const client = await awaitSupabase().catch((e)=>{
+      console.error('[FlushQueue] Supabase client error:', e);
+      return null;
+    });
+    
+    // auch offline: Queue sichtbar halten; Network nur wenn online + Session
+    const online = typeof navigator==='object' ? navigator.onLine : true;
+    const user = client ? (await getUser().catch((e)=>{
+      console.error('[FlushQueue] GetUser error:', e);
+      return null;
+    })) : null;
+
+    let q = getQueue();
+    if (!q.length) return;
+
+    const next = q[0];
+
+    if (!online || !client || !user){
+      // Kein Netz oder keine Session: nicht verwerfen, später erneut versuchen
+      console.warn('[FlushQueue] Not ready - online:', online, 'client:', !!client, 'user:', !!user);
+      setTimeout(flushQueue, 3000);
+      return;
+    }
+
+    try {
+      if (next.type === 'contacts') {
+        let ok = false, lastErr = null;
+        try {
+          const { error } = await client.from('user_contacts').upsert({ user_id: user.id, contacts: next.data }, { onConflict: 'user_id' });
+          if (error) throw error;
+          ok = true;
+        } catch (e0) {
+          lastErr = e0;
+          try {
+            const { error } = await client.rpc('fn_public_upsert_user_contacts', { p_user_id: (user && user.id) || null, p_contacts: next.data });
+            if (error) throw error;
+            ok = true;
+          } catch (e1) {
+            lastErr = e1;
+            // Zweiter Versuch: Tabellen-Upsert als Fallback (RLS muss Update erlauben)
+            try {
+              const { error } = await client.from('user_contacts').upsert({ user_id: user.id, contacts: next.data }, { onConflict: 'user_id' });
+              if (error) throw error;
+              ok = true;
+            } catch (e2) {
+              lastErr = e2;
+            }
+          }
+        }
+        if (ok) {
+          // Nach erfolgreichem Upsert sofort serverseitige Event-Generierung auslösen (Option 2A)
+          try {
+            const { data: { user: u } } = await client.auth.getUser();
+            const { error: procErr } = await client.rpc('fn_log_events_from_contacts_snapshot', { p_user_id: (u && u.id) || (user && user.id) || null, p_contacts: next.data });
+            if (procErr) throw procErr;
+          } catch(procCallErr){
+            console.warn('Event-Generierung RPC Aufruf fehlgeschlagen:', procCallErr?.message || procCallErr);
+            try { localStorage.setItem('qt_last_event_err', JSON.stringify({ t: Date.now(), stage: 'snapshot_events_rpc', msg: String(procCallErr&&procCallErr.message||procCallErr) })); } catch(_) {}
+          }
+          q.shift(); setQueue(q);
+        } else {
+          console.warn('Kontakt-Upload fehlgeschlagen:', lastErr?.message || lastErr);
+          // Blockade vermeiden: Item rotieren mit Retry-Counter
+          let item = q.shift();
+          item = Object.assign({ retries: 0 }, item);
+          item.retries += 1;
+          if (item.retries <= 3) { q.push(item); }
+          else {
+            // nach 3 Versuchen in Dead-Letter-Box ablegen
+            try {
+              const dl = JSON.parse(localStorage.getItem('qt_dead_contacts')||'[]');
+              dl.push({ ts: Date.now(), item, err: String(lastErr) });
+              localStorage.setItem('qt_dead_contacts', JSON.stringify(dl));
+            } catch(_){}
+          }
+          setQueue(q);
+          setTimeout(flushQueue, 50);
+          return;
+        }
+      } else if (next.type === 'event') {
+        try {
+          // Primär: Debug-Wrapper mit expliziter user_id (stabilste Variante)
+          const { data: { user: u } } = await client.auth.getUser();
+          const payload = Object.assign({ occurred_at: new Date().toISOString(), user_id: u?.id || null }, next.data);
+          const { error } = await client.rpc('fn_debug_log_status_event', payload);
+          if (error) throw error;
+          q.shift(); setQueue(q);
+        } catch (e) {
+          // Fallback: öffentliche RPC (ohne user_id)
+          try {
+            const payload2 = Object.assign({ occurred_at: new Date().toISOString() }, next.data);
+            const { error: e2 } = await client.rpc('fn_public_log_status_event', payload2);
+            if (e2) throw e2;
+            q.shift(); setQueue(q);
+          } catch (e2) {
+            const msg = (e2 && e2.message) || (e && e.message) || 'unbekannter Fehler';
+            try { localStorage.setItem('qt_last_event_err', JSON.stringify({ t: Date.now(), msg, first: (e && e.message)||String(e) })); } catch(_) { }
+            // Item rotieren, damit die Queue nicht blockiert
+            let q2 = getQueue();
+            let item = q2.shift();
+            item = Object.assign({ retries: 0 }, item);
+            item.retries += 1;
+            if (item.retries <= 5) { q2.push(item); } else {
+              try {
+                const dl = JSON.parse(localStorage.getItem('qt_dead_events')||'[]');
+                dl.push({ ts: Date.now(), item, err: msg });
+                localStorage.setItem('qt_dead_events', JSON.stringify(dl));
+              } catch(_) { }
+            }
+            setQueue(q2);
+            await sleep(500);
+            return;
+          }
+        }
+      }
+
+      if (getQueue().length) setTimeout(flushQueue, 50);
+    } catch (e) {
+      // still offline oder kein Client
+    }
+  }
+
+  // 7) Hooks in bestehende Funktionen einfügen
+  function hookFunctions(){
+    // Schutz: Falls saveContacts früher geladen/verwendet wird, existiert Queue-API bereits
+    try {
+      window.enqueueContactsSnapshot = window.enqueueContactsSnapshot || enqueueContactsSnapshot;
+      window.rescanAndEnqueueStatusDiffs = window.rescanAndEnqueueStatusDiffs || rescanAndEnqueueStatusDiffs;
+      window.flushSoon = window.flushSoon || flushSoon;
+      window.flushQueue = window.flushQueue || flushQueue;
+    } catch(_) {}
+
+    try{
+      // saveResident Hook
+      if (typeof window.saveResident === 'function'){
+        const origSaveResident = window.saveResident;
+        window.saveResident = function(contactId, unitNumber, field){
+          const res = origSaveResident.apply(this, arguments);
+          try{
+            if (field === 'status'){
+              // Status-Event erzeugen
+              const contact = (window.contacts||[]).find(c => c.id === contactId);
+              if (contact){
+                // Letzten Status aus resident.statusHistory lesen
+                const resident = (contact.residents||[]).find(r => r.unit === unitNumber);
+                const last = resident && Array.isArray(resident.statusHistory) && resident.statusHistory[resident.statusHistory.length-1];
+                const status = last?.status || resident?.status || '';
+                const occurredAt = last?.date || new Date().toISOString();
+                enqueueStatusEvent({ __auto: 'saveResident',
+                  plz: (contact.plz||'').toString(),
+                  ort: (contact.ort||'').toString(),
+                  strasse: (contact.strasse||'').toString(),
+                  nummer: (contact.nummer||'').toString(),
+                  zusatz: (contact.zusatz||'').toString(),
+                  resident_key: unitNumber?.toString?.() || String(unitNumber||''),
+                  status: status,
+                  occurred_at: occurredAt,
+                  notes: (resident?.notes||'').toString()
+                });
+              }
+            }
+
+  // 9) Status-Diff-Detektor: erkennt Änderungen unabhängig vom aufgerufenen Flow
+  const LAST_STATUS_MAP = 'qt_last_status_map_v1';
+  function buildStatusMap(list){
+    const map = {};
+    try{
+      (list||[]).forEach(c => {
+        const keyBase = [c.plz||'', c.ort||'', c.strasse||'', c.nummer||'', c.zusatz||''].join('|');
+        (c.residents||[]).forEach(r => {
+          const k = keyBase + '|' + (r.unit!=null? String(r.unit):'');
+          map[k] = (r.status||'').toString();
+        });
+      });
+    }catch(_){ }
+    return map;
+  }
+  function diffStatuses(oldMap, list){
+    const events = [];
+    try{
+      (list||[]).forEach(c => {
+        const base = [c.plz||'', c.ort||'', c.strasse||'', c.nummer||'', c.zusatz||''].join('|');
+        (c.residents||[]).forEach(r => {
+          const k = base + '|' + (r.unit!=null? String(r.unit):'');
+          const prev = oldMap[k] || '';
+          const now = (r.status||'').toString();
+          if (now && now !== prev){
+            // Event erzeugen
+            events.push({
+              plz: (c.plz||'').toString(),
+              ort: (c.ort||'').toString(),
+              strasse: (c.strasse||'').toString(),
+              nummer: (c.nummer||'').toString(),
+              zusatz: (c.zusatz||'').toString(),
+              resident_key: (r.unit!=null? String(r.unit):''),
+              status: now,
+              occurred_at: new Date().toISOString(),
+              notes: (r.notes||'').toString()
+            });
+          }
+        });
+      });
+    }catch(_){ }
+    return events;
+  }
+  function rescanAndEnqueueStatusDiffs(){
+    try{
+      const list = normalizeContacts(readLocalContactsRaw());
+      const old = JSON.parse(localStorage.getItem(LAST_STATUS_MAP)||'{}');
+      const evts = diffStatuses(old, list);
+      evts.forEach(e => enqueueStatusEvent(e));
+      localStorage.setItem(LAST_STATUS_MAP, JSON.stringify(buildStatusMap(list)));
+      if (evts.length) flushSoon();
+    }catch(_){ }
+  }
+
+  // globaler Click-Hook: erkennt Status-Klicks anhand von Button-Texten/CSS
+  const STATUS_HINTS = ['abschluss','onlineabschluss','termin','beraten','wiedervorlage','nicht-angetroffen','kein-eintritt','kein-interesse'];
+  document.addEventListener('click', function(e){
+    try{
+      const t = (e.target && (e.target.innerText||e.target.value||'')).toString().trim().toLowerCase();
+      if (!t) return;
+      const hit = STATUS_HINTS.some(s => t.includes(s));
+      if (!hit) return;
+      // bei Status-Klick: sofort Rescan
+      setTimeout(rescanAndEnqueueStatusDiffs, 50);
+    }catch(_){ }
+  }, true);
+
+  // Initiale Map setzen, dann periodisch prüfen (failsafe)
+  (function(){
+    try{
+      const list = normalizeContacts(readLocalContactsRaw());
+      localStorage.setItem(LAST_STATUS_MAP, JSON.stringify(buildStatusMap(list)));
+    }catch(_){}
+    setInterval(rescanAndEnqueueStatusDiffs, 30000); // alle 30s prüfen
+  })();
+
+          }catch(err){ console.warn('saveResident Hook Fehler:', err); }
+          // Nach jeder Änderung gesamten Kontaktbestand SOFORT synchronisieren
+          try{ enqueueFullContactsSnapshot(); flushQueue(); }catch(_e){}
+          return res;
+        };
+      }
+
+      // Kontaktänderungs-Hooks - SOFORTIGER SYNC
+      [ 'addContact', 'addStreet', 'deleteContact', 'deleteAllContacts', 'addUnit', 'deleteUnit' ].forEach(fnName => {
+        if (typeof window[fnName] === 'function'){
+          const orig = window[fnName];
+          window[fnName] = function(){
+            console.log(`[Hook] ${fnName} triggered`);
+            const r = orig.apply(this, arguments);
+            try{ 
+              enqueueFullContactsSnapshot(); // OHNE Hash-Check
+              flushQueue(); // SOFORT, nicht flushSoon()
+              console.log(`[Hook] ${fnName} IMMEDIATE sync triggered`);
+            }catch(e){
+              console.error(`[Hook] ${fnName} sync failed:`, e);
+            }
+            return r;
+          };
+        }
+      });
+
+      // Spezifische PLZ/Straßen-Löschfunktionen optional hooken, falls definiert
+      ;[ 'deleteByPLZ', 'deleteByStreet' ].forEach(fnName => {
+        if (typeof window[fnName] === 'function'){
+          const orig = window[fnName];
+          window[fnName] = function(){
+            const r = orig.apply(this, arguments);
+            try{ enqueueContactsSnapshot(); flushSoon(); }catch(_e){}
+            return r;
+          };
+        }
+      });
+    }catch(e){ console.warn('Hooking fehlgeschlagen:', e); }
+  }
+
+  let flushTimer = null;
+  function flushSoon(){
+    if (flushTimer) clearTimeout(flushTimer);
+    flushTimer = setTimeout(flushQueue, 500);
+  }
+
+  // VEREINFACHTE scheduleAutoSync (nur für Kompatibilität, falls aufgerufen)
+  let autoSyncTimer = null;
+  function scheduleAutoSync(reason){
+    console.log('[AutoSync] Called from:', reason, '(using standard sync path)');
+    // Nutzt den normalen saveContacts() Pfad - keine separate Logik nötig
+  }
+  try { window.scheduleAutoSync = scheduleAutoSync; } catch(_){}
+  
+  // VEREINFACHTER Sync-Status-Indikator (optional, nicht kritisch)
+  function updateSyncIndicator(status) {
+    // Deaktiviert um Sync-Probleme zu vermeiden
+    console.log('[Sync Indicator]', status);
+  }
+  try { window.updateSyncIndicator = updateSyncIndicator; } catch(_){}
+  
+  // VEREINFACHTE Manuelle Sync-Funktion
+  async function manualSync() {
+    console.log('[Manual Sync] User triggered manual sync');
+    
+    try {
+      // Force full snapshot (ohne Hash-Check)
+      enqueueFullContactsSnapshot();
+      console.log('[Manual Sync] Full snapshot enqueued');
+      
+      // Immediate flush
+      await flushQueue();
+      console.log('[Manual Sync] Queue flushed');
+      
+      // User Feedback
+      alert('✓ Synchronisation durchgeführt!');
+      
+      return false;
+    } catch(e) {
+      console.error('[Manual Sync] Failed:', e);
+      alert('⚠ Sync-Fehler: ' + (e.message || e));
+      return false;
+    }
+  }
+  try { window.manualSync = manualSync; } catch(_){}
+  
+  // DOPPELTER HEARTBEAT für maximale Zuverlässigkeit
+  
+  // Heartbeat 1: Alle 30 Sekunden Queue checken und flushen
+  setInterval(() => {
+    const q = getQueue();
+    if (q && q.length > 0) {
+      console.log('[Heartbeat-30s] Queue has', q.length, 'items - flushing now');
+      try {
+        flushQueue();
+      } catch(e) {
+        console.error('[Heartbeat-30s] Flush failed:', e);
+      }
+    }
+  }, 30000); // 30 Sekunden
+  
+  // Heartbeat 2: Alle 5 Minuten GARANTIERTER Full-Sync
+  setInterval(() => {
+    if (contacts && contacts.length > 0) {
+      console.log('[Heartbeat-5min] Periodic FORCED full sync');
+      try {
+        enqueueFullContactsSnapshot(); // OHNE Hash-Check
+        flushQueue(); // SOFORT
+        console.log('[Heartbeat-5min] Sync completed');
+      } catch(e) {
+        console.error('[Heartbeat-5min] Sync failed:', e);
+      }
+    }
+  }, 300000); // 5 Minuten = 300000ms
+
+  // 8) Auto-Initialisierung (lokale Teile sofort, Supabase parallel)
+  (function initLocal(){
+    try{
+      // Hooks sofort aktivieren, unabhängig von Supabase-Verfügbarkeit
+      hookFunctions();
+      // Expose Kernfunktionen global, damit bestehende App-Hooks (saveContacts) sie aufrufen können
+      try {
+        window.enqueueContactsSnapshot = enqueueContactsSnapshot;
+        window.enqueueFullContactsSnapshot = enqueueFullContactsSnapshot; // WICHTIG!
+        window.rescanAndEnqueueStatusDiffs = rescanAndEnqueueStatusDiffs;
+        window.flushSoon = flushSoon;
+        window.flushQueue = flushQueue;
+      } catch(_e) {}
+      
+      // Online-Handler
+      window.addEventListener('online', () => {
+        console.log('[Init] Online event detected');
+        flushQueue();
+      });
+      
+      // Zusätzliche Auto-Sync Trigger
+      try {
+        // Wenn App/Tab in den Vordergrund kommt
+        document.addEventListener('visibilitychange', () => {
+          try { if (!document.hidden) scheduleAutoSync('visible'); } catch(_){}
+        });
+
+        // Wenn Netzwerk wieder online ist
+        window.addEventListener('online', () => { 
+          console.log('[Network] Connection restored');
+          try { 
+            enqueueFullContactsSnapshot(); // OHNE Hash-Check
+            flushQueue();
+          } catch(e) {
+            console.error('[Network] Sync on reconnect failed:', e);
+          }
+        });
+
+        // Capacitor App-Resume (Android/iOS)
+        const App = window.Capacitor && window.Capacitor.App;
+        if (App && typeof App.addListener === 'function') {
+          App.addListener('appStateChange', ({ isActive }) => {
+            try { if (isActive) scheduleAutoSync('app_resume'); } catch(_){}
+          });
+        }
+      } catch(_) {}
+      
+      // Supabase-Client asynchron initialisieren (optional)
+      (async () => { 
+        try { 
+          await awaitSupabase(); 
+          flushSoon(); 
+        } catch(_){ 
+          /* offline ok */ 
+        } 
+      })();
+      
+    } catch(e){ 
+      console.warn('Auto-Sync Init (lokal) fehlgeschlagen:', e?.message||e); 
+    }
+  })();
+</script>
+<script>
+/*
+  Add-on Sync + Session Stabilisierung (append-only, UI-neutral)
+  - Garantiert window.manualDirectSyncNow
+  - Persistente Supabase-Session via Capacitor Preferences (Fallback)
+  - RPC: fn_public_upsert_user_contacts(p_contacts) -> Fallback Upsert -> fn_log_events_from_contacts_snapshot
+*/
+(function(){
+  const SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
+
+  // Capacitor Preferences als Storage (persistente Session). Fallback auf Default, falls nicht vorhanden.
+  function getCapacitorStorage(){
+    try{
+      const P = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) || null;
+      if (!P) return null;
+      return {
+        getItem: async (key) => { const r = await P.get({ key }); return (r && typeof r.value==='string') ? r.value : null; },
+        setItem: async (key, value) => { await P.set({ key, value: String(value ?? '') }); },
+        removeItem: async (key) => { await P.remove({ key }); }
+      };
+    }catch(_e){ return null; }
+  }
+
+  function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+  async function awaitSupabase(maxMs=15000){
+    const t0 = Date.now();
+    while(!(window.supabase && typeof window.supabase.createClient === 'function')){
+      if (Date.now()-t0 > maxMs) throw new Error('Supabase SDK nicht geladen');
+      await sleep(100);
+    }
+    return window.supabase;
+  }
+
+  // Einen (1) globalen Client bereitstellen/weiterverwenden – verändert bestehende Logik nicht.
+  let __supa = null;
+  async function getClient(){
+    if (window.supa) return window.supa;
+    if (__supa) return __supa;
+    const lib = await awaitSupabase();
+    const capStore = getCapacitorStorage();
+    __supa = lib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, storage: capStore || undefined, autoRefreshToken: true, detectSessionInUrl: false }
+    });
+    try { window.supa = __supa; } catch(_e){}
+    return __supa;
+  }
+
+  // Shim: stelle sicher, dass window.manualDirectSyncNow existiert und ggf. auf echte Implementierung wartet
+  if (typeof window.manualDirectSyncNow !== 'function') {
+    window.__mdsn_impl = null;
+    window.manualDirectSyncNow = async function(){
+      for (let i = 0; i < 80; i++) {
+        if (typeof window.__mdsn_impl === 'function') {
+          return await window.__mdsn_impl();
+        }
+        await sleep(100);
+      }
+      throw new Error('manualDirectSyncNow impl missing');
+    };
+  }
+
+  // Echte Implementierung (UI-neutral; liest nur localStorage 'contacts')
+  async function __manualDirectSyncNow(){
+    const setTry=(stage, extra)=>{ try{ localStorage.setItem('qt_last_sync_try', JSON.stringify(Object.assign({ t: Date.now(), stage }, extra||{}))); }catch(_e){} };
+    const setErr=(stage, msg)=>{ try{ localStorage.setItem('qt_last_event_err', JSON.stringify({ t: Date.now(), stage, msg: String(msg||'') })); }catch(_e){} };
+
+    try{
+      setTry('start');
+
+      const sb = await getClient();
+      setTry('client_ready');
+
+      const { data:{ user } } = await sb.auth.getUser();
+      if (!user) throw new Error('Keine Session vorhanden');
+      setTry('got_user', { user: { id: user.id } });
+
+      let snapshot = [];
+      try { snapshot = JSON.parse(localStorage.getItem('contacts')||'[]'); } catch(_e){ snapshot = []; }
+      if (!Array.isArray(snapshot)) snapshot = [];
+      setTry('snapshot_ready', { count: snapshot.length });
+
+      // 1) RPC zuerst
+      try{
+        const { error } = await sb.rpc('fn_public_upsert_user_contacts', { p_contacts: snapshot });
+        if (error) throw error;
+      }catch(e1){
+        setTry('rpc_upsert_failed', { err: String(e1?.message || e1) });
+        // 2) Fallback Tabellen-Upsert
+        const { error: e2 } = await sb.from('user_contacts').upsert({ user_id: user.id, contacts: snapshot }, { onConflict: 'user_id' });
+        if (e2) throw e2;
+      }
+      setTry('upsert_ok');
+
+      // 3) Events aus Snapshot generieren
+      const { error: e3 } = await sb.rpc('fn_log_events_from_contacts_snapshot', { p_user_id: user.id, p_contacts: snapshot });
+      if (e3) throw e3;
+      setTry('events_ok');
+      try { localStorage.removeItem('qt_last_event_err'); } catch(_e){}
+
+      return true;
+    }catch(err){
+      setErr('manual_direct_sync', err?.message || err);
+      return false;
+    }
+  }
+
+  // Registrierung der echten Implementierung (überschreibt Shim, falls vorhanden)
+  try { window.__mdsn_impl = __manualDirectSyncNow; window.manualDirectSyncNow = __manualDirectSyncNow; } catch(_e){}
+
+  // Zusätzliche, nicht-invasive Absicherung: Button im Debug-Panel auf window.manualDirectSyncNow binden
+  try{
+    document.addEventListener('DOMContentLoaded', function(){
+      const b = document.getElementById('dbgSyncBtn');
+      if (b) {
+        // Doppelte Bindungen verhindern
+        if (!b.__qt_bound) {
+          b.addEventListener('click', async function(ev){
+            try{
+              // Falls dein Panel setPanelStatus nutzt, bleibt das unverändert – diese Bindung ruft nur die Funktion zusätzlich sicher auf
+              await window.manualDirectSyncNow();
+            }catch(_e){}
+          });
+          b.__qt_bound = true;
+        }
+      }
+    });
+  }catch(_e){}
+})();
+</script>
+  <script>
+/*
+  Add-on: Upsert ohne ON CONFLICT (UI-neutral)
+  - Versucht zuerst RPC (fn_public_upsert_user_contacts)
+  - Fällt dann auf SELECT->UPDATE/INSERT zurück (ohne onConflict)
+  - Triggert danach Events-RPC
+  - Schreibt Debug-Stages in qt_last_sync_try / qt_last_event_err
+*/
+(function(){
+  const SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
+
+  function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+  async function awaitSupabase(maxMs=15000){
+    const t0=Date.now();
+    while(!(window.supabase && window.supabase.createClient)){
+      if (Date.now()-t0>maxMs) throw new Error('Supabase SDK nicht geladen');
+      await sleep(100);
+    }
+    return window.supabase;
+  }
+  function getCapacitorStorage(){
+    try{
+      const P=(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences)||null;
+      if (!P) return null;
+      return {
+        getItem: async (k)=>{ const r=await P.get({key:k}); return (r && typeof r.value==='string')? r.value:null; },
+        setItem: async (k,v)=>{ await P.set({key:k, value:String(v??'')}); },
+        removeItem: async (k)=>{ await P.remove({key:k}); }
+      };
+    }catch(_e){ return null; }
+  }
+  let __supa=null;
+  async function getClient(){
+    if (window.supa) return window.supa;
+    if (__supa) return __supa;
+    const lib = await awaitSupabase();
+    const cap = getCapacitorStorage();
+    __supa = lib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession:true, storage:cap||undefined, autoRefreshToken:true, detectSessionInUrl:false }
+    });
+    try{ window.supa=__supa; }catch(_e){}
+    return __supa;
+  }
+
+  function setTry(stage, extra){
+    try{ localStorage.setItem('qt_last_sync_try', JSON.stringify(Object.assign({ t: Date.now(), stage }, extra||{}))); }catch(_e){}
+  }
+  function setErr(stage, msg){
+    try{ localStorage.setItem('qt_last_event_err', JSON.stringify({ t: Date.now(), stage, msg: String(msg||'') })); }catch(_e){}
+  }
+
+  async function safeUpsertWithoutOnConflict(sb, userId, snapshot){
+    // 1) Existiert Zeile?
+    const { data: existing, error: selErr } = await sb
+      .from('user_contacts')
+      .select('user_id, version')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (selErr && selErr.code !== 'PGRST116') throw selErr;
+
+    if (existing && existing.user_id){
+      const newVersion = (existing.version||0) + 1;
+      const { error: updErr } = await sb
+        .from('user_contacts')
+        .update({ contacts: snapshot, version: newVersion, updated_at: new Date().toISOString() })
+        .eq('user_id', userId);
+      if (updErr) throw updErr;
+    } else {
+      // version ist NOT NULL – setze initial auf 1
+      const { error: insErr } = await sb
+        .from('user_contacts')
+        .insert({ user_id: userId, contacts: snapshot, version: 1 });
+      if (insErr) throw insErr;
+    }
+  }
+
+  async function __manualDirectSyncNoConflict(){
+    try{
+      setTry('start');
+      const sb = await getClient();
+      setTry('client_ready');
+
+      const { data:{ user } } = await sb.auth.getUser();
+      if (!user) throw new Error('Keine Session vorhanden');
+      setTry('got_user', { user: { id: user.id } });
+
+      let snapshot=[];
+      try{ snapshot = JSON.parse(localStorage.getItem('contacts')||'[]'); }catch(_e){ snapshot=[]; }
+      if (!Array.isArray(snapshot)) snapshot=[];
+      setTry('snapshot_ready', { count: snapshot.length });
+
+      // 1) RPC versuchen
+      try{
+        const { error } = await sb.rpc('fn_public_upsert_user_contacts', { p_contacts: snapshot });
+        if (error) throw error;
+        setTry('rpc_ok');
+      }catch(e1){
+        setTry('rpc_upsert_failed', { err: String(e1?.message||e1) });
+        // 2) Fallback ohne ON CONFLICT
+        await safeUpsertWithoutOnConflict(sb, user.id, snapshot);
+        setTry('fallback_upsert_ok');
+      }
+
+      // 3) Events
+      const { error: e3 } = await sb.rpc('fn_log_events_from_contacts_snapshot', { p_user_id:user.id, p_contacts:snapshot });
+      if (e3) throw e3;
+      setTry('events_ok');
+      try{ localStorage.removeItem('qt_last_event_err'); }catch(_e){}
+      return true;
+    }catch(err){
+      setErr('manual_direct_sync', err?.message||err);
+      return false;
+    }
+  }
+
+  // Sicher registrieren (überschreibt ggf. vorherige Implementierung/Shim)
+  try{
+    window.__mdsn_impl = __manualDirectSyncNoConflict;
+    window.manualDirectSyncNow = __manualDirectSyncNoConflict;
+  }catch(_e){}
+
+  // Zusätzliche Absicherung: Debug-Button an window.manualDirectSyncNow hängen
+  try{
+    document.addEventListener('DOMContentLoaded', function(){
+      const b = document.getElementById('dbgSyncBtn');
+      if (b && !b.__qt_no_conflict_bound){
+        b.addEventListener('click', async function(){ try{ await window.manualDirectSyncNow(); }catch(_e){} });
+        b.__qt_no_conflict_bound = true;
+      }
+    });
+  }catch(_e){}
+})();
+</script>
+  <script>
+// Auto‑Sync: löst manualDirectSyncNow() automatisch aus (debounced), ohne UI-Button
+(function(){
+  let __autoSyncTimer = null;
+  let __autoSyncInFlight = false;
+
+  function debounceSync(reason){
+    try {
+      if (__autoSyncTimer) clearTimeout(__autoSyncTimer);
+      __autoSyncTimer = setTimeout(() => { void tryAutoSyncNow(reason); }, 800);
+    } catch(_){}
+  }
+
+  async function ensureReady(){
+    try{
+      // Supabase bereit?
+      if (!(window.supabase && window.supabase.createClient) && !window.supa) return false;
+      // Globalen Client verwenden (login.html setzt window.supa)
+      const client = window.supa;
+      if (!client) return false;
+      // Online?
+      const online = typeof navigator==='object' ? navigator.onLine : true;
+      if (!online) return false;
+      // Session?
+      const { data: { user } } = await client.auth.getUser();
+      return !!user;
+    }catch(_){ return false; }
+  }
+
+  async function tryAutoSyncNow(reason){
+    if (__autoSyncInFlight) return;
+    try{
+      const okToSync = await ensureReady();
+      if (!okToSync) return;
+      __autoSyncInFlight = true;
+      if (typeof window.manualDirectSyncNow === 'function') {
+        await window.manualDirectSyncNow();
+      }
+    } catch(_){}
+    finally {
+      __autoSyncInFlight = false;
+    }
+  }
+
+  // 1) Änderungen abfangen: saveContacts / saveResident falls vorhanden "hooken"
+  try{
+    if (typeof window.saveContacts === 'function'){
+      const __origSaveContacts = window.saveContacts;
+      window.saveContacts = function(){
+        const r = __origSaveContacts.apply(this, arguments);
+        try { debounceSync('saveContacts'); } catch(_){}
+        return r;
+      };
+    }
+    if (typeof window.saveResident === 'function'){
+      const __origSaveResident = window.saveResident;
+      window.saveResident = function(){
+        const r = __origSaveResident.apply(this, arguments);
+        try { debounceSync('saveResident'); } catch(_){}
+        return r;
+      };
+    }
+  }catch(_){}
+
+  // 2) UI‑Events: Status‑Select, Notizen, etc.
+  document.addEventListener('change', (e) => {
+    try{
+      const t = e.target;
+      if (!t) return;
+      // Ihre Status‑Selects tragen class="status-select"
+      if (t.classList && t.classList.contains('status-select')) {
+        debounceSync('status_change');
+      }
+    }catch(_){}
+  }, true);
+
+  document.addEventListener('input', (e) => {
+    try{
+      const t = e.target;
+      if (!t) return;
+      // Notes/Telefon/Name lösen einen leicht verzögerten Sync aus
+      if (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT') {
+        debounceSync('input_change');
+      }
+    }catch(_){}
+  }, true);
+
+  // 3) App/Seite wieder im Vordergrund → Sync
+  try {
+    document.addEventListener('visibilitychange', () => {
+      try { if (!document.hidden) debounceSync('visible'); } catch(_){}
+    });
+  } catch(_){}
+
+  // 4) Wieder online → Sync
+  try {
+    window.addEventListener('online', () => { try { debounceSync('online'); } catch(_){ } });
+  } catch(_){}
+
+  // 5) Capacitor App Resume → Sync
+  try {
+    const App = window.Capacitor && window.Capacitor.App;
+    if (App && typeof App.addListener === 'function') {
+      App.addListener('appStateChange', ({ isActive }) => {
+        try { if (isActive) debounceSync('app_resume'); } catch(_){}
+      });
+    }
+  } catch(_){}
+
+  // 6) Failsafe: Intervall-Sync (leicht, damit Batterie geschont wird)
+  try { setInterval(() => debounceSync('interval'), 15000); } catch(_){}
+
+  // 7) Beim Laden einmal vorsichtig anstoßen
+  try { debounceSync('boot'); } catch(_){}
+})();
+</script>
+</body>
+</html>
