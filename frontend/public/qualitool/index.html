@@ -3539,6 +3539,31 @@
       // Originale Initialisierung: Immer zuerst zur Adressliste (Kontaktliste)
       showSection('contacts');
       filterByStatus('all');
+      
+      // NEU: Gecachte Straßenliste beim Start laden (vor updateStreetFilter)
+      try {
+        const cachedStreets = JSON.parse(localStorage.getItem('qt_streets_cache') || '[]');
+        if (cachedStreets && cachedStreets.length > 0) {
+          const streetFilter = document.getElementById('streetFilter');
+          if (streetFilter) {
+            // Lösche alte Einträge (außer "Alle Straßen")
+            while (streetFilter.options.length > 1) {
+              streetFilter.remove(1);
+            }
+            // Füge gecachte Straßen ein
+            cachedStreets.forEach(street => {
+              const option = document.createElement('option');
+              option.value = street;
+              option.textContent = street;
+              streetFilter.appendChild(option);
+            });
+            console.log('[Init] Loaded', cachedStreets.length, 'streets from cache');
+          }
+        }
+      } catch(e) {
+        console.warn('[Init] Could not load cached streets:', e);
+      }
+      
       // Verzögerter Aufruf um sicherzustellen, dass DOM vollständig geladen ist
       setTimeout(() => {
         updateStreetFilter();
