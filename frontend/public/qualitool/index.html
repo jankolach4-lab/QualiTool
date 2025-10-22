@@ -2325,6 +2325,9 @@
     // Aktualisiere Tagesstatistik
     updateDailyStats();
     
+    // Aktualisiere Straßenfilter IMMER beim Rendern
+    updateStreetFilter();
+    
     contactsToRender = sortContacts([...contactsToRender]);
     const expandedCards = new Set(Array.from(document.querySelectorAll('.contact-card.expanded')).map(card => card.getAttribute('data-id')));
     const contactList = document.getElementById('contactList');
