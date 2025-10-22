@@ -5834,11 +5834,30 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     // Save to localStorage
     localStorage.setItem('contacts', JSON.stringify(contacts));
     
-    // Update map markers
-    addAddressMarkers();
+    // Update only this specific marker instead of reloading all
+    updateSingleMarkerColor(contact);
     
     alert('Status erfolgreich aktualisiert!');
   };
+
+  function updateSingleMarkerColor(contact) {
+    if (!map || !contact.lat || !contact.lng) return;
+    
+    // Find and remove the old marker for this contact
+    const oldMarkerIndex = addressMarkers.findIndex(m => {
+      const latLng = m.getLatLng();
+      return Math.abs(latLng.lat - contact.lat) < 0.0001 && 
+             Math.abs(latLng.lng - contact.lng) < 0.0001;
+    });
+    
+    if (oldMarkerIndex !== -1) {
+      map.removeLayer(addressMarkers[oldMarkerIndex]);
+      addressMarkers.splice(oldMarkerIndex, 1);
+    }
+    
+    // Add updated marker
+    addSingleMarker(contact);
+  }
 
   // Cleanup on page unload
   window.addEventListener('beforeunload', () => {
