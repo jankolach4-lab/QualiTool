@@ -4084,6 +4084,13 @@
           updateStreetFilter();
         }
       } catch(e){ console.warn('Initiale Cloud-Sync Warnung:', e.message||e); }
+
+      // Start background geocoding after a short delay (non-blocking)
+      setTimeout(() => {
+        if (typeof startBackgroundGeocoding === 'function') {
+          startBackgroundGeocoding();
+        }
+      }, 3000);
     })();
 
     // XLSX lädt bereits dynamisch oben; zusätzlicher Loader entfernt, um Fehler zu vermeiden.
