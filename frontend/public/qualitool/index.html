@@ -1603,12 +1603,6 @@
     
     container.innerHTML = '';
     
-    // Debug-Info direkt im Chart anzeigen
-    const debugInfo = document.createElement('div');
-    debugInfo.style.cssText = 'position: absolute; top: 5px; right: 5px; font-size: 10px; color: red; background: white; padding: 5px; border: 1px solid red; border-radius: 3px; z-index: 1000;';
-    debugInfo.textContent = `Data: ${data ? data.length : 0} | Max: ${maxValue}`;
-    container.appendChild(debugInfo);
-    
     // Wenn keine Daten vorhanden, zeige eine Nachricht
     if (!data || data.length === 0) {
       container.innerHTML += '<div style="padding: 20px; text-align: center; color: #6b7280;">Keine Daten vorhanden</div>';
