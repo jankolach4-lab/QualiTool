@@ -6064,6 +6064,55 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       console.log('[Map] Watch cleared');
     }
   });
+
+  // ========================================
+  // Dark Mode Toggle
+  // ========================================
+  
+  function toggleTheme() {
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    html.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    // Toggle icons
+    const sunIcon = document.getElementById('theme-icon-sun');
+    const moonIcon = document.getElementById('theme-icon-moon');
+    
+    if (newTheme === 'dark') {
+      sunIcon.style.display = 'none';
+      moonIcon.style.display = 'block';
+    } else {
+      sunIcon.style.display = 'block';
+      moonIcon.style.display = 'none';
+    }
+    
+    console.log('[Theme] Switched to', newTheme, 'mode');
+  }
+
+  // Initialize theme on page load
+  (function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    const html = document.documentElement;
+    
+    html.setAttribute('data-theme', savedTheme);
+    
+    // Set correct icon visibility
+    const sunIcon = document.getElementById('theme-icon-sun');
+    const moonIcon = document.getElementById('theme-icon-moon');
+    
+    if (savedTheme === 'dark') {
+      if (sunIcon) sunIcon.style.display = 'none';
+      if (moonIcon) moonIcon.style.display = 'block';
+    } else {
+      if (sunIcon) sunIcon.style.display = 'block';
+      if (moonIcon) moonIcon.style.display = 'none';
+    }
+    
+    console.log('[Theme] Initialized with', savedTheme, 'mode');
+  })();
 </script>
 
 </body>
