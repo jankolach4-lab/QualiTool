@@ -1155,22 +1155,36 @@
   }
 
   #recommendationResults {
-    max-height: 400px;
+    max-height: calc(100vh - 350px);
+    min-height: 400px;
     overflow-y: auto;
   }
 
   .recommended-contact {
     background: #f0f9ff;
-    padding: 15px;
+    padding: 12px 15px;
     margin: 10px 0;
     border-radius: 8px;
     border-left: 4px solid #3b82f6;
   }
 
+  .recommended-contact-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .recommended-address {
+    flex: 1;
+    font-weight: 500;
+  }
+
   .last-visit-time {
     color: #6b7280;
-    font-size: 0.9em;
-    margin-top: 5px;
+    font-size: 0.85em;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   
   /* Add this CSS rule to define the highlight color for addresses with Abschluss status */
@@ -2254,16 +2268,29 @@
   }
   function updateStreetFilter() {
     const streetFilter = document.getElementById('streetFilter');
+    if (!streetFilter) {
+      console.warn('[updateStreetFilter] Street filter element not found');
+      return;
+    }
+    
+    console.log('[StreetFilter] Updating with', contacts.length, 'contacts');
+    
     const streets = new Set();
     contacts.forEach(contact => {
       if (contact.strasse) {
         streets.add(contact.strasse);
       }
     });
+    
+    // Clear existing options except first one
     while (streetFilter.options.length > 1) {
       streetFilter.remove(1);
     }
+    
+    // Add sorted streets
     const streetsList = Array.from(streets).sort();
+    console.log('[StreetFilter] Found', streetsList.length, 'unique streets');
+    
     streetsList.forEach(street => {
       const option = document.createElement('option');
       option.value = street;
@@ -2271,12 +2298,10 @@
       streetFilter.appendChild(option);
     });
     
-    // NEU: Straßenliste in localStorage cachen für App-Neustart
-    try {
-      localStorage.setItem('qt_streets_cache', JSON.stringify(streetsList));
-    } catch(e) {
-      console.warn('[updateStreetFilter] Could not cache streets:', e);
-    }
+    // Reset to "Alle Straßen" 
+    streetFilter.value = '';
+    
+    console.log('[StreetFilter] ✓ Updated successfully');
   }
   function getStatusLabel(status) {
     if (!status) return 'Kein Status';
@@ -2299,6 +2324,9 @@
   function renderContacts(contactsToRender = contacts) {
     // Aktualisiere Tagesstatistik
     updateDailyStats();
+    
+    // Aktualisiere Straßenfilter IMMER beim Rendern
+    updateStreetFilter();
     
     contactsToRender = sortContacts([...contactsToRender]);
     const expandedCards = new Set(Array.from(document.querySelectorAll('.contact-card.expanded')).map(card => card.getAttribute('data-id')));
@@ -2808,16 +2836,20 @@
       <button onclick="clearRecommendations()" class="delete-btn" style="position: static; margin: 10px auto; display: block;">Liste leeren</button>
       ${recommendations.map(rec => `
         <div class="recommended-contact">
-          <div><strong>${rec.contact.strasse} ${rec.contact.nummer}${rec.contact.zusatz ? ` ${rec.contact.zusatz}` : ''}</strong></div>
-          <div>WE ${rec.unit}: ${rec.resident.name || 'Unbekannt'}</div>
-          <div class="last-visit-time">
-            Letzter Besuch: ${rec.lastVisit.toLocaleString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })} Uhr
+          <div class="recommended-contact-header">
+            <div class="recommended-address">
+              <strong>${rec.contact.strasse} ${rec.contact.nummer}${rec.contact.zusatz ? ` ${rec.contact.zusatz}` : ''}</strong>
+              • WE ${rec.unit}: ${rec.resident.name || 'Unbekannt'}
+            </div>
+            <div class="last-visit-time">
+              ${rec.lastVisit.toLocaleString('de-DE', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })} Uhr
+            </div>
           </div>
         </div>
       `).join('')}
@@ -5585,118 +5617,56 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     addAddressMarkers();
   }
 
-  async function startLocationTracking() {
+  function startLocationTracking() {
     console.log('[Map] Starting location tracking...');
     
-    // Check if Capacitor is available (Android/iOS app)
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
-      console.log('[Map] Capacitor detected, using native Geolocation');
-      try {
-        const { Geolocation } = window.Capacitor.Plugins;
-        
-        // Try to get current position first (simpler approach)
-        console.log('[Map] Requesting initial position...');
-        const position = await Geolocation.getCurrentPosition({
-          enableHighAccuracy: true,
-          timeout: 15000
-        });
-        
-        console.log('[Map] Initial position received:', position);
-        if (position && position.coords) {
-          updateUserMarker(position.coords.latitude, position.coords.longitude);
-        }
-        
-        // Then start watching
-        console.log('[Map] Starting position watch...');
-        const watchCallback = await Geolocation.watchPosition(
-          {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 5000
-          },
-          (position, err) => {
-            if (err) {
-              console.error('[Map] Watch error:', err);
-              return;
-            }
-            if (position && position.coords) {
-              console.log('[Map] Position update:', position.coords.latitude, position.coords.longitude);
-              updateUserMarker(position.coords.latitude, position.coords.longitude);
-            }
-          }
-        );
-        
-        watchId = watchCallback;
-        console.log('[Map] Watch started successfully');
-        
-      } catch (error) {
-        console.error('[Map] Capacitor Geolocation error:', error);
-        console.log('[Map] Falling back to standard geolocation...');
-        startWebGeolocation();
-      }
-    } else {
-      // Use standard Web Geolocation API
-      console.log('[Map] No Capacitor, using Web Geolocation API');
-      startWebGeolocation();
-    }
-  }
-
-  function startWebGeolocation() {
-    if ('geolocation' in navigator) {
-      console.log('[Map] Starting Web Geolocation...');
-      
-      // Get initial position
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          console.log('[Map] Initial web position:', position.coords.latitude, position.coords.longitude);
-          updateUserMarker(position.coords.latitude, position.coords.longitude);
-        },
-        (error) => {
-          console.error('[Map] Initial position error:', error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0
-        }
-      );
-      
-      // Start watching
-      watchId = navigator.geolocation.watchPosition(
-        (position) => {
-          console.log('[Map] Web position update:', position.coords.latitude, position.coords.longitude);
-          updateUserMarker(position.coords.latitude, position.coords.longitude);
-        },
-        (error) => {
-          console.error('[Map] Watch error:', error);
-          let errorMessage = 'Standortfehler: ';
-          switch(error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage += 'Zugriff verweigert. Bitte erlauben Sie den Standortzugriff in den Einstellungen.';
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage += 'Position nicht verfügbar';
-              break;
-            case error.TIMEOUT:
-              errorMessage += 'Zeitüberschreitung';
-              break;
-            default:
-              errorMessage += error.message;
-          }
-          console.error('[Map]', errorMessage);
-        },
-        {
-          enableHighAccuracy: true,
-          maximumAge: 5000,
-          timeout: 15000
-        }
-      );
-      
-      console.log('[Map] Web watch started');
-    } else {
+    if (!('geolocation' in navigator)) {
       console.error('[Map] Geolocation not supported');
       alert('Standortdienste werden von Ihrem Gerät nicht unterstützt.');
+      return;
     }
+    
+    console.log('[Map] Using navigator.geolocation (works in both browser and Capacitor)');
+    
+    // Request initial position
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        console.log('[Map] ✓ Initial position:', position.coords.latitude, position.coords.longitude);
+        updateUserMarker(position.coords.latitude, position.coords.longitude);
+      },
+      (error) => {
+        console.error('[Map] Initial position error:', error.code, error.message);
+        let msg = 'Standort-Fehler: ';
+        if (error.code === 1) msg += 'Berechtigung verweigert. Bitte erlauben Sie den Standortzugriff.';
+        else if (error.code === 2) msg += 'Position nicht verfügbar.';
+        else if (error.code === 3) msg += 'Zeitüberschreitung.';
+        else msg += error.message;
+        alert(msg);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0
+      }
+    );
+    
+    // Start continuous tracking
+    watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        console.log('[Map] Position update:', position.coords.latitude, position.coords.longitude);
+        updateUserMarker(position.coords.latitude, position.coords.longitude);
+      },
+      (error) => {
+        console.error('[Map] Watch error:', error.code, error.message);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 10000,
+        timeout: 20000
+      }
+    );
+    
+    console.log('[Map] Watch started, ID:', watchId);
   }
 
   function updateUserMarker(lat, lng) {
@@ -6033,21 +6003,9 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
 
   // Cleanup on page unload
   window.addEventListener('beforeunload', () => {
-    if (watchId !== null) {
-      try {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
-          // Capacitor cleanup
-          const { Geolocation } = window.Capacitor.Plugins;
-          Geolocation.clearWatch({ id: watchId });
-          console.log('[Map] Capacitor watch cleared');
-        } else {
-          // Web API cleanup
-          navigator.geolocation.clearWatch(watchId);
-          console.log('[Map] Web Geolocation watch cleared');
-        }
-      } catch (error) {
-        console.error('[Map] Cleanup error:', error);
-      }
+    if (watchId !== null && navigator.geolocation) {
+      navigator.geolocation.clearWatch(watchId);
+      console.log('[Map] Watch cleared');
     }
   });
 </script>
