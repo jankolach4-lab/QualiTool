@@ -56,46 +56,6 @@
     --space-2: 10px;
     --space-3: 14px;
     --space-4: 18px;
-    
-    /* Colors for status badges */
-    --color-offen: #dbeafe;
-    --color-offen-text: #1e40af;
-    --color-termin: #fef3c7;
-    --color-termin-text: #92400e;
-    --color-abschluss: #d1fae5;
-    --color-abschluss-text: #065f46;
-    --color-kein-interesse: #fee2e2;
-    --color-kein-interesse-text: #991b1b;
-  }
-
-  /* Dark Mode */
-  [data-theme="dark"] {
-    --bg: #0f172a;
-    --surface: #1e293b;
-    --text: #f1f5f9;
-    --muted: #94a3b8;
-    --border: #334155;
-    --accent: #3b82f6;
-    --accent-600: #2563eb;
-    --accent-700: #1d4ed8;
-    --teal: #14b8a6;
-    --teal-600: #0d9488;
-    --neutral-900: #f1f5f9;
-    --neutral-700: #cbd5e1;
-    --neutral-200: #475569;
-    --shadow: 0 2px 12px rgba(0,0,0,0.3);
-    --shadow-sm: 0 1px 6px rgba(0,0,0,0.2);
-    
-    /* Dark mode status badges */
-    --color-offen: #1e3a8a;
-    --color-offen-text: #bfdbfe;
-    --color-termin: #78350f;
-    --color-termin-text: #fef3c7;
-    --color-abschluss: #064e3b;
-    --color-abschluss-text: #d1fae5;
-    --color-kein-interesse: #7f1d1d;
-    --color-kein-interesse-text: #fecaca;
-  }
   }
 
   * { 
@@ -136,18 +96,9 @@
     list-style: none;
     padding: 0;
     margin: 10px 0;
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 20px);
   }
 
   .sidebar-nav li { margin: 10px 0; }
-  
-  .sidebar-nav li.theme-toggle {
-    margin-top: auto;
-    padding-top: 10px;
-    border-top: 1px solid rgba(255,255,255,0.12);
-  }
 
   .sidebar-nav a {
     color: white;
@@ -1495,22 +1446,6 @@
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
           <polyline points="14 2 14 8 20 8"></polyline>
           <polyline points="8 14 12 18 16 14"></polyline>
-        </svg>
-      </a></li>
-      <li class="theme-toggle"><a href="#" title="Dark Mode / Light Mode" onclick="toggleTheme(); return false;" ontouchstart="toggleTheme(); return false;">
-        <svg id="theme-icon-sun" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="5"></circle>
-          <line x1="12" y1="1" x2="12" y2="3"></line>
-          <line x1="12" y1="21" x2="12" y2="23"></line>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-          <line x1="1" y1="12" x2="3" y2="12"></line>
-          <line x1="21" y1="12" x2="23" y2="12"></line>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-        </svg>
-        <svg id="theme-icon-moon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>
       </a></li>
     </ul>
@@ -6073,55 +6008,6 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       console.log('[Map] Watch cleared');
     }
   });
-
-  // ========================================
-  // Dark Mode Toggle
-  // ========================================
-  
-  function toggleTheme() {
-    const html = document.documentElement;
-    const currentTheme = html.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    
-    html.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-    
-    // Toggle icons
-    const sunIcon = document.getElementById('theme-icon-sun');
-    const moonIcon = document.getElementById('theme-icon-moon');
-    
-    if (newTheme === 'dark') {
-      sunIcon.style.display = 'none';
-      moonIcon.style.display = 'block';
-    } else {
-      sunIcon.style.display = 'block';
-      moonIcon.style.display = 'none';
-    }
-    
-    console.log('[Theme] Switched to', newTheme, 'mode');
-  }
-
-  // Initialize theme on page load
-  (function initTheme() {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    const html = document.documentElement;
-    
-    html.setAttribute('data-theme', savedTheme);
-    
-    // Set correct icon visibility
-    const sunIcon = document.getElementById('theme-icon-sun');
-    const moonIcon = document.getElementById('theme-icon-moon');
-    
-    if (savedTheme === 'dark') {
-      if (sunIcon) sunIcon.style.display = 'none';
-      if (moonIcon) moonIcon.style.display = 'block';
-    } else {
-      if (sunIcon) sunIcon.style.display = 'block';
-      if (moonIcon) moonIcon.style.display = 'none';
-    }
-    
-    console.log('[Theme] Initialized with', savedTheme, 'mode');
-  })();
 </script>
 
 </body>
