@@ -5971,21 +5971,9 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
 
   // Cleanup on page unload
   window.addEventListener('beforeunload', () => {
-    if (watchId !== null) {
-      try {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
-          // Capacitor cleanup
-          const { Geolocation } = window.Capacitor.Plugins;
-          Geolocation.clearWatch({ id: watchId });
-          console.log('[Map] Capacitor watch cleared');
-        } else {
-          // Web API cleanup
-          navigator.geolocation.clearWatch(watchId);
-          console.log('[Map] Web Geolocation watch cleared');
-        }
-      } catch (error) {
-        console.error('[Map] Cleanup error:', error);
-      }
+    if (watchId !== null && navigator.geolocation) {
+      navigator.geolocation.clearWatch(watchId);
+      console.log('[Map] Watch cleared');
     }
   });
 </script>
