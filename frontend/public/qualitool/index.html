@@ -5890,21 +5890,35 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
 
   // Central function to refresh map when contacts change
   window.refreshMapIfOpen = function() {
-    if (map && document.querySelector('.map-section').style.display !== 'none') {
-      console.log('Refreshing map markers...');
+    const mapSection = document.querySelector('.map-section');
+    if (!mapSection) {
+      console.log('[Map] Map section not found');
+      return;
+    }
+    
+    const isVisible = mapSection.style.display !== 'none' && mapSection.style.display !== '';
+    
+    if (map && isVisible) {
+      console.log('[Map] Refreshing map markers... Total contacts:', contacts.length);
       addAddressMarkers();
+    } else {
+      console.log('[Map] Not refreshing - Map:', !!map, 'Visible:', isVisible);
     }
   };
 
   // Function to handle new contacts (trigger geocoding)
   window.onContactsChanged = function() {
+    console.log('[Map] Contacts changed - triggering updates');
+    
     // Refresh map if open
     window.refreshMapIfOpen();
     
-    // Start background geocoding for new addresses
-    if (typeof startBackgroundGeocoding === 'function') {
-      startBackgroundGeocoding();
-    }
+    // Start background geocoding for new addresses (with small delay)
+    setTimeout(() => {
+      if (typeof startBackgroundGeocoding === 'function') {
+        startBackgroundGeocoding();
+      }
+    }, 500);
   };
 
   // Cleanup on page unload
