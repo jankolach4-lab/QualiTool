@@ -1595,7 +1595,6 @@
   
   function renderBarChart(containerId, data, maxValue, barClass) {
     const container = document.getElementById(containerId);
-    console.log('[renderBarChart]', containerId, 'data:', data.length, 'items, maxValue:', maxValue);
     
     if (!container) {
       console.error('[renderBarChart] Container not found:', containerId);
@@ -1604,19 +1603,25 @@
     
     container.innerHTML = '';
     
+    // Debug-Info direkt im Chart anzeigen
+    const debugInfo = document.createElement('div');
+    debugInfo.style.cssText = 'position: absolute; top: 5px; right: 5px; font-size: 10px; color: red; background: white; padding: 5px; border: 1px solid red; border-radius: 3px; z-index: 1000;';
+    debugInfo.textContent = `Data: ${data ? data.length : 0} | Max: ${maxValue}`;
+    container.appendChild(debugInfo);
+    
     // Wenn keine Daten vorhanden, zeige eine Nachricht
     if (!data || data.length === 0) {
-      container.innerHTML = '<div style="padding: 20px; text-align: center; color: #6b7280;">Keine Daten vorhanden</div>';
+      container.innerHTML += '<div style="padding: 20px; text-align: center; color: #6b7280;">Keine Daten vorhanden</div>';
       console.warn('[renderBarChart] No data to render');
       return;
     }
     
+    // Mindesthöhe für Visualisierung - wenn alle Werte 0, setze Max auf 10 für Sichtbarkeit
+    const effectiveMax = maxValue > 0 ? maxValue : 10;
+    
     // Y-Achse erstellen
     const yAxis = document.createElement('div');
     yAxis.className = 'chart-y-axis';
-    
-    // Mindesthöhe für Visualisierung
-    const effectiveMax = maxValue > 0 ? maxValue : 1;
     
     // Y-Achsen-Labels (4 Stufen)
     const steps = 4;
