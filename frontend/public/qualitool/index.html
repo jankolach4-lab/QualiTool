@@ -1155,22 +1155,36 @@
   }
 
   #recommendationResults {
-    max-height: 400px;
+    max-height: calc(100vh - 350px);
+    min-height: 400px;
     overflow-y: auto;
   }
 
   .recommended-contact {
     background: #f0f9ff;
-    padding: 15px;
+    padding: 12px 15px;
     margin: 10px 0;
     border-radius: 8px;
     border-left: 4px solid #3b82f6;
   }
 
+  .recommended-contact-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .recommended-address {
+    flex: 1;
+    font-weight: 500;
+  }
+
   .last-visit-time {
     color: #6b7280;
-    font-size: 0.9em;
-    margin-top: 5px;
+    font-size: 0.85em;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   
   /* Add this CSS rule to define the highlight color for addresses with Abschluss status */
