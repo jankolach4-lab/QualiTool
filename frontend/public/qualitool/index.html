@@ -870,6 +870,113 @@
     padding-right: 5px;
   }
 
+  /* Map Section */
+  .map-section {
+    display: none;
+    padding: 16px 18px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  #map {
+    width: 100%;
+    height: calc(100vh - 200px);
+    min-height: 500px;
+    border-radius: 8px;
+    z-index: 1;
+  }
+
+  .map-legend {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 1000;
+  }
+
+  .map-legend h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #374151;
+  }
+
+  .map-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0;
+    font-size: 13px;
+  }
+
+  .map-legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  .leaflet-popup-content {
+    margin: 10px;
+    min-width: 200px;
+  }
+
+  .popup-address {
+    font-weight: bold;
+    font-size: 1.1em;
+    margin-bottom: 8px;
+    color: #2563eb;
+  }
+
+  .popup-info {
+    margin: 5px 0;
+    font-size: 0.9em;
+    color: #6b7280;
+  }
+
+  .popup-status-change {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .popup-status-change label {
+    display: block;
+    font-size: 0.85em;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #374151;
+  }
+
+  .popup-status-change select {
+    width: 100%;
+    padding: 6px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  .popup-status-change button {
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 600;
+  }
+
+  .popup-status-change button:hover {
+    background: #1d4ed8;
+  }
+
   #calendar {
     background: white;
     border-radius: 12px;
