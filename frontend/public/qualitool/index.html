@@ -5585,118 +5585,56 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     addAddressMarkers();
   }
 
-  async function startLocationTracking() {
+  function startLocationTracking() {
     console.log('[Map] Starting location tracking...');
     
-    // Check if Capacitor is available (Android/iOS app)
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
-      console.log('[Map] Capacitor detected, using native Geolocation');
-      try {
-        const { Geolocation } = window.Capacitor.Plugins;
-        
-        // Try to get current position first (simpler approach)
-        console.log('[Map] Requesting initial position...');
-        const position = await Geolocation.getCurrentPosition({
-          enableHighAccuracy: true,
-          timeout: 15000
-        });
-        
-        console.log('[Map] Initial position received:', position);
-        if (position && position.coords) {
-          updateUserMarker(position.coords.latitude, position.coords.longitude);
-        }
-        
-        // Then start watching
-        console.log('[Map] Starting position watch...');
-        const watchCallback = await Geolocation.watchPosition(
-          {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 5000
-          },
-          (position, err) => {
-            if (err) {
-              console.error('[Map] Watch error:', err);
-              return;
-            }
-            if (position && position.coords) {
-              console.log('[Map] Position update:', position.coords.latitude, position.coords.longitude);
-              updateUserMarker(position.coords.latitude, position.coords.longitude);
-            }
-          }
-        );
-        
-        watchId = watchCallback;
-        console.log('[Map] Watch started successfully');
-        
-      } catch (error) {
-        console.error('[Map] Capacitor Geolocation error:', error);
-        console.log('[Map] Falling back to standard geolocation...');
-        startWebGeolocation();
-      }
-    } else {
-      // Use standard Web Geolocation API
-      console.log('[Map] No Capacitor, using Web Geolocation API');
-      startWebGeolocation();
-    }
-  }
-
-  function startWebGeolocation() {
-    if ('geolocation' in navigator) {
-      console.log('[Map] Starting Web Geolocation...');
-      
-      // Get initial position
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          console.log('[Map] Initial web position:', position.coords.latitude, position.coords.longitude);
-          updateUserMarker(position.coords.latitude, position.coords.longitude);
-        },
-        (error) => {
-          console.error('[Map] Initial position error:', error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0
-        }
-      );
-      
-      // Start watching
-      watchId = navigator.geolocation.watchPosition(
-        (position) => {
-          console.log('[Map] Web position update:', position.coords.latitude, position.coords.longitude);
-          updateUserMarker(position.coords.latitude, position.coords.longitude);
-        },
-        (error) => {
-          console.error('[Map] Watch error:', error);
-          let errorMessage = 'Standortfehler: ';
-          switch(error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage += 'Zugriff verweigert. Bitte erlauben Sie den Standortzugriff in den Einstellungen.';
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage += 'Position nicht verfügbar';
-              break;
-            case error.TIMEOUT:
-              errorMessage += 'Zeitüberschreitung';
-              break;
-            default:
-              errorMessage += error.message;
-          }
-          console.error('[Map]', errorMessage);
-        },
-        {
-          enableHighAccuracy: true,
-          maximumAge: 5000,
-          timeout: 15000
-        }
-      );
-      
-      console.log('[Map] Web watch started');
-    } else {
+    if (!('geolocation' in navigator)) {
       console.error('[Map] Geolocation not supported');
       alert('Standortdienste werden von Ihrem Gerät nicht unterstützt.');
+      return;
     }
+    
+    console.log('[Map] Using navigator.geolocation (works in both browser and Capacitor)');
+    
+    // Request initial position
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        console.log('[Map] ✓ Initial position:', position.coords.latitude, position.coords.longitude);
+        updateUserMarker(position.coords.latitude, position.coords.longitude);
+      },
+      (error) => {
+        console.error('[Map] Initial position error:', error.code, error.message);
+        let msg = 'Standort-Fehler: ';
+        if (error.code === 1) msg += 'Berechtigung verweigert. Bitte erlauben Sie den Standortzugriff.';
+        else if (error.code === 2) msg += 'Position nicht verfügbar.';
+        else if (error.code === 3) msg += 'Zeitüberschreitung.';
+        else msg += error.message;
+        alert(msg);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0
+      }
+    );
+    
+    // Start continuous tracking
+    watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        console.log('[Map] Position update:', position.coords.latitude, position.coords.longitude);
+        updateUserMarker(position.coords.latitude, position.coords.longitude);
+      },
+      (error) => {
+        console.error('[Map] Watch error:', error.code, error.message);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 10000,
+        timeout: 20000
+      }
+    );
+    
+    console.log('[Map] Watch started, ID:', watchId);
   }
 
   function updateUserMarker(lat, lng) {
