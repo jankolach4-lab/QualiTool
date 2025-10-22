@@ -687,12 +687,18 @@
     justify-content: flex-start;
     height: 200px;
     gap: 2px;
-    padding: 10px 5px;
+    padding: 10px 5px 10px 35px;
     background: white;
     border-radius: 6px;
     border: 1px solid #e5e7eb;
     overflow-x: auto;
     overflow-y: hidden;
+    position: relative;
+    background-image: 
+      linear-gradient(to top, #ffffff 1px, transparent 1px),
+      linear-gradient(to top, #ffffff 1px, transparent 1px);
+    background-size: 100% 25%, 100% 12.5%;
+    background-position: 0 10px, 0 10px;
   }
 
   .bar-chart::-webkit-scrollbar {
@@ -796,6 +802,21 @@
     width: 18px;
     height: 10px;
     border-radius: 2px;
+  }
+
+  .chart-y-axis {
+    position: absolute;
+    left: 5px;
+    bottom: 10px;
+    top: 10px;
+    width: 25px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-size: 9px;
+    color: #ffffff;
+    text-align: right;
+    padding-right: 5px;
   }
 
   #calendar {
@@ -1574,7 +1595,6 @@
   
   function renderBarChart(containerId, data, maxValue, barClass) {
     const container = document.getElementById(containerId);
-    console.log('[renderBarChart]', containerId, 'data:', data.length, 'items, maxValue:', maxValue);
     
     if (!container) {
       console.error('[renderBarChart] Container not found:', containerId);
@@ -1585,13 +1605,27 @@
     
     // Wenn keine Daten vorhanden, zeige eine Nachricht
     if (!data || data.length === 0) {
-      container.innerHTML = '<div style="padding: 20px; text-align: center; color: #6b7280;">Keine Daten vorhanden</div>';
+      container.innerHTML += '<div style="padding: 20px; text-align: center; color: #6b7280;">Keine Daten vorhanden</div>';
       console.warn('[renderBarChart] No data to render');
       return;
     }
     
-    // Mindesthöhe für Visualisierung
-    const effectiveMax = maxValue > 0 ? maxValue : 1;
+    // Mindesthöhe für Visualisierung - wenn alle Werte 0, setze Max auf 10 für Sichtbarkeit
+    const effectiveMax = maxValue > 0 ? maxValue : 10;
+    
+    // Y-Achse erstellen
+    const yAxis = document.createElement('div');
+    yAxis.className = 'chart-y-axis';
+    
+    // Y-Achsen-Labels (4 Stufen)
+    const steps = 4;
+    for (let i = steps; i >= 0; i--) {
+      const label = document.createElement('div');
+      label.textContent = Math.round((effectiveMax / steps) * i);
+      yAxis.appendChild(label);
+    }
+    
+    container.appendChild(yAxis);
     
     const isCompletionsChart = barClass === 'completions-bar';
     
@@ -1599,12 +1633,20 @@
       const barItem = document.createElement('div');
       barItem.className = 'bar-item';
       
-      // Berechne Höhe: bei 0 = 0%, bei Werten > 0 mindestens 3% für Sichtbarkeit
-      let heightPercent = 0;
+      // Berechne Höhe in Pixeln - maximal 75% der Höhe für Balken (25% Platz für Werte oben)
+      const maxBarHeight = 135; // 180px * 0.75 = 135px maximale Balkenhöhe
+      let heightPx = 0;
+      
       if (item.value > 0) {
-        heightPercent = (item.value / effectiveMax) * 100;
-        // Mindesthöhe von 3% für sichtbare Balken
-        heightPercent = Math.max(heightPercent, 3);
+        // Berechne proportionale Höhe, aber nie mehr als maxBarHeight
+        heightPx = (item.value / effectiveMax) * maxBarHeight;
+        // Mindesthöhe von 8px für sichtbare Balken
+        heightPx = Math.max(heightPx, 8);
+        // Stelle sicher, dass die Höhe nie maxBarHeight überschreitet
+        heightPx = Math.min(heightPx, maxBarHeight);
+      } else {
+        // Leere Balken: 3px
+        heightPx = 3;
       }
       
       const barValue = document.createElement('div');
@@ -1629,17 +1671,13 @@
       } else if (item.value > 0) {
         bar.className = `bar ${barClass}`;
       } else {
-        // Auch leere Balken anzeigen, aber unsichtbar
         bar.className = 'bar';
-        bar.style.backgroundColor = '#f3f4f6';
-        bar.style.height = '2px'; // Minimale Höhe für Platzhalter
+        bar.style.backgroundColor = '#e5e7eb';
       }
       
-      if (item.value > 0) {
-        bar.style.height = `${heightPercent}%`;
-      }
-      
-      bar.title = `Tag ${item.day}: ${item.value}`;
+      // WICHTIG: Setze Höhe in Pixeln, nicht Prozent
+      bar.style.height = `${heightPx}px`;
+      bar.title = `Tag ${item.day}: ${item.value} (${heightPx}px)`;
       
       const barLabel = document.createElement('div');
       barLabel.className = 'bar-label';
