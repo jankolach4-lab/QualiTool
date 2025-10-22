@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Karten-Farblogik Test</title>
+<style>
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 40px;
+    background: #f7f8fa;
+  }
+
+  h1 {
+    text-align: center;
+    color: #2563eb;
+    margin-bottom: 40px;
+  }
+
+  .examples {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .example-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+
+  .marker-preview {
+    width: 80px;
+    height: 80px;
+    margin: 20px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .marker-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .example-title {
+    font-weight: bold;
+    font-size: 1.1em;
+    color: #374151;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
+  .example-description {
+    font-size: 0.9em;
+    color: #6b7280;
+    line-height: 1.5;
+  }
+
+  .we-status {
+    margin-top: 15px;
+    padding: 10px;
+    background: #f9fafb;
+    border-radius: 6px;
+    font-size: 0.85em;
+  }
+
+  .we-item {
+    padding: 5px 0;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .we-item:last-child {
+    border-bottom: none;
+  }
+
+  .status-badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 600;
+  }
+
+  .status-abschluss {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .status-offen {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .status-beraten {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .legend {
+    max-width: 1200px;
+    margin: 40px auto 20px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+
+  .legend h3 {
+    margin-top: 0;
+    color: #374151;
+  }
+
+  .legend-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .legend-color {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+</style>
+</head>
+<body>
+
+<h1>Neue Farblogik für Kartenansicht</h1>
+
+<div class="legend">
+  <h3>Legende</h3>
+  <div class="legend-items">
+    <div class="legend-item">
+      <div class="legend-color" style="background: #059669;"></div>
+      <span><strong>Dunkelgrün:</strong> Alle WE: Abschluss</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: #86efac;"></div>
+      <span><strong>Hellgrün:</strong> Teilweise Abschluss</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: #ef4444;"></div>
+      <span><strong>Rot:</strong> Kein Interesse</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: #fbbf24;"></div>
+      <span><strong>Gelb:</strong> Bereits beraten</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: #3b82f6;"></div>
+      <span><strong>Blau:</strong> Standard / Offen</span>
+    </div>
+  </div>
+</div>
+
+<div class="examples">
+  <div class="example-card">
+    <div class="example-title">🏢 Mehrfamilienhaus</div>
+    <div class="marker-preview">
+      <div class="marker-circle" style="background: #059669;"></div>
+    </div>
+    <div class="example-description">
+      <strong>Farbe: Dunkelgrün</strong><br>
+      Alle WE haben einen Abschluss
+    </div>
+    <div class="we-status">
+      <div class="we-item">
+        <span>WE 1</span>
+        <span class="status-badge status-abschluss">Abschluss</span>
+      </div>
+      <div class="we-item">
+        <span>WE 2</span>
+        <span class="status-badge status-abschluss">Abschluss</span>
+      </div>
+      <div class="we-item">
+        <span>WE 3</span>
+        <span class="status-badge status-abschluss">Online/TS</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="example-card">
+    <div class="example-title">🏢 Mehrfamilienhaus</div>
+    <div class="marker-preview">
+      <div class="marker-circle" style="background: #86efac;"></div>
+    </div>
+    <div class="example-description">
+      <strong>Farbe: Hellgrün</strong><br>
+      Mindestens 1 Abschluss, aber nicht alle WE
+    </div>
+    <div class="we-status">
+      <div class="we-item">
+        <span>WE 1</span>
+        <span class="status-badge status-abschluss">Abschluss</span>
+      </div>
+      <div class="we-item">
+        <span>WE 2</span>
+        <span class="status-badge status-offen">Offen</span>
+      </div>
+      <div class="we-item">
+        <span>WE 3</span>
+        <span class="status-badge status-offen">Nicht angetroffen</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="example-card">
+    <div class="example-title">🏡 Einfamilienhaus</div>
+    <div class="marker-preview">
+      <div class="marker-circle" style="background: #059669;"></div>
+    </div>
+    <div class="example-description">
+      <strong>Farbe: Dunkelgrün</strong><br>
+      1 WE mit Abschluss = alle WE haben Abschluss
+    </div>
+    <div class="we-status">
+      <div class="we-item">
+        <span>WE 1</span>
+        <span class="status-badge status-abschluss">Abschluss</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="example-card">
+    <div class="example-title">🏢 Mehrfamilienhaus</div>
+    <div class="marker-preview">
+      <div class="marker-circle" style="background: #ef4444;"></div>
+    </div>
+    <div class="example-description">
+      <strong>Farbe: Rot</strong><br>
+      Mindestens 1 WE mit "Kein Interesse"
+    </div>
+    <div class="we-status">
+      <div class="we-item">
+        <span>WE 1</span>
+        <span class="status-badge" style="background: #fee2e2; color: #991b1b;">Kein Interesse</span>
+      </div>
+      <div class="we-item">
+        <span>WE 2</span>
+        <span class="status-badge status-offen">Offen</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="example-card">
+    <div class="example-title">🏢 Mehrfamilienhaus</div>
+    <div class="marker-preview">
+      <div class="marker-circle" style="background: #fbbf24;"></div>
+    </div>
+    <div class="example-description">
+      <strong>Farbe: Gelb</strong><br>
+      "Bereits beraten" aber keine Abschlüsse
+    </div>
+    <div class="we-status">
+      <div class="we-item">
+        <span>WE 1</span>
+        <span class="status-badge status-beraten">Bereits beraten</span>
+      </div>
+      <div class="we-item">
+        <span>WE 2</span>
+        <span class="status-badge status-offen">Offen</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="example-card">
+    <div class="example-title">🏢 Mehrfamilienhaus</div>
+    <div class="marker-preview">
+      <div class="marker-circle" style="background: #3b82f6;"></div>
+    </div>
+    <div class="example-description">
+      <strong>Farbe: Blau</strong><br>
+      Standard / Noch keine besonderen Status
+    </div>
+    <div class="we-status">
+      <div class="we-item">
+        <span>WE 1</span>
+        <span class="status-badge status-offen">Offen</span>
+      </div>
+      <div class="we-item">
+        <span>WE 2</span>
+        <span class="status-badge status-offen">Nicht angetroffen</span>
+      </div>
+      <div class="we-item">
+        <span>WE 3</span>
+        <span class="status-badge status-offen">Wiedervorlage</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
