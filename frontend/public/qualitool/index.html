@@ -5877,6 +5877,25 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     addSingleMarker(contact);
   }
 
+  // Central function to refresh map when contacts change
+  window.refreshMapIfOpen = function() {
+    if (map && document.querySelector('.map-section').style.display !== 'none') {
+      console.log('Refreshing map markers...');
+      addAddressMarkers();
+    }
+  };
+
+  // Function to handle new contacts (trigger geocoding)
+  window.onContactsChanged = function() {
+    // Refresh map if open
+    window.refreshMapIfOpen();
+    
+    // Start background geocoding for new addresses
+    if (typeof startBackgroundGeocoding === 'function') {
+      startBackgroundGeocoding();
+    }
+  };
+
   // Cleanup on page unload
   window.addEventListener('beforeunload', () => {
     if (watchId !== null) {
