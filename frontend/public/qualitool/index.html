@@ -687,12 +687,18 @@
     justify-content: flex-start;
     height: 200px;
     gap: 2px;
-    padding: 10px 5px;
+    padding: 10px 5px 10px 35px;
     background: white;
     border-radius: 6px;
     border: 1px solid #e5e7eb;
     overflow-x: auto;
     overflow-y: hidden;
+    position: relative;
+    background-image: 
+      linear-gradient(to top, #e5e7eb 1px, transparent 1px),
+      linear-gradient(to top, #f3f4f6 1px, transparent 1px);
+    background-size: 100% 25%, 100% 12.5%;
+    background-position: 0 10px, 0 10px;
   }
 
   .bar-chart::-webkit-scrollbar {
