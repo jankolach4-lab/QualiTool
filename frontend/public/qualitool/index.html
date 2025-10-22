@@ -2124,6 +2124,9 @@
     return statusLabels[status] || status;
   }
   function renderContacts(contactsToRender = contacts) {
+    // Aktualisiere Tagesstatistik
+    updateDailyStats();
+    
     contactsToRender = sortContacts([...contactsToRender]);
     const expandedCards = new Set(Array.from(document.querySelectorAll('.contact-card.expanded')).map(card => card.getAttribute('data-id')));
     const contactList = document.getElementById('contactList');
