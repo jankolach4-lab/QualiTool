@@ -2822,16 +2822,20 @@
       <button onclick="clearRecommendations()" class="delete-btn" style="position: static; margin: 10px auto; display: block;">Liste leeren</button>
       ${recommendations.map(rec => `
         <div class="recommended-contact">
-          <div><strong>${rec.contact.strasse} ${rec.contact.nummer}${rec.contact.zusatz ? ` ${rec.contact.zusatz}` : ''}</strong></div>
-          <div>WE ${rec.unit}: ${rec.resident.name || 'Unbekannt'}</div>
-          <div class="last-visit-time">
-            Letzter Besuch: ${rec.lastVisit.toLocaleString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })} Uhr
+          <div class="recommended-contact-header">
+            <div class="recommended-address">
+              <strong>${rec.contact.strasse} ${rec.contact.nummer}${rec.contact.zusatz ? ` ${rec.contact.zusatz}` : ''}</strong>
+              • WE ${rec.unit}: ${rec.resident.name || 'Unbekannt'}
+            </div>
+            <div class="last-visit-time">
+              ${rec.lastVisit.toLocaleString('de-DE', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })} Uhr
+            </div>
           </div>
         </div>
       `).join('')}
