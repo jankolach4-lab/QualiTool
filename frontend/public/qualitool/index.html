@@ -2208,6 +2208,11 @@
       console.error('[SaveContacts] enqueueFullContactsSnapshot failed:', e);
     }
     
+    // Update map if open
+    if (typeof window.onContactsChanged === 'function') {
+      window.onContactsChanged();
+    }
+    
     // Status-Diffs auch enqueuen (zusätzlich)
     try {
       if (typeof rescanAndEnqueueStatusDiffs === 'function') {
@@ -5580,40 +5585,110 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     addAddressMarkers();
   }
 
-  function startLocationTracking() {
-    if ('geolocation' in navigator) {
-      watchId = navigator.geolocation.watchPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-
-          if (!userMarker) {
-            // Create custom icon for user location (person icon)
-            const personIcon = L.divIcon({
-              html: '<svg width="32" height="32" viewBox="0 0 24 24" fill="#2563eb" stroke="white" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>',
-              className: 'user-location-marker',
-              iconSize: [32, 32],
-              iconAnchor: [16, 32]
-            });
-
-            userMarker = L.marker([lat, lng], { icon: personIcon }).addTo(map);
-            userMarker.bindPopup('<b>Ihr Standort</b>').openPopup();
-            map.setView([lat, lng], 15);
-          } else {
-            userMarker.setLatLng([lat, lng]);
+  async function startLocationTracking() {
+    console.log('[Map] Starting location tracking...');
+    
+    // Check if Capacitor is available (Android/iOS app)
+    if (window.Capacitor) {
+      console.log('[Map] Using Capacitor Geolocation');
+      try {
+        const { Geolocation } = window.Capacitor.Plugins;
+        
+        // Request permissions first
+        const permissionStatus = await Geolocation.checkPermissions();
+        console.log('[Map] Permission status:', permissionStatus);
+        
+        if (permissionStatus.location !== 'granted') {
+          const requestResult = await Geolocation.requestPermissions();
+          console.log('[Map] Permission request result:', requestResult);
+          
+          if (requestResult.location !== 'granted') {
+            alert('Bitte erlauben Sie den Standortzugriff in den App-Einstellungen.');
+            return;
           }
-        },
-        (error) => {
-          console.error('Geolocation error:', error);
-        },
-        {
-          enableHighAccuracy: true,
-          maximumAge: 0,
-          timeout: 5000
         }
-      );
+        
+        // Watch position with Capacitor
+        watchId = await Geolocation.watchPosition(
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          },
+          (position, err) => {
+            if (err) {
+              console.error('[Map] Capacitor Geolocation error:', err);
+              return;
+            }
+            
+            if (position && position.coords) {
+              updateUserMarker(position.coords.latitude, position.coords.longitude);
+            }
+          }
+        );
+        
+        console.log('[Map] Capacitor watch started, ID:', watchId);
+      } catch (error) {
+        console.error('[Map] Capacitor Geolocation failed:', error);
+        alert('Fehler beim Zugriff auf den Standort: ' + error.message);
+      }
     } else {
-      alert('Geolocation wird von Ihrem Browser nicht unterstützt.');
+      // Fallback to Web Geolocation API (Browser)
+      console.log('[Map] Using Web Geolocation API');
+      if ('geolocation' in navigator) {
+        watchId = navigator.geolocation.watchPosition(
+          (position) => {
+            updateUserMarker(position.coords.latitude, position.coords.longitude);
+          },
+          (error) => {
+            console.error('[Map] Web Geolocation error:', error);
+            let errorMessage = 'Standortfehler: ';
+            switch(error.code) {
+              case error.PERMISSION_DENIED:
+                errorMessage += 'Zugriff verweigert';
+                break;
+              case error.POSITION_UNAVAILABLE:
+                errorMessage += 'Position nicht verfügbar';
+                break;
+              case error.TIMEOUT:
+                errorMessage += 'Zeitüberschreitung';
+                break;
+              default:
+                errorMessage += error.message;
+            }
+            alert(errorMessage);
+          },
+          {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 10000
+          }
+        );
+      } else {
+        alert('Geolocation wird von Ihrem Browser nicht unterstützt.');
+      }
+    }
+  }
+
+  function updateUserMarker(lat, lng) {
+    console.log('[Map] Updating user position:', lat, lng);
+    
+    if (!userMarker) {
+      // Create custom icon for user location (person icon)
+      const personIcon = L.divIcon({
+        html: '<svg width="40" height="40" viewBox="0 0 24 24" fill="#2563eb" stroke="white" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>',
+        className: 'user-location-marker',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40]
+      });
+
+      userMarker = L.marker([lat, lng], { icon: personIcon }).addTo(map);
+      userMarker.bindPopup('<b>Ihr Standort</b>').openPopup();
+      map.setView([lat, lng], 15);
+      console.log('[Map] User marker created and map centered');
+    } else {
+      userMarker.setLatLng([lat, lng]);
+      console.log('[Map] User marker position updated');
     }
   }
 
@@ -5859,28 +5934,76 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   };
 
   function updateSingleMarkerColor(contact) {
-    if (!map || !contact.lat || !contact.lng) return;
+    if (!map || !contact.lat || !contact.lng) {
+      console.log('Cannot update marker: map not initialized or contact has no coordinates');
+      return;
+    }
     
     // Find and remove the old marker for this contact
+    const tolerance = 0.0001;
     const oldMarkerIndex = addressMarkers.findIndex(m => {
       const latLng = m.getLatLng();
-      return Math.abs(latLng.lat - contact.lat) < 0.0001 && 
-             Math.abs(latLng.lng - contact.lng) < 0.0001;
+      return Math.abs(latLng.lat - contact.lat) < tolerance && 
+             Math.abs(latLng.lng - contact.lng) < tolerance;
     });
     
     if (oldMarkerIndex !== -1) {
       map.removeLayer(addressMarkers[oldMarkerIndex]);
       addressMarkers.splice(oldMarkerIndex, 1);
+      console.log('Removed old marker for:', contact.strasse);
     }
     
     // Add updated marker
     addSingleMarker(contact);
+    console.log('Added updated marker for:', contact.strasse);
   }
+
+  // Central function to refresh map when contacts change
+  window.refreshMapIfOpen = function() {
+    const mapSection = document.querySelector('.map-section');
+    if (!mapSection) {
+      console.log('[Map] Map section not found');
+      return;
+    }
+    
+    const isVisible = mapSection.style.display !== 'none' && mapSection.style.display !== '';
+    
+    if (map && isVisible) {
+      console.log('[Map] Refreshing map markers... Total contacts:', contacts.length);
+      addAddressMarkers();
+    } else {
+      console.log('[Map] Not refreshing - Map:', !!map, 'Visible:', isVisible);
+    }
+  };
+
+  // Function to handle new contacts (trigger geocoding)
+  window.onContactsChanged = function() {
+    console.log('[Map] Contacts changed - triggering updates');
+    
+    // Refresh map if open
+    window.refreshMapIfOpen();
+    
+    // Start background geocoding for new addresses (with small delay)
+    setTimeout(() => {
+      if (typeof startBackgroundGeocoding === 'function') {
+        startBackgroundGeocoding();
+      }
+    }, 500);
+  };
 
   // Cleanup on page unload
   window.addEventListener('beforeunload', () => {
     if (watchId !== null) {
-      navigator.geolocation.clearWatch(watchId);
+      if (window.Capacitor) {
+        // Capacitor cleanup
+        const { Geolocation } = window.Capacitor.Plugins;
+        Geolocation.clearWatch({ id: watchId });
+        console.log('[Map] Capacitor watch cleared');
+      } else {
+        // Web API cleanup
+        navigator.geolocation.clearWatch(watchId);
+        console.log('[Map] Web Geolocation watch cleared');
+      }
     }
   });
 </script>
