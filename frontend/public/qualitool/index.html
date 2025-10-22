@@ -1471,6 +1471,30 @@
         <button onclick="showDeleteStreetDialog()" class="delete-all-btn" style="background: #ef4444;">Nach Straße löschen</button>
       </div>
 
+      <!-- Daily Statistics -->
+      <div class="daily-stats">
+        <div class="daily-stat-item">
+          <div class="daily-stat-icon">📊</div>
+          <div class="daily-stat-value" id="dailyChanges">0</div>
+          <div class="daily-stat-label">Statusänderungen</div>
+        </div>
+        <div class="daily-stat-item">
+          <div class="daily-stat-icon">💬</div>
+          <div class="daily-stat-value" id="dailyConversations">0</div>
+          <div class="daily-stat-label">Gespräche</div>
+        </div>
+        <div class="daily-stat-item">
+          <div class="daily-stat-icon">📅</div>
+          <div class="daily-stat-value" id="dailyAppointments">0</div>
+          <div class="daily-stat-label">Termine</div>
+        </div>
+        <div class="daily-stat-item">
+          <div class="daily-stat-icon">✅</div>
+          <div class="daily-stat-value" id="dailyCompletions">0</div>
+          <div class="daily-stat-label">Abschlüsse</div>
+        </div>
+      </div>
+
       <!-- Status filters -->
       <div class="status-filters">
         <button onclick="filterByStatus('all')" class="filter-btn active">Alle</button>
