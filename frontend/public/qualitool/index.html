@@ -729,7 +729,6 @@
     border-radius: 4px 4px 0 0;
     transition: all 0.3s ease;
     position: relative;
-    min-height: 2px;
   }
 
   .bar.completions-bar {
@@ -1562,6 +1561,10 @@
       maxQualis = Math.max(maxQualis, stats.total);
     }
     
+    // Debug: Log data
+    console.log('[renderCalendar] dailyCompletions:', dailyCompletions.length, 'max:', maxCompletions);
+    console.log('[renderCalendar] dailyQualis:', dailyQualis.length, 'max:', maxQualis);
+    
     // Render Abschlüsse Chart
     renderBarChart('completionsChart', dailyCompletions, maxCompletions, 'completions-bar');
     
@@ -1571,20 +1574,38 @@
   
   function renderBarChart(containerId, data, maxValue, barClass) {
     const container = document.getElementById(containerId);
-    if (!container) return;
+    console.log('[renderBarChart]', containerId, 'data:', data.length, 'items, maxValue:', maxValue);
+    
+    if (!container) {
+      console.error('[renderBarChart] Container not found:', containerId);
+      return;
+    }
     
     container.innerHTML = '';
+    
+    // Wenn keine Daten vorhanden, zeige eine Nachricht
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div style="padding: 20px; text-align: center; color: #6b7280;">Keine Daten vorhanden</div>';
+      console.warn('[renderBarChart] No data to render');
+      return;
+    }
     
     // Mindesthöhe für Visualisierung
     const effectiveMax = maxValue > 0 ? maxValue : 1;
     
     const isCompletionsChart = barClass === 'completions-bar';
     
-    data.forEach(item => {
+    data.forEach((item, index) => {
       const barItem = document.createElement('div');
       barItem.className = 'bar-item';
       
-      const heightPercent = effectiveMax > 0 ? (item.value / effectiveMax) * 100 : 0;
+      // Berechne Höhe: bei 0 = 0%, bei Werten > 0 mindestens 3% für Sichtbarkeit
+      let heightPercent = 0;
+      if (item.value > 0) {
+        heightPercent = (item.value / effectiveMax) * 100;
+        // Mindesthöhe von 3% für sichtbare Balken
+        heightPercent = Math.max(heightPercent, 3);
+      }
       
       const barValue = document.createElement('div');
       barValue.className = 'bar-value';
@@ -1605,11 +1626,19 @@
         } else {
           bar.className = 'bar completions-5plus';
         }
-      } else {
+      } else if (item.value > 0) {
         bar.className = `bar ${barClass}`;
+      } else {
+        // Auch leere Balken anzeigen, aber unsichtbar
+        bar.className = 'bar';
+        bar.style.backgroundColor = '#f3f4f6';
+        bar.style.height = '2px'; // Minimale Höhe für Platzhalter
       }
       
-      bar.style.height = `${heightPercent}%`;
+      if (item.value > 0) {
+        bar.style.height = `${heightPercent}%`;
+      }
+      
       bar.title = `Tag ${item.day}: ${item.value}`;
       
       const barLabel = document.createElement('div');
@@ -1622,6 +1651,8 @@
       
       container.appendChild(barItem);
     });
+    
+    console.log('[renderBarChart]', containerId, 'successfully rendered', data.length, 'bars');
   }
   window.contacts = JSON.parse(localStorage.getItem('contacts')) || [];
   let contacts = window.contacts;
