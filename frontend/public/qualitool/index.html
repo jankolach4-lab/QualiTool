@@ -2268,16 +2268,29 @@
   }
   function updateStreetFilter() {
     const streetFilter = document.getElementById('streetFilter');
+    if (!streetFilter) {
+      console.warn('[updateStreetFilter] Street filter element not found');
+      return;
+    }
+    
+    console.log('[StreetFilter] Updating with', contacts.length, 'contacts');
+    
     const streets = new Set();
     contacts.forEach(contact => {
       if (contact.strasse) {
         streets.add(contact.strasse);
       }
     });
+    
+    // Clear existing options except first one
     while (streetFilter.options.length > 1) {
       streetFilter.remove(1);
     }
+    
+    // Add sorted streets
     const streetsList = Array.from(streets).sort();
+    console.log('[StreetFilter] Found', streetsList.length, 'unique streets');
+    
     streetsList.forEach(street => {
       const option = document.createElement('option');
       option.value = street;
@@ -2285,12 +2298,10 @@
       streetFilter.appendChild(option);
     });
     
-    // NEU: Straßenliste in localStorage cachen für App-Neustart
-    try {
-      localStorage.setItem('qt_streets_cache', JSON.stringify(streetsList));
-    } catch(e) {
-      console.warn('[updateStreetFilter] Could not cache streets:', e);
-    }
+    // Reset to "Alle Straßen" 
+    streetFilter.value = '';
+    
+    console.log('[StreetFilter] ✓ Updated successfully');
   }
   function getStatusLabel(status) {
     if (!status) return 'Kein Status';
