@@ -524,6 +524,42 @@
     transform: translateY(-1px);
   }
 
+  .daily-stats {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 12px;
+    color: white;
+  }
+
+  .daily-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .daily-stat-value {
+    font-size: 1.5em;
+    font-weight: bold;
+    line-height: 1;
+  }
+
+  .daily-stat-label {
+    font-size: 0.75em;
+    opacity: 0.9;
+    text-align: center;
+  }
+
+  .daily-stat-icon {
+    font-size: 1.2em;
+    margin-bottom: 2px;
+  }
+
   .status-filters {
     margin: 12px 0 24px 0;
     display: flex;
