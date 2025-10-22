@@ -5844,7 +5844,12 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   }
 
   function createPopupContent(contact) {
-    const address = `${contact.strasse} ${contact.nummer || ''}, ${contact.plz || ''} ${contact.ort}`;
+    // Include zusatz in address display
+    let fullNumber = contact.nummer || '';
+    if (contact.zusatz) {
+      fullNumber = fullNumber ? `${fullNumber} ${contact.zusatz}` : contact.zusatz;
+    }
+    const address = `${contact.strasse} ${fullNumber}, ${contact.plz || ''} ${contact.ort}`;
     const we = contact.manualCurrentWe !== undefined ? contact.manualCurrentWe : (contact.we || 0);
     
     let residentInfo = '';
