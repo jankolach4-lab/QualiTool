@@ -5618,26 +5618,40 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       return '#3b82f6'; // Blau - Standard
     }
 
-    // Get highest priority status
-    let highestStatus = '';
-    let highestPriority = 0;
+    // Count completions and check other statuses
+    let hasCompletion = false;
+    let allCompletions = true;
+    let hasKeinInteresse = false;
+    let hasBeraten = false;
 
     contact.residents.forEach(resident => {
       const status = getHighestPriorityStatus(resident);
-      const priority = getStatusPriority(status);
-      if (priority > highestPriority) {
-        highestPriority = priority;
-        highestStatus = status;
+      
+      // Check if this resident has a completion
+      if (status === 'abschluss' || status === 'onlineabschluss' || status === 'abschl-anderer-vp') {
+        hasCompletion = true;
+      } else {
+        allCompletions = false;
+      }
+      
+      // Check for other priority statuses
+      if (status === 'kein-interesse') {
+        hasKeinInteresse = true;
+      }
+      if (status === 'beraten') {
+        hasBeraten = true;
       }
     });
 
-    // Color mapping
-    if (highestStatus === 'abschluss' || highestStatus === 'onlineabschluss' || highestStatus === 'abschl-anderer-vp') {
-      return '#059669'; // Dunkelgrün
-    } else if (highestStatus === 'kein-interesse') {
-      return '#ef4444'; // Rot
-    } else if (highestStatus === 'beraten') {
-      return '#fbbf24'; // Gelb
+    // Priority order: Kein Interesse > Beraten > Completions > Standard
+    if (hasKeinInteresse) {
+      return '#ef4444'; // Rot - Kein Interesse
+    } else if (hasBeraten && !hasCompletion) {
+      return '#fbbf24'; // Gelb - Bereits beraten (aber keine Abschlüsse)
+    } else if (allCompletions && hasCompletion) {
+      return '#059669'; // Dunkelgrün - Alle WE haben Abschluss
+    } else if (hasCompletion && !allCompletions) {
+      return '#86efac'; // Hellgrün - Mindestens 1 Abschluss, aber nicht alle
     }
 
     return '#3b82f6'; // Blau - Standard
