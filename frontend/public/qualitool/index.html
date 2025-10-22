@@ -5864,22 +5864,28 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   };
 
   function updateSingleMarkerColor(contact) {
-    if (!map || !contact.lat || !contact.lng) return;
+    if (!map || !contact.lat || !contact.lng) {
+      console.log('Cannot update marker: map not initialized or contact has no coordinates');
+      return;
+    }
     
     // Find and remove the old marker for this contact
+    const tolerance = 0.0001;
     const oldMarkerIndex = addressMarkers.findIndex(m => {
       const latLng = m.getLatLng();
-      return Math.abs(latLng.lat - contact.lat) < 0.0001 && 
-             Math.abs(latLng.lng - contact.lng) < 0.0001;
+      return Math.abs(latLng.lat - contact.lat) < tolerance && 
+             Math.abs(latLng.lng - contact.lng) < tolerance;
     });
     
     if (oldMarkerIndex !== -1) {
       map.removeLayer(addressMarkers[oldMarkerIndex]);
       addressMarkers.splice(oldMarkerIndex, 1);
+      console.log('Removed old marker for:', contact.strasse);
     }
     
     // Add updated marker
     addSingleMarker(contact);
+    console.log('Added updated marker for:', contact.strasse);
   }
 
   // Central function to refresh map when contacts change
