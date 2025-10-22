@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Automatische Skalierung</title>
+<style>
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 20px;
+    background: #f7f8fa;
+  }
+
+  .test-info {
+    background: white;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 8px;
+    border: 2px solid #2563eb;
+  }
+
+  .chart-section {
+    background: #f9fafb;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 20px 0;
+  }
+
+  .chart-title {
+    font-size: 1em;
+    color: #2563eb;
+    margin: 0 0 15px 0;
+    font-weight: 600;
+  }
+
+  .bar-chart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    height: 200px;
+    gap: 2px;
+    padding: 10px 5px 10px 35px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    overflow-x: auto;
+    overflow-y: hidden;
+    position: relative;
+    background-image: 
+      linear-gradient(to top, #e5e7eb 1px, transparent 1px),
+      linear-gradient(to top, #f3f4f6 1px, transparent 1px);
+    background-size: 100% 25%, 100% 12.5%;
+    background-position: 0 10px, 0 10px;
+  }
+
+  .bar-item {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 28px;
+    max-width: 35px;
+  }
+
+  .bar {
+    width: 100%;
+    background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+    border-radius: 4px 4px 0 0;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+
+  .bar.completions-1 { background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); }
+  .bar.completions-2 { background: linear-gradient(180deg, #fb923c 0%, #f97316 100%); }
+  .bar.completions-3 { background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%); }
+  .bar.completions-4 { background: linear-gradient(180deg, #86efac 0%, #4ade80 100%); }
+  .bar.completions-5plus { background: linear-gradient(180deg, #10b981 0%, #059669 100%); }
+
+  .bar-value {
+    font-size: 10px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 4px;
+    min-height: 12px;
+  }
+
+  .bar-label {
+    font-size: 9px;
+    color: #6b7280;
+    margin-top: 5px;
+    white-space: nowrap;
+  }
+
+  .chart-y-axis {
+    position: absolute;
+    left: 5px;
+    bottom: 10px;
+    top: 10px;
+    width: 25px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-size: 9px;
+    color: #6b7280;
+    text-align: right;
+    padding-right: 5px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #4b5563;
+  }
+
+  .legend-color {
+    width: 18px;
+    height: 10px;
+    border-radius: 2px;
+  }
+</style>
+</head>
+<body>
+
+<h1 style="text-align: center; color: #2563eb;">Test: Automatische Skalierung für hohe Werte</h1>
+
+<div class="test-info">
+  <h3>Test-Szenarien:</h3>
+  <ul>
+    <li><strong>Chart 1:</strong> Kleine Werte (max 3 Abschlüsse)</li>
+    <li><strong>Chart 2:</strong> Mittlere Werte (max 10 Abschlüsse)</li>
+    <li><strong>Chart 3:</strong> Hohe Werte (max 25 Abschlüsse)</li>
+    <li><strong>Chart 4:</strong> Sehr hohe Werte (max 50 Abschlüsse)</li>
+  </ul>
+  <p><strong>Alle Zahlen sollten sichtbar sein und kein Balken darf das Diagramm verlassen!</strong></p>
+</div>
+
+<div class="chart-section">
+  <h4 class="chart-title">Chart 1: Kleine Werte (Max: 3)</h4>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-color" style="background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);"></div><span>1</span></div>
+    <div class="legend-item"><div class="legend-color" style="background: linear-gradient(180deg, #fb923c 0%, #f97316 100%);"></div><span>2</span></div>
+    <div class="legend-item"><div class="legend-color" style="background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%);"></div><span>3</span></div>
+    <div class="legend-item"><div class="legend-color" style="background: linear-gradient(180deg, #86efac 0%, #4ade80 100%);"></div><span>4</span></div>
+    <div class="legend-item"><div class="legend-color" style="background: linear-gradient(180deg, #10b981 0%, #059669 100%);"></div><span>5+</span></div>
+  </div>
+  <div id="chart1" class="bar-chart"></div>
+</div>
+
+<div class="chart-section">
+  <h4 class="chart-title">Chart 2: Mittlere Werte (Max: ~10)</h4>
+  <div id="chart2" class="bar-chart"></div>
+</div>
+
+<div class="chart-section">
+  <h4 class="chart-title">Chart 3: Hohe Werte (Max: ~25)</h4>
+  <div id="chart3" class="bar-chart"></div>
+</div>
+
+<div class="chart-section">
+  <h4 class="chart-title">Chart 4: Sehr hohe Werte (Max: ~50)</h4>
+  <div id="chart4" class="bar-chart"></div>
+</div>
+
+<script>
+  function renderBarChart(containerId, data, maxValue, barClass) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    const effectiveMax = maxValue > 0 ? maxValue : 10;
+    const isCompletionsChart = barClass === 'completions-bar';
+    
+    // Y-Achse
+    const yAxis = document.createElement('div');
+    yAxis.className = 'chart-y-axis';
+    const steps = 4;
+    for (let i = steps; i >= 0; i--) {
+      const label = document.createElement('div');
+      label.textContent = Math.round((effectiveMax / steps) * i);
+      yAxis.appendChild(label);
+    }
+    container.appendChild(yAxis);
+    
+    // Balken - maximal 85% der Höhe nutzen
+    const maxBarHeight = 153; // 180px * 0.85
+    data.forEach(item => {
+      const barItem = document.createElement('div');
+      barItem.className = 'bar-item';
+      
+      let heightPx = 0;
+      if (item.value > 0) {
+        heightPx = (item.value / effectiveMax) * maxBarHeight;
+        heightPx = Math.max(heightPx, 8);
+        heightPx = Math.min(heightPx, maxBarHeight);
+      } else {
+        heightPx = 3;
+      }
+      
+      const barValue = document.createElement('div');
+      barValue.className = 'bar-value';
+      barValue.textContent = item.value > 0 ? item.value : '';
+      
+      const bar = document.createElement('div');
+      
+      if (isCompletionsChart && item.value > 0) {
+        if (item.value === 1) bar.className = 'bar completions-1';
+        else if (item.value === 2) bar.className = 'bar completions-2';
+        else if (item.value === 3) bar.className = 'bar completions-3';
+        else if (item.value === 4) bar.className = 'bar completions-4';
+        else bar.className = 'bar completions-5plus';
+      } else if (item.value > 0) {
+        bar.className = `bar ${barClass}`;
+      } else {
+        bar.className = 'bar';
+        bar.style.backgroundColor = '#e5e7eb';
+      }
+      
+      bar.style.height = `${heightPx}px`;
+      bar.title = `Tag ${item.day}: ${item.value}`;
+      
+      const barLabel = document.createElement('div');
+      barLabel.className = 'bar-label';
+      barLabel.textContent = item.day;
+      
+      barItem.appendChild(barValue);
+      barItem.appendChild(bar);
+      barItem.appendChild(barLabel);
+      container.appendChild(barItem);
+    });
+  }
+  
+  // Chart 1: Kleine Werte (0-3)
+  const data1 = [];
+  for (let i = 1; i <= 15; i++) {
+    data1.push({ day: i, value: Math.floor(Math.random() * 4) });
+  }
+  renderBarChart('chart1', data1, Math.max(...data1.map(d => d.value)), 'completions-bar');
+  
+  // Chart 2: Mittlere Werte (0-10)
+  const data2 = [];
+  for (let i = 1; i <= 15; i++) {
+    data2.push({ day: i, value: Math.floor(Math.random() * 11) });
+  }
+  renderBarChart('chart2', data2, Math.max(...data2.map(d => d.value)), 'completions-bar');
+  
+  // Chart 3: Hohe Werte (0-25)
+  const data3 = [];
+  for (let i = 1; i <= 15; i++) {
+    data3.push({ day: i, value: Math.floor(Math.random() * 26) });
+  }
+  renderBarChart('chart3', data3, Math.max(...data3.map(d => d.value)), 'completions-bar');
+  
+  // Chart 4: Sehr hohe Werte (0-50)
+  const data4 = [];
+  for (let i = 1; i <= 15; i++) {
+    data4.push({ day: i, value: Math.floor(Math.random() * 51) });
+  }
+  renderBarChart('chart4', data4, Math.max(...data4.map(d => d.value)), 'completions-bar');
+</script>
+
+</body>
+</html>
