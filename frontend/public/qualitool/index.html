@@ -1639,12 +1639,17 @@
       const barItem = document.createElement('div');
       barItem.className = 'bar-item';
       
-      // Berechne Höhe: bei 0 = 0%, bei Werten > 0 mindestens 3% für Sichtbarkeit
-      let heightPercent = 0;
+      // Berechne Höhe in Pixeln statt Prozent für bessere Kontrolle
+      const chartHeight = 180; // Verfügbare Höhe in px (200px - 20px padding)
+      let heightPx = 0;
+      
       if (item.value > 0) {
-        heightPercent = (item.value / effectiveMax) * 100;
-        // Mindesthöhe von 3% für sichtbare Balken
-        heightPercent = Math.max(heightPercent, 3);
+        heightPx = (item.value / effectiveMax) * chartHeight;
+        // Mindesthöhe von 8px für sichtbare Balken
+        heightPx = Math.max(heightPx, 8);
+      } else {
+        // Leere Balken: 3px
+        heightPx = 3;
       }
       
       const barValue = document.createElement('div');
@@ -1669,18 +1674,13 @@
       } else if (item.value > 0) {
         bar.className = `bar ${barClass}`;
       } else {
-        // Leere Balken mit minimaler Höhe
         bar.className = 'bar';
         bar.style.backgroundColor = '#e5e7eb';
-        bar.style.height = '3px'; // Minimale Höhe für Platzhalter
       }
       
-      if (item.value > 0) {
-        bar.style.height = `${heightPercent}%`;
-        bar.style.minHeight = '5px'; // Minimum für sehr kleine Werte
-      }
-      
-      bar.title = `Tag ${item.day}: ${item.value}`;
+      // WICHTIG: Setze Höhe in Pixeln, nicht Prozent
+      bar.style.height = `${heightPx}px`;
+      bar.title = `Tag ${item.day}: ${item.value} (${heightPx}px)`;
       
       const barLabel = document.createElement('div');
       barLabel.className = 'bar-label';
