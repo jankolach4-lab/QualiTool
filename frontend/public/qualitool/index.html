@@ -1611,8 +1611,22 @@
       return;
     }
     
+    // Y-Achse erstellen
+    const yAxis = document.createElement('div');
+    yAxis.className = 'chart-y-axis';
+    
     // Mindesthöhe für Visualisierung
     const effectiveMax = maxValue > 0 ? maxValue : 1;
+    
+    // Y-Achsen-Labels (4 Stufen)
+    const steps = 4;
+    for (let i = steps; i >= 0; i--) {
+      const label = document.createElement('div');
+      label.textContent = Math.round((effectiveMax / steps) * i);
+      yAxis.appendChild(label);
+    }
+    
+    container.appendChild(yAxis);
     
     const isCompletionsChart = barClass === 'completions-bar';
     
