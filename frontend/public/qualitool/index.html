@@ -1639,14 +1639,17 @@
       const barItem = document.createElement('div');
       barItem.className = 'bar-item';
       
-      // Berechne Höhe in Pixeln statt Prozent für bessere Kontrolle
-      const chartHeight = 180; // Verfügbare Höhe in px (200px - 20px padding)
+      // Berechne Höhe in Pixeln - maximal 85% der Höhe für Balken (15% Platz für Werte oben)
+      const maxBarHeight = 153; // 180px * 0.85 = 153px maximale Balkenhöhe
       let heightPx = 0;
       
       if (item.value > 0) {
-        heightPx = (item.value / effectiveMax) * chartHeight;
+        // Berechne proportionale Höhe, aber nie mehr als maxBarHeight
+        heightPx = (item.value / effectiveMax) * maxBarHeight;
         // Mindesthöhe von 8px für sichtbare Balken
         heightPx = Math.max(heightPx, 8);
+        // Stelle sicher, dass die Höhe nie maxBarHeight überschreitet
+        heightPx = Math.min(heightPx, maxBarHeight);
       } else {
         // Leere Balken: 3px
         heightPx = 3;
