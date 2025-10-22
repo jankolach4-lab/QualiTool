@@ -5749,7 +5749,13 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       const contact = geocodingQueue.shift();
       
       try {
-        const address = `${contact.strasse} ${contact.nummer || ''}, ${contact.plz || ''} ${contact.ort}, Deutschland`;
+        // Include zusatz (e.g., "20 A") in the house number
+        let fullNumber = contact.nummer || '';
+        if (contact.zusatz) {
+          fullNumber = fullNumber ? `${fullNumber} ${contact.zusatz}` : contact.zusatz;
+        }
+        const address = `${contact.strasse} ${fullNumber}, ${contact.plz || ''} ${contact.ort}, Deutschland`;
+        console.log('[Geocoding] Trying address:', address);
         const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`);
         const data = await response.json();
         
