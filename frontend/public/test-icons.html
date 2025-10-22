@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Schlichte Icons</title>
+<style>
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 20px;
+    background: #f7f8fa;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .daily-stats {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 12px;
+    color: white;
+  }
+
+  .daily-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .daily-stat-value {
+    font-size: 1.5em;
+    font-weight: bold;
+    line-height: 1;
+  }
+
+  .daily-stat-label {
+    font-size: 0.75em;
+    opacity: 0.9;
+    text-align: center;
+  }
+
+  .daily-stat-icon {
+    font-size: 1.2em;
+    margin-bottom: 2px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .daily-stat-icon svg {
+    width: 100%;
+    height: 100%;
+    stroke: white;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  h1 {
+    text-align: center;
+    color: #2563eb;
+  }
+
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 30px;
+  }
+
+  .comparison-item {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+  }
+
+  .comparison-item h3 {
+    margin-top: 0;
+    color: #667eea;
+  }
+
+  .icon-preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    margin: 20px 0;
+  }
+
+  .icon-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .icon-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .icon-circle svg {
+    width: 30px;
+    height: 30px;
+    stroke: white;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .icon-name {
+    font-size: 12px;
+    color: #666;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Schlichte, elegante Icons</h1>
+
+  <div class="daily-stats">
+    <div class="daily-stat-item">
+      <div class="daily-stat-icon">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+      </div>
+      <div class="daily-stat-value">12</div>
+      <div class="daily-stat-label">Statusänderungen</div>
+    </div>
+    <div class="daily-stat-item">
+      <div class="daily-stat-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+      </div>
+      <div class="daily-stat-value">8</div>
+      <div class="daily-stat-label">Gespräche</div>
+    </div>
+    <div class="daily-stat-item">
+      <div class="daily-stat-icon">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      </div>
+      <div class="daily-stat-value">3</div>
+      <div class="daily-stat-label">Termine</div>
+    </div>
+    <div class="daily-stat-item">
+      <div class="daily-stat-icon">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </div>
+      <div class="daily-stat-value">2</div>
+      <div class="daily-stat-label">Abschlüsse</div>
+    </div>
+  </div>
+
+  <div class="comparison">
+    <div class="comparison-item">
+      <h3>Vorher (Emoji)</h3>
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-around;">
+          <div style="text-align: center;">
+            <div style="font-size: 24px;">📊</div>
+            <div style="font-size: 20px; font-weight: bold; margin: 5px 0;">12</div>
+            <div style="font-size: 11px; opacity: 0.9;">Status</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 24px;">💬</div>
+            <div style="font-size: 20px; font-weight: bold; margin: 5px 0;">8</div>
+            <div style="font-size: 11px; opacity: 0.9;">Gespräche</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 24px;">📅</div>
+            <div style="font-size: 20px; font-weight: bold; margin: 5px 0;">3</div>
+            <div style="font-size: 11px; opacity: 0.9;">Termine</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 24px;">✅</div>
+            <div style="font-size: 20px; font-weight: bold; margin: 5px 0;">2</div>
+            <div style="font-size: 11px; opacity: 0.9;">Abschlüsse</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="comparison-item">
+      <h3>Nachher (SVG)</h3>
+      <div class="daily-stats" style="margin: 0;">
+        <div class="daily-stat-item">
+          <div class="daily-stat-icon">
+            <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          </div>
+          <div class="daily-stat-value">12</div>
+          <div class="daily-stat-label">Status</div>
+        </div>
+        <div class="daily-stat-item">
+          <div class="daily-stat-icon">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          </div>
+          <div class="daily-stat-value">8</div>
+          <div class="daily-stat-label">Gespräche</div>
+        </div>
+        <div class="daily-stat-item">
+          <div class="daily-stat-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          </div>
+          <div class="daily-stat-value">3</div>
+          <div class="daily-stat-label">Termine</div>
+        </div>
+        <div class="daily-stat-item">
+          <div class="daily-stat-icon">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="daily-stat-value">2</div>
+          <div class="daily-stat-label">Abschlüsse</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
+    <h3>Icon-Bedeutungen:</h3>
+    <div class="icon-preview">
+      <div class="icon-item">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        </div>
+        <div class="icon-name">Aktivität / Änderungen</div>
+      </div>
+      <div class="icon-item">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        </div>
+        <div class="icon-name">Gespräche / Nachrichten</div>
+      </div>
+      <div class="icon-item">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        </div>
+        <div class="icon-name">Kalender / Termine</div>
+      </div>
+      <div class="icon-item">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <div class="icon-name">Abgeschlossen / Erledigt</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
