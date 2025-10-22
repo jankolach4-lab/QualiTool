@@ -2208,6 +2208,11 @@
       console.error('[SaveContacts] enqueueFullContactsSnapshot failed:', e);
     }
     
+    // Update map if open
+    if (typeof window.onContactsChanged === 'function') {
+      window.onContactsChanged();
+    }
+    
     // Status-Diffs auch enqueuen (zusätzlich)
     try {
       if (typeof rescanAndEnqueueStatusDiffs === 'function') {
