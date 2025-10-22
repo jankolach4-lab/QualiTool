@@ -2975,6 +2975,11 @@
           if (typeof renderCalendar==='function') renderCalendar();
           break;
         }
+        case 'map': {
+          setDisp('.map-section','block');
+          if (typeof initializeMap==='function') initializeMap();
+          break;
+        }
         case 'pdf-corrections': {
           const mount = document.getElementById('weCorrectionsSection');
           if (mount) { if (typeof renderWeCorrectionsList==='function') renderWeCorrectionsList(mount); mount.style.display='block'; }
