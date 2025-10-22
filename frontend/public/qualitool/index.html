@@ -2309,6 +2309,64 @@
     updateStatistics();
   }
 
+  function updateDailyStats() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayTimestamp = today.getTime();
+    
+    let statusChanges = 0;
+    let conversations = 0;
+    let appointments = 0;
+    let completions = 0;
+    
+    // Definiere Gesprächs-Status
+    const conversationStatuses = [
+      'kein-eintritt', 
+      'wiedervorlage', 
+      'kein-interesse', 
+      'beraten', 
+      'abschluss', 
+      'termin'
+    ];
+    
+    contacts.forEach(contact => {
+      if (!contact?.residents) return;
+      
+      contact.residents.forEach(resident => {
+        if (!resident?.statusHistory) return;
+        
+        // Zähle Statusänderungen heute
+        resident.statusHistory.forEach(historyEntry => {
+          const entryDate = new Date(historyEntry.timestamp);
+          entryDate.setHours(0, 0, 0, 0);
+          
+          if (entryDate.getTime() === todayTimestamp) {
+            statusChanges++;
+            
+            // Prüfe ob es ein Gespräch war
+            if (conversationStatuses.includes(historyEntry.status)) {
+              conversations++;
+            }
+            
+            // Prüfe spezifische Status
+            if (historyEntry.status === 'termin') {
+              appointments++;
+            }
+            if (historyEntry.status === 'abschluss') {
+              completions++;
+            }
+          }
+        });
+      });
+    });
+    
+    // Aktualisiere UI
+    document.getElementById('dailyChanges').textContent = statusChanges;
+    document.getElementById('dailyConversations').textContent = conversations;
+    document.getElementById('dailyAppointments').textContent = appointments;
+    document.getElementById('dailyCompletions').textContent = completions;
+  }
+
   function applyFilters() {
     const searchTerm = (document.getElementById('searchInput').value || '').toLowerCase();
     const selectedStreet = document.getElementById('streetFilter').value;
