@@ -1664,14 +1664,15 @@
       } else if (item.value > 0) {
         bar.className = `bar ${barClass}`;
       } else {
-        // Auch leere Balken anzeigen, aber unsichtbar
+        // Leere Balken mit minimaler Höhe
         bar.className = 'bar';
-        bar.style.backgroundColor = '#f3f4f6';
-        bar.style.height = '2px'; // Minimale Höhe für Platzhalter
+        bar.style.backgroundColor = '#e5e7eb';
+        bar.style.height = '3px'; // Minimale Höhe für Platzhalter
       }
       
       if (item.value > 0) {
         bar.style.height = `${heightPercent}%`;
+        bar.style.minHeight = '5px'; // Minimum für sehr kleine Werte
       }
       
       bar.title = `Tag ${item.day}: ${item.value}`;
