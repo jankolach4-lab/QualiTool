@@ -5672,22 +5672,45 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   function updateUserMarker(lat, lng) {
     console.log('[Map] Updating user position:', lat, lng);
     
+    if (!map) {
+      console.error('[Map] Map not initialized!');
+      return;
+    }
+    
     if (!userMarker) {
-      // Create custom icon for user location (person icon)
+      // Create custom icon with better visibility
       const personIcon = L.divIcon({
-        html: '<svg width="40" height="40" viewBox="0 0 24 24" fill="#2563eb" stroke="white" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>',
+        html: `<div style="position: relative; width: 40px; height: 40px;">
+          <div style="position: absolute; top: 0; left: 0; width: 40px; height: 40px; background: rgba(37, 99, 235, 0.2); border-radius: 50%; animation: pulse 2s infinite;"></div>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="#2563eb" stroke="white" stroke-width="2" style="position: absolute; top: 0; left: 0;">
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+          </svg>
+        </div>
+        <style>
+          @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.3; }
+          }
+        </style>`,
         className: 'user-location-marker',
         iconSize: [40, 40],
         iconAnchor: [20, 40]
       });
 
-      userMarker = L.marker([lat, lng], { icon: personIcon }).addTo(map);
-      userMarker.bindPopup('<b>Ihr Standort</b>').openPopup();
-      map.setView([lat, lng], 15);
-      console.log('[Map] User marker created and map centered');
+      userMarker = L.marker([lat, lng], { 
+        icon: personIcon,
+        zIndexOffset: 1000  // Ensure it's on top
+      }).addTo(map);
+      
+      userMarker.bindPopup('<b>📍 Ihr Standort</b><br><small>Wird in Echtzeit aktualisiert</small>');
+      map.setView([lat, lng], 16);
+      
+      console.log('[Map] ✓ User marker created at', lat, lng);
+      console.log('[Map] ✓ Map centered and zoomed');
     } else {
       userMarker.setLatLng([lat, lng]);
-      console.log('[Map] User marker position updated');
+      console.log('[Map] ✓ User marker position updated to', lat, lng);
     }
   }
 
