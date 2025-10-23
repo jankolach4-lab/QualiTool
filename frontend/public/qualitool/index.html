@@ -5678,36 +5678,46 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     }
     
     if (!userMarker) {
-      // Create custom icon with better visibility
+      // Create custom icon with high visibility - simple and reliable approach
       const personIcon = L.divIcon({
-        html: `<div style="position: relative; width: 40px; height: 40px;">
-          <div style="position: absolute; top: 0; left: 0; width: 40px; height: 40px; background: rgba(37, 99, 235, 0.2); border-radius: 50%; animation: pulse 2s infinite;"></div>
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="#2563eb" stroke="white" stroke-width="2" style="position: absolute; top: 0; left: 0;">
-            <circle cx="12" cy="8" r="4"/>
-            <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
-          </svg>
-        </div>
-        <style>
-          @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.5); opacity: 0.3; }
-          }
-        </style>`,
+        html: `
+          <div style="position: relative; width: 48px; height: 48px; margin-left: -24px; margin-top: -24px;">
+            <div class="user-pulse" style="position: absolute; top: 4px; left: 4px; width: 40px; height: 40px; background: rgba(37, 99, 235, 0.3); border-radius: 50%;"></div>
+            <div style="position: absolute; top: 8px; left: 8px; width: 32px; height: 32px; background: #2563eb; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="white" stroke="none" style="padding: 4px;">
+                <circle cx="12" cy="8" r="3.5"/>
+                <path d="M7 21v-2a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v2"/>
+              </svg>
+            </div>
+          </div>
+          <style>
+            @keyframes userPulse {
+              0%, 100% { transform: scale(1); opacity: 0.6; }
+              50% { transform: scale(1.6); opacity: 0.1; }
+            }
+            .user-pulse {
+              animation: userPulse 2s ease-in-out infinite !important;
+            }
+            .user-location-marker {
+              z-index: 10000 !important;
+            }
+          </style>`,
         className: 'user-location-marker',
-        iconSize: [40, 40],
-        iconAnchor: [20, 40]
+        iconSize: [48, 48],
+        iconAnchor: [24, 24]
       });
 
       userMarker = L.marker([lat, lng], { 
         icon: personIcon,
-        zIndexOffset: 1000  // Ensure it's on top
+        zIndexOffset: 10000  // Ensure it's on top of everything
       }).addTo(map);
       
-      userMarker.bindPopup('<b>📍 Ihr Standort</b><br><small>Wird in Echtzeit aktualisiert</small>');
+      userMarker.bindPopup('<b style="font-size: 14px;">📍 Ihr Standort</b><br><small style="color: #6b7280;">Wird in Echtzeit aktualisiert</small>');
       map.setView([lat, lng], 16);
       
-      console.log('[Map] ✓ User marker created at', lat, lng);
-      console.log('[Map] ✓ Map centered and zoomed');
+      console.log('[Map] ✓ User marker created and added to map at', lat, lng);
+      console.log('[Map] ✓ Marker zIndex:', 10000);
+      console.log('[Map] ✓ Map centered at zoom 16');
     } else {
       userMarker.setLatLng([lat, lng]);
       console.log('[Map] ✓ User marker position updated to', lat, lng);
