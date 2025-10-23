@@ -3612,31 +3612,89 @@
     console.log('[Export WE-Korrekturen] Filename:', filename);
     console.log('[Export WE-Korrekturen] Creating download link...');
     
-    // Download
+    // Download - unterschiedlich für Web vs. Capacitor (Android/iOS)
     try {
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', filename);
-      link.style.visibility = 'hidden';
-      link.style.display = 'none';
-      document.body.appendChild(link);
+      const isNativeApp = window.__CapHelper && window.__CapHelper.isNative();
       
-      console.log('[Export WE-Korrekturen] Link created, triggering click...');
-      link.click();
-      
-      // Cleanup after a short delay
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        console.log('[Export WE-Korrekturen] Cleanup completed');
-      }, 100);
-      
-      console.log('[Export WE-Korrekturen] ✓ Download successful!');
-      console.log('[Export WE-Korrekturen] ==================== END ====================');
-      
-      // Success notification
-      alert(`✓ Export erfolgreich!\n\n${corrections.length} WE-Korrektur(en) wurden exportiert.\nDatei: ${filename}`);
+      if (isNativeApp) {
+        // CAPACITOR (Android/iOS) - Use Filesystem + Share
+        console.log('[Export WE-Korrekturen] Native app detected, using Capacitor Filesystem + Share');
+        
+        const Filesystem = window.__CapHelper.getPlugin('Filesystem');
+        const Share = window.__CapHelper.getPlugin('Share');
+        
+        if (!Filesystem || !Share) {
+          throw new Error('Capacitor Filesystem oder Share Plugin nicht verfügbar');
+        }
+        
+        // Convert blob to base64
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          try {
+            const base64Data = reader.result.split(',')[1]; // Remove data:text/csv;base64, prefix
+            
+            // Write file to app's data directory
+            const result = await Filesystem.writeFile({
+              path: filename,
+              data: base64Data,
+              directory: 'CACHE', // Use CACHE directory for temporary files
+              encoding: 'base64'
+            });
+            
+            console.log('[Export WE-Korrekturen] File written to:', result.uri);
+            
+            // Share the file (opens Android share dialog)
+            await Share.share({
+              title: 'WE-Korrekturen Export',
+              text: `${corrections.length} WE-Korrektur(en)`,
+              url: result.uri,
+              dialogTitle: 'CSV-Datei teilen/speichern'
+            });
+            
+            console.log('[Export WE-Korrekturen] ✓ File shared successfully!');
+            console.log('[Export WE-Korrekturen] ==================== END ====================');
+            
+            // Success notification
+            alert(`✓ Export erfolgreich!\n\n${corrections.length} WE-Korrektur(en) wurden exportiert.\n\nBitte wählen Sie im Share-Dialog, wo Sie die Datei speichern möchten.`);
+          } catch (shareErr) {
+            console.error('[Export WE-Korrekturen] Share failed:', shareErr);
+            throw shareErr;
+          }
+        };
+        reader.onerror = (err) => {
+          console.error('[Export WE-Korrekturen] FileReader error:', err);
+          throw new Error('Fehler beim Lesen der CSV-Daten');
+        };
+        reader.readAsDataURL(blob);
+        
+      } else {
+        // WEB BROWSER - Standard download
+        console.log('[Export WE-Korrekturen] Web browser detected, using standard download');
+        
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        
+        console.log('[Export WE-Korrekturen] Link created, triggering click...');
+        link.click();
+        
+        // Cleanup after a short delay
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          console.log('[Export WE-Korrekturen] Cleanup completed');
+        }, 100);
+        
+        console.log('[Export WE-Korrekturen] ✓ Download successful!');
+        console.log('[Export WE-Korrekturen] ==================== END ====================');
+        
+        // Success notification
+        alert(`✓ Export erfolgreich!\n\n${corrections.length} WE-Korrektur(en) wurden exportiert.\nDatei: ${filename}`);
+      }
     } catch(e) {
       console.error('[Export WE-Korrekturen] ❌ Download failed:', e);
       console.error('[Export WE-Korrekturen] Error stack:', e.stack);
