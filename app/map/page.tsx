@@ -342,8 +342,9 @@ export default function ProjectMap() {
     
     for (const address of addresses) {
       const normalizeStr = (s: string) => s.toString().trim().toLowerCase().replace(/\s+/g, ' ')
-      // Include hausnummer in key to ensure each house number is separate
-      const locationKey = `${normalizeStr(address.strasse)}_${normalizeStr(address.hausnummer)}_${normalizeStr(address.plz)}_${normalizeStr(address.ort)}`
+      // Include hausnummer AND zusatz in key to ensure each house number with suffix is separate
+      const zusatzPart = address.zusatz ? `_${normalizeStr(address.zusatz)}` : ''
+      const locationKey = `${normalizeStr(address.strasse)}_${normalizeStr(address.hausnummer)}${zusatzPart}_${normalizeStr(address.plz)}_${normalizeStr(address.ort)}`
       
       if (!addressGroups.has(locationKey)) {
         addressGroups.set(locationKey, [])
