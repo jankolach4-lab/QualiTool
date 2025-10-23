@@ -3531,31 +3531,53 @@
   }
 
   function exportWECorrectionsToCSV() {
-    console.log('[Export WE-Korrekturen] Starting CSV export...');
+    console.log('[Export WE-Korrekturen] ==================== START ====================');
+    console.log('[Export WE-Korrekturen] Function called at:', new Date().toISOString());
+    console.log('[Export WE-Korrekturen] Contacts available:', !!contacts);
     console.log('[Export WE-Korrekturen] Contacts count:', contacts ? contacts.length : 0);
+    
+    if (!contacts || contacts.length === 0) {
+      console.warn('[Export WE-Korrekturen] No contacts available!');
+      alert('Keine Kontakte vorhanden. Bitte laden Sie zuerst Adressen.');
+      return;
+    }
     
     // Sammle alle WE-Korrekturen
     const corrections = [];
-    contacts.forEach(contact => {
-      if (contact.weCorrections && contact.weCorrections.length > 0) {
-        contact.weCorrections.forEach(correction => {
-          corrections.push({
-            adresse: `${contact.strasse} ${contact.nummer}${contact.zusatz ? ` ${contact.zusatz}` : ''}`,
-            ort: `${contact.plz} ${contact.ort}`,
-            urspruenglicheWE: correction.originalWe,
-            korrigierteWE: correction.correctedWe,
-            geeVorhanden: correction.hasGEE ? 'Ja' : 'Nein',
-            begruendung: correction.reason || '',
-            datum: new Date(correction.date).toLocaleDateString('de-DE')
-          });
+    let contactsWithCorrections = 0;
+    
+    contacts.forEach((contact, index) => {
+      if (contact.weCorrections && Array.isArray(contact.weCorrections) && contact.weCorrections.length > 0) {
+        contactsWithCorrections++;
+        console.log(`[Export WE-Korrekturen] Contact ${index}: ${contact.strasse} ${contact.nummer} has ${contact.weCorrections.length} correction(s)`);
+        
+        contact.weCorrections.forEach((correction, corrIdx) => {
+          try {
+            corrections.push({
+              adresse: `${contact.strasse} ${contact.nummer}${contact.zusatz ? ` ${contact.zusatz}` : ''}`,
+              ort: `${contact.plz} ${contact.ort}`,
+              urspruenglicheWE: correction.originalWe || 0,
+              korrigierteWE: correction.correctedWe || 0,
+              geeVorhanden: correction.hasGEE ? 'Ja' : 'Nein',
+              begruendung: correction.reason || '',
+              datum: correction.date ? new Date(correction.date).toLocaleDateString('de-DE') : 'N/A'
+            });
+            console.log(`[Export WE-Korrekturen] Added correction ${corrIdx + 1} from contact ${index}`);
+          } catch (err) {
+            console.error(`[Export WE-Korrekturen] Error processing correction ${corrIdx} in contact ${index}:`, err);
+          }
         });
       }
     });
     
-    console.log('[Export WE-Korrekturen] Corrections found:', corrections.length);
+    console.log('[Export WE-Korrekturen] Summary:');
+    console.log(`  - Total contacts: ${contacts.length}`);
+    console.log(`  - Contacts with corrections: ${contactsWithCorrections}`);
+    console.log(`  - Total corrections found: ${corrections.length}`);
     
     if (corrections.length === 0) {
-      alert('Keine WE-Korrekturen zum Exportieren vorhanden.');
+      console.warn('[Export WE-Korrekturen] No corrections to export!');
+      alert('Keine WE-Korrekturen zum Exportieren vorhanden.\n\nBitte erstellen Sie zuerst WE-Korrekturen in der Adressverwaltung.');
       return;
     }
     
@@ -3564,17 +3586,21 @@
     
     // CSV Zeilen
     const csvRows = [headers.join(';')];
-    corrections.forEach(correction => {
-      const row = [
-        `"${correction.adresse}"`,
-        `"${correction.ort}"`,
-        correction.urspruenglicheWE,
-        correction.korrigierteWE,
-        correction.geeVorhanden,
-        `"${correction.begruendung}"`,
-        correction.datum
-      ];
-      csvRows.push(row.join(';'));
+    corrections.forEach((correction, idx) => {
+      try {
+        const row = [
+          `"${correction.adresse}"`,
+          `"${correction.ort}"`,
+          correction.urspruenglicheWE,
+          correction.korrigierteWE,
+          correction.geeVorhanden,
+          `"${(correction.begruendung || '').replace(/"/g, '""')}"`,
+          correction.datum
+        ];
+        csvRows.push(row.join(';'));
+      } catch (err) {
+        console.error(`[Export WE-Korrekturen] Error creating CSV row ${idx}:`, err);
+      }
     });
     
     // CSV erstellen
@@ -3582,7 +3608,9 @@
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const filename = `WE-Korrekturen_${new Date().toISOString().split('T')[0]}.csv`;
     
-    console.log('[Export WE-Korrekturen] Creating download...');
+    console.log('[Export WE-Korrekturen] CSV content size:', csvContent.length, 'bytes');
+    console.log('[Export WE-Korrekturen] Filename:', filename);
+    console.log('[Export WE-Korrekturen] Creating download link...');
     
     // Download
     try {
@@ -3591,14 +3619,28 @@
       link.setAttribute('href', url);
       link.setAttribute('download', filename);
       link.style.visibility = 'hidden';
+      link.style.display = 'none';
       document.body.appendChild(link);
+      
+      console.log('[Export WE-Korrekturen] Link created, triggering click...');
       link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      console.log('[Export WE-Korrekturen] Download successful!');
+      
+      // Cleanup after a short delay
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        console.log('[Export WE-Korrekturen] Cleanup completed');
+      }, 100);
+      
+      console.log('[Export WE-Korrekturen] ✓ Download successful!');
+      console.log('[Export WE-Korrekturen] ==================== END ====================');
+      
+      // Success notification
+      alert(`✓ Export erfolgreich!\n\n${corrections.length} WE-Korrektur(en) wurden exportiert.\nDatei: ${filename}`);
     } catch(e) {
-      console.error('[Export WE-Korrekturen] Download failed:', e);
-      alert('Fehler beim Export: ' + e.message);
+      console.error('[Export WE-Korrekturen] ❌ Download failed:', e);
+      console.error('[Export WE-Korrekturen] Error stack:', e.stack);
+      alert('❌ Fehler beim Export:\n\n' + e.message + '\n\nBitte versuchen Sie es erneut oder kontaktieren Sie den Support.');
     }
   }
   
