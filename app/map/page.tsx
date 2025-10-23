@@ -433,7 +433,7 @@ export default function ProjectMap() {
         // Build popup with all residents at this address
         let popupContent = `
           <div style="font-size: 13px; max-height: 300px; overflow-y: auto;">
-            <strong style="font-size: 14px;">${firstAddress.strasse} ${firstAddress.hausnummer}</strong><br>
+            <strong style="font-size: 14px;">${firstAddress.strasse} ${firstAddress.hausnummer}${firstAddress.zusatz || ''}</strong><br>
             <span style="color: #6b7280;">${firstAddress.plz} ${firstAddress.ort}</span>
             <hr style="margin: 8px 0; border: none; border-top: 1px solid #e5e7eb;">
             <div style="margin-bottom: 4px;">
