@@ -311,7 +311,7 @@ export default function ProjectMap() {
         // Cache result in localStorage
         try {
           localStorage.setItem(cacheKey, JSON.stringify(coords))
-          console.log(`[Cache SAVE] ${address.strasse} ${address.hausnummer} → ${coords.lat}, ${coords.lon}`)
+          console.log(`[Cache SAVE] ${address.strasse} ${address.hausnummer}${address.zusatz || ''} → ${coords.lat}, ${coords.lon}`)
         } catch (e) {
           console.warn('Cache save error (quota?)', e)
         }
