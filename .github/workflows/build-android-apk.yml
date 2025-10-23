@@ -61,10 +61,11 @@ jobs:
           head -n 5 android/app/src/main/assets/public/index.html || true
 
       # Remove previous SaveAs injection step (we avoid native plugin for now)
-      - name: Patch AndroidManifest for legacy external storage (Android 10)
+      - name: Patch AndroidManifest for permissions (Storage + Location)
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           if [ -f "$MANIFEST" ]; then
+            # Add legacy external storage for Android 10
             if ! grep -q "requestLegacyExternalStorage" "$MANIFEST"; then
               sed -i 's/<application /<application android:requestLegacyExternalStorage="true" /' "$MANIFEST"
             fi
@@ -72,6 +73,12 @@ jobs:
             if ! grep -q "WRITE_EXTERNAL_STORAGE" "$MANIFEST"; then
               sed -i '/<uses-permission android:name="android.permission.INTERNET" \/>/a \\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" \/>' "$MANIFEST"
             fi
+            # Add location permissions for map feature
+            if ! grep -q "ACCESS_FINE_LOCATION" "$MANIFEST"; then
+              sed -i '/<uses-permission android:name="android.permission.INTERNET" \/>/a \\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" \/>\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" \/>' "$MANIFEST"
+            fi
+            echo "AndroidManifest.xml patched successfully"
+            echo "Permissions added: WRITE_EXTERNAL_STORAGE, ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION"
           fi
 
       - name: Remove SaveAs injection step
