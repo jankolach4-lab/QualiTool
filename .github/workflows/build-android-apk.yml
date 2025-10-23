@@ -44,16 +44,26 @@ jobs:
       - name: Set Android version from package.json
         run: |
           VERSION_NAME=$(node -p "require('./package.json').version")
-          VERSION_CODE=$(date +%s | tail -c 6)  # Last 6 digits of timestamp
-          echo "Setting version: $VERSION_NAME (code: $VERSION_CODE)"
+          # Use Unix timestamp as versionCode (always increasing, even from very old versions)
+          # Format: YYYYMMDDHH (e.g., 2025012315 for Jan 23, 2025, 15:00)
+          VERSION_CODE=$(date +%Y%m%d%H)
+          
+          echo "📦 Setting Android version:"
+          echo "   versionName: $VERSION_NAME"
+          echo "   versionCode: $VERSION_CODE"
+          echo "   (This will work even if old APK has versionCode 1 or no version)"
           
           # Update build.gradle with version from package.json
           if [ -f android/app/build.gradle ]; then
-            sed -i "s/versionCode 1/versionCode $VERSION_CODE/" android/app/build.gradle
-            sed -i "s/versionName \"1.0\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle
-            echo "✓ build.gradle updated with version $VERSION_NAME (code $VERSION_CODE)"
+            # Replace both versionCode patterns (handle both "1" and any existing number)
+            sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" android/app/build.gradle
+            sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle
+            
+            echo "✓ build.gradle updated successfully"
+            echo "   versionCode: $VERSION_CODE (guarantees update from any old version)"
+            echo "   versionName: $VERSION_NAME"
           else
-            echo "⚠ build.gradle not found, version will be set during sync"
+            echo "⚠ build.gradle not found yet, version will be set during cap sync"
           fi
 
       - name: Generate Android icons
