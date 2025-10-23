@@ -263,10 +263,11 @@ export default function ProjectMap() {
     const normalizeStr = (s: string) => s.toString().trim().toLowerCase().replace(/\s+/g, ' ')
     const strasse = normalizeStr(address.strasse)
     const hausnummer = normalizeStr(address.hausnummer)
+    const zusatz = address.zusatz ? normalizeStr(address.zusatz) : ''
     const plz = normalizeStr(address.plz)
     const ort = normalizeStr(address.ort)
     
-    const cacheKey = `geocode_${strasse}_${hausnummer}_${plz}_${ort}`
+    const cacheKey = `geocode_${strasse}_${hausnummer}${zusatz ? '_' + zusatz : ''}_${plz}_${ort}`
     
     // Check localStorage cache first
     const cached = localStorage.getItem(cacheKey)
