@@ -1,28 +1,42 @@
 <analysis>
-The AI engineer's work primarily focused on refining and expanding the existing QualiTool (a legacy React application running within an iframe in a Next.js dashboard) and the Admin Dashboard. The core challenge initially was fixing the QualiTool's automatic Supabase synchronization, which was plagued by JavaScript syntax errors, script execution order issues, and incorrect variable scoping. This involved extensive debugging and iterative fixes within  of the QualiTool.
+This trajectory details an AI engineer's work on a legacy React application, QualiTool, and parts of a Next.js Admin Dashboard. The work is iterative, addressing various bugs and feature requests. Initially, the focus was on fixing QualiTool's Supabase synchronization and UI/UX improvements like address list layout and street filtering. Recurring issues included filter persistence in the Android APK.
 
-Following the successful resolution of the auto-sync, the work shifted to UI/UX improvements for the QualiTool. This included redesigning the address list layout, implementing a street filter with odd/even house number sorting, and refining status prioritization logic. Further iterations focused on column width adjustments, integrating a Zusatz field into the address line, and removing unnecessary debug/sync buttons from the sidebar. A significant recurring issue was the persistence of the street filter after app restarts in the Android APK, leading to multiple attempts at fixing scope and caching.
-
-Towards the end, the engineer began work on the Admin Dashboard to sort projects alphabetically, which also faced persistence issues. Finally, the user requested combining the Aktivitätenkalender and Statusübersicht into a new Dashboard section within the QualiTool sidebar, leading to the creation of a backup and the initial removal of old sidebar buttons. The trajectory highlights the iterative nature of development, the need for robust debugging, and careful management of UI and data consistency in a mixed-technology codebase.
+The core of the recent work involved significant enhancements to QualiTool's interface: creating a combined Dashboard view with statistics and calendar, implementing bar charts for daily statistics with color coding and auto-scaling, and adding a daily activity summary bar. A major feature added was a real-time, color-coded map view showing addresses and the user's location, with intelligent background geocoding and dynamic updates. Challenges included ensuring map marker visibility, location services on Android APK, and correctly handling address suffixes. The engineer also attempted a Dark Mode, which was subsequently reverted. The current phase is tackling a CSV export bug, an Admin Dashboard map issue, and the QualiTool location marker display.
 </analysis>
 
 <product_requirements>
-The Qualifizierungstool admin dashboard provides real-time analytics for projects and VPs, featuring an overall view of total projects, VPs, and residential units. It includes a project table with details (city, WE, VP count, completions, status percentage, progress bar) and a map button to open a project-specific completion map. Project Analytics offers charts for daily completions, status changes, and breakdowns. A Project Projection Tool forecasts completions based on start/end dates, manual total WE, and federal state. VP Analytics provides similar charts, including hourly activity. The Polygontool, linked from the dashboard, is for geocoding and polygon management. A new Completion Map feature displays abschluss (green) and online/ts-abschluss (blue) markers with accurate house numbers and VP names. The critical QualiTool (legacy app) needs stable Supabase synchronization, a functional sidebar on web/Android APK, and Excel Export for general contacts. Recent additions include:
-- A new layout for the address list in QualiTool: PLZ/Ort (smaller font) above Straße/Nr. (bold, smaller font), with more space for WE, Name, Status.
-- A street filter in QualiTool to sort by even/odd house numbers.
-- A special status priority rule for Kein Eintritt persönlich and Kein Interesse based on recency.
-- CSV Export for WE-Korrekturen in QualiTool.
-- Alphabetical sorting for the project list in the Admin Dashboard.
-- A new Dashboard section in QualiTool combining Statistik anzeigen and Aktivitätenkalender.
+The Qualifizierungstool admin dashboard provides real-time analytics for projects and VPs, featuring an overall view of total projects, VPs, and residential units. It includes a project table with details (city, WE, VP count, completions, status percentage, progress bar) and a map button to open a project-specific completion map. Project Analytics offers charts for daily completions, status changes, and breakdowns. A Project Projection Tool forecasts completions. The QualiTool (legacy app) needs stable Supabase synchronization, a functional sidebar, and Excel Export for general contacts.
+
+**Implemented Features (during this trajectory):**
+- **QualiTool UI/UX:**
+    - Address list layout: PLZ/Ort (smaller) above Straße/Nr. (bold, smaller), more space for WE, Name, Status.
+    - Street filter for even/odd house numbers.
+    - Status priority: Kein Eintritt persönlich and Kein Interesse prioritized by recency.
+    - CSV Export for WE-Korrekturen.
+    - New Dashboard section combining Statistik anzeigen and Aktivitätenkalender.
+    - Compact statistics tiles.
+    - Bar charts for Abschlüsse and Qualifizierungen for the current month in the Dashboard, with professional x-axis, auto-scaling, and color-coding (red for 1, orange for 2, yellow for 3, light green for 4, dark green for 5+ completions).
+    - Daily statistics row on the address list view (Statusänderungen, Gespräche, Termine, Abschlüsse for current day) with elegant SVG icons.
+- **Admin Dashboard:** Alphabetical sorting for project list.
+- **Map View (New QualiTool Feature):**
+    - Sidebar page with user's real-time GPS location (man icon) and all addresses from the list.
+    - Address color coding: Blue (Standard), Dark Green (all WE completed), Light Green (at least 1 WE completed, not all), Red (Kein Interesse), Yellow (Bereits beraten).
+    - Marker click: Shows house info + direct status change.
+    - Intelligent background geocoding with caching and selective marker updates.
+    - Supports house numbers with suffixes (e.g., 20A) in map markers and popups.
+    - Location tracking in Android APK using standard Geolocation API.
+- **Visit Recommendation:** List display extended to bottom of app, last visit hint on same line as address.
+- **Street Filter:** Ensured correct initialization and application on contact list load.
 </product_requirements>
 
 <key_technical_concepts>
--   **Frontend:** Next.js (React, TypeScript), HTML, CSS, Chart.js, Leaflet (mapping), Capacitor (Android APK).
--   **BaaS:** Supabase (PostgreSQL, Authentication, Row Level Security, RPC functions).
--   **Database:** PostgreSQL with  (), ,  tables.
--   **Date/Time:** , .
--   **Geocoding:** Nominatim (OpenStreetMap).
--   **Data Processing:** SheetJS/XLSX (for Excel/CSV operations).
+- **Frontend:** Next.js (React, TypeScript), HTML, CSS, Leaflet (mapping), Capacitor (Android APK).
+- **BaaS:** Supabase (PostgreSQL, Authentication, Row Level Security, RPC functions).
+- **Database:** PostgreSQL (, ,  tables).
+- **Date/Time:** .
+- **Geocoding:** Nominatim (OpenStreetMap).
+- **Data Processing:** SheetJS/XLSX (for CSV operations).
+- **Client-side Storage:**  for geocoding cache and theme settings.
 </key_technical_concepts>
 
 <code_architecture>
@@ -31,43 +45,45 @@ The Qualifizierungstool admin dashboard provides real-time analytics for project
 **Key files and changes:**
 
 -   ****:
-    *   **Importance**: The core legacy QualiTool application.
-    *   **Changes**: Extensive work on Supabase auto-synchronization (fixing syntax errors, script loading order, consolidating  calls, ensuring session loading, implementing  and  with ). UI/UX improvements:
-        *   Address list layout: PLZ/Ort (smaller) on top, Straße/Nr. (bold, smaller) below.
-        *   Column widths adjusted for Adresse, WE, Name, Status, Datum.
-        *   Added new dropdown for Street filter with Alle Hausnummern, Nur gerade Hausnummern, Nur ungerade Hausnummern options.
-        *   Status prioritization logic modified for Kein Eintritt persönlich and Kein Interesse to prioritize by recency if newer.
-        *   WE-Korrekturen Export changed from XLSX to CSV.
-        *   Removed Debug-Panel and Synchronize buttons from the sidebar.
-        *   Filter persistence for Street filter after data changes.
-        *   Attempted various fixes for Street filter not persisting after APK restart (scope fixes, setTimeout, localStorage caching, all reverted due to breaking other functionality or not working).
-        *   Creation of a new Dashboard section, removal of old Statistik anzeigen and Aktivitätenkalender sidebar buttons.
+    *   **Importance**: The core legacy QualiTool application, where most UI/UX, logic, and feature integrations occur.
+    *   **Changes**:
+        *   **Dashboard Integration**: Added new sidebar button for Dashboard and  in  to display combined Statistik and Aktivitätenkalender. Removed old buttons. Reordered sections (Statistik above Kalender).
+        *   **Statistics Layout**: CSS adjustments (, , ) for more compact display.
+        *   **Calendar to Bar Charts**: Rewrote  to generate two bar charts (, ). Added HTML structure for charts, CSS for chart styling (scrollable x-axis, bar colors, y-axis, grid lines), and JavaScript logic for dynamic height calculation, value display, and color coding. Implemented automatic scaling and ensured numbers are not cut off. Made y-axis and grid lines white (invisible).
+        *   **Daily Statistics Row**: Added HTML and CSS for a  row on the contact list view, displaying Statusänderungen, Gespräche, Termine, Abschlüsse. Implemented  and integrated its call into . Replaced emoji icons with elegant SVG icons.
+        *   **Map View Integration**: Added Leaflet CSS and JS. Added a  HTML element. Added a Map sidebar button with a distinct icon. Added  to . Implemented , , ,  functions. Configured address color coding (blue, dark green, light green, red, yellow). Integrated geocoding cache () and background processing. Ensured map refresh on contact changes ( called via , , ).
+        *   **Location Services**: Integrated  for user location tracking, adjusted for Capacitor (Android APK) compatibility, and fixed issues with permission prompts and marker display. Ensures house number suffixes are included in geocoding and marker popups.
+        *   **Visit Recommendation**: Extended list height and formatted address/last visit on one line.
+        *   **Street Filter**: Ensured  is called on initial contact list render.
+        *   **Dark Mode**: (Implemented and reverted) Added toggle, CSS variables, and JavaScript for theme switching.
 -   ****:
     *   **Importance**: Login page for QualiTool.
-    *   **Changes**:  and  implemented to ensure user data row exists in Supabase upon login, critical for auto-sync.
+    *   **Changes**:  and  implemented to ensure user data row exists in Supabase upon login.
 -   ****:
     *   **Importance**: Admin Dashboard displaying project analytics.
     *   **Changes**: Implemented alphabetical sorting for the projects list within the  function.
 -   ** (CREATED)**:
-    *   **Importance**: Backup of the QualiTool's main page before major dashboard structure changes.
+    *   **Importance**: Multiple backups of the QualiTool's main page were created before major changes, allowing for rollback.
+
 </code_architecture>
 
 <pending_tasks>
--   **QualiTool WE-Korrekturen Sync**: Deferred to later.
--   **Admin User Management**: Admin whitelist RLS setup and optional client-side checks for  table.
+-   **QualiTool WE-Korrekturen CSV Export**: User reports it is not working again.
+-   **Admin Dashboard Map Suffixes**: Addresses with suffixes are not being displayed correctly on the Admin Dashboard map.
+-   **QualiTool Location Marker**: User's location is detected and permissions granted, but the Männchen marker for the user's position is not visible on the map.
+-   **QualiTool Straßenfilter persistence (APK)**: The street filter still disappears after app restart in the Android APK. This is an acknowledged, unresolved problem.
 -   **Projection Tool Enhancements**: Optional UI hints, Bundesland selection persistence in Supabase, alternative rate models, small badge with forecast on project card.
 -   **Polygontool Enhancements**: Further geocoding improvements or integration of a second geocoding provider. Standard behavior for points exactly on the polygon boundary.
--   **QualiTool Straßenfilter persistence (APK)**: The street filter still disappears after app restart in the APK; this remains an unresolved, acknowledged problem.
--   **Implement combined Dashboard view in QualiTool**: The implementation has just started by removing old sidebar buttons.
--   **Fix Dashboard alphabetical sorting**: The dashboard's project list sorting is still not working despite code changes, possibly due to caching or other JS errors.
 </pending_tasks>
 
 <current_work>
-Immediately prior to this summary, the AI engineer was working on integrating the Aktivitätenkalender and Statusübersicht into a new Dashboard section within the QualiTool sidebar. The user explicitly requested to combine these two existing sections into a single new view, accessible via a new sidebar button, and to remove the old individual buttons. The user also specified that the app should continue to start with the contact list as the default view.
-
-The AI engineer successfully created a backup of  at  to ensure a rollback point. Following this, the first step of the plan was executed: removing the old Statistik anzeigen and Aktivitätenkalender buttons from the sidebar. The AI engineer is currently in the process of identifying the content of the  and  sections within  to move them into the new dashboard section.
+Immediately prior to this summary, the AI engineer was addressing three distinct issues reported by the user:
+1.  **CSV Export of WE-Korrekturen not working:** The engineer inspected the  function in  and noted that it appeared correctly implemented as a global function. No further action has been taken on this specific problem yet, assuming the function itself is fine and the issue might be with its invocation or data.
+2.  **QualiTool Location Marker not showing:** The user reported that while location permissions work and the location is tracked, the visual marker for the user's position (Männchen) is not displayed on the map in QualiTool. The engineer has modified the  function in  to improve its reliability in creating and updating this marker.
+3.  **Admin Dashboard Map not showing addresses with suffixes:** The user noted that addresses with suffixes (e.g., 12A) are not correctly represented on the project completion map within the Admin Dashboard. The engineer has just identified the relevant Admin Dashboard files,  and , and is poised to begin investigating and implementing a fix for this. The trajectory ended with the user's prompt to Mach weiter, indicating work should continue on these items.
 </current_work>
 
 <optional_next_step>
-Locate and move the existing Statistik and Aktivitätenkalender HTML content into the new Dashboard section within .
+Investigate and fix the Admin Dashboard map issue where addresses with suffixes are not displayed correctly.
 </optional_next_step>
+
