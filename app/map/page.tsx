@@ -319,7 +319,7 @@ export default function ProjectMap() {
         return coords
       }
 
-      console.warn(`[Geocode] No results for ${address.strasse} ${address.hausnummer}, ${address.ort}`)
+      console.warn(`[Geocode] No results for ${address.strasse} ${address.hausnummer}${address.zusatz || ''}, ${address.ort}`)
       return null
     } catch (err) {
       console.error('Geocoding error:', err)
