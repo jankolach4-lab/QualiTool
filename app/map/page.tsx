@@ -122,7 +122,7 @@ export default function ProjectMap() {
                 ort: contact.ort || contact.Ort || '',
                 strasse: contact.strasse || contact.straße || contact.Straße || contact.Strasse || '',
                 hausnummer: contact.nummer || contact.Nummer || contact.hausnummer || contact.hnr || '',
-                zusatz: contact.adresszusatz || contact.Zusatz || '',
+                zusatz: contact.zusatz || contact.adresszusatz || contact.Zusatz || '',
                 we: contact.we || contact.WE || 1,
                 status: status,
                 vpName: vpName,
