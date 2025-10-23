@@ -286,7 +286,8 @@ export default function ProjectMap() {
 
     // Geocode with Nominatim
     try {
-      const streetWithNumber = `${address.strasse} ${address.hausnummer}`.trim()
+      // Include suffix (zusatz) in street string if present (e.g., "Hauptstraße 12A")
+      const streetWithNumber = `${address.strasse} ${address.hausnummer}${address.zusatz ? address.zusatz : ''}`.trim()
       console.log(`[Geocode] Full address string: "${streetWithNumber}, ${address.plz} ${address.ort}"`)
       
       const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=de&accept-language=de&street=${encodeURIComponent(streetWithNumber)}&city=${encodeURIComponent(address.ort)}&postalcode=${encodeURIComponent(address.plz)}`
