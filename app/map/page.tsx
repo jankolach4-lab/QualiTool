@@ -122,7 +122,7 @@ export default function ProjectMap() {
                 ort: contact.ort || contact.Ort || '',
                 strasse: contact.strasse || contact.straße || contact.Straße || contact.Strasse || '',
                 hausnummer: contact.nummer || contact.Nummer || contact.hausnummer || contact.hnr || '',
-                zusatz: contact.adresszusatz || contact.Zusatz || '',
+                zusatz: contact.zusatz || contact.adresszusatz || contact.Zusatz || '',
                 we: contact.we || contact.WE || 1,
                 status: status,
                 vpName: vpName,
@@ -263,10 +263,11 @@ export default function ProjectMap() {
     const normalizeStr = (s: string) => s.toString().trim().toLowerCase().replace(/\s+/g, ' ')
     const strasse = normalizeStr(address.strasse)
     const hausnummer = normalizeStr(address.hausnummer)
+    const zusatz = address.zusatz ? normalizeStr(address.zusatz) : ''
     const plz = normalizeStr(address.plz)
     const ort = normalizeStr(address.ort)
     
-    const cacheKey = `geocode_${strasse}_${hausnummer}_${plz}_${ort}`
+    const cacheKey = `geocode_${strasse}_${hausnummer}${zusatz ? '_' + zusatz : ''}_${plz}_${ort}`
     
     // Check localStorage cache first
     const cached = localStorage.getItem(cacheKey)
@@ -285,7 +286,8 @@ export default function ProjectMap() {
 
     // Geocode with Nominatim
     try {
-      const streetWithNumber = `${address.strasse} ${address.hausnummer}`.trim()
+      // Include suffix (zusatz) in street string if present (e.g., "Hauptstraße 12A")
+      const streetWithNumber = `${address.strasse} ${address.hausnummer}${address.zusatz ? address.zusatz : ''}`.trim()
       console.log(`[Geocode] Full address string: "${streetWithNumber}, ${address.plz} ${address.ort}"`)
       
       const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=de&accept-language=de&street=${encodeURIComponent(streetWithNumber)}&city=${encodeURIComponent(address.ort)}&postalcode=${encodeURIComponent(address.plz)}`
@@ -309,7 +311,7 @@ export default function ProjectMap() {
         // Cache result in localStorage
         try {
           localStorage.setItem(cacheKey, JSON.stringify(coords))
-          console.log(`[Cache SAVE] ${address.strasse} ${address.hausnummer} → ${coords.lat}, ${coords.lon}`)
+          console.log(`[Cache SAVE] ${address.strasse} ${address.hausnummer}${address.zusatz || ''} → ${coords.lat}, ${coords.lon}`)
         } catch (e) {
           console.warn('Cache save error (quota?)', e)
         }
@@ -317,7 +319,7 @@ export default function ProjectMap() {
         return coords
       }
 
-      console.warn(`[Geocode] No results for ${address.strasse} ${address.hausnummer}, ${address.ort}`)
+      console.warn(`[Geocode] No results for ${address.strasse} ${address.hausnummer}${address.zusatz || ''}, ${address.ort}`)
       return null
     } catch (err) {
       console.error('Geocoding error:', err)
@@ -340,8 +342,9 @@ export default function ProjectMap() {
     
     for (const address of addresses) {
       const normalizeStr = (s: string) => s.toString().trim().toLowerCase().replace(/\s+/g, ' ')
-      // Include hausnummer in key to ensure each house number is separate
-      const locationKey = `${normalizeStr(address.strasse)}_${normalizeStr(address.hausnummer)}_${normalizeStr(address.plz)}_${normalizeStr(address.ort)}`
+      // Include hausnummer AND zusatz in key to ensure each house number with suffix is separate
+      const zusatzPart = address.zusatz ? `_${normalizeStr(address.zusatz)}` : ''
+      const locationKey = `${normalizeStr(address.strasse)}_${normalizeStr(address.hausnummer)}${zusatzPart}_${normalizeStr(address.plz)}_${normalizeStr(address.ort)}`
       
       if (!addressGroups.has(locationKey)) {
         addressGroups.set(locationKey, [])
@@ -430,7 +433,7 @@ export default function ProjectMap() {
         // Build popup with all residents at this address
         let popupContent = `
           <div style="font-size: 13px; max-height: 300px; overflow-y: auto;">
-            <strong style="font-size: 14px;">${firstAddress.strasse} ${firstAddress.hausnummer}</strong><br>
+            <strong style="font-size: 14px;">${firstAddress.strasse} ${firstAddress.hausnummer}${firstAddress.zusatz || ''}</strong><br>
             <span style="color: #6b7280;">${firstAddress.plz} ${firstAddress.ort}</span>
             <hr style="margin: 8px 0; border: none; border-top: 1px solid #e5e7eb;">
             <div style="margin-bottom: 4px;">

@@ -3531,53 +3531,31 @@
   }
 
   function exportWECorrectionsToCSV() {
-    console.log('[Export WE-Korrekturen] ==================== START ====================');
-    console.log('[Export WE-Korrekturen] Function called at:', new Date().toISOString());
-    console.log('[Export WE-Korrekturen] Contacts available:', !!contacts);
+    console.log('[Export WE-Korrekturen] Starting CSV export...');
     console.log('[Export WE-Korrekturen] Contacts count:', contacts ? contacts.length : 0);
-    
-    if (!contacts || contacts.length === 0) {
-      console.warn('[Export WE-Korrekturen] No contacts available!');
-      alert('Keine Kontakte vorhanden. Bitte laden Sie zuerst Adressen.');
-      return;
-    }
     
     // Sammle alle WE-Korrekturen
     const corrections = [];
-    let contactsWithCorrections = 0;
-    
-    contacts.forEach((contact, index) => {
-      if (contact.weCorrections && Array.isArray(contact.weCorrections) && contact.weCorrections.length > 0) {
-        contactsWithCorrections++;
-        console.log(`[Export WE-Korrekturen] Contact ${index}: ${contact.strasse} ${contact.nummer} has ${contact.weCorrections.length} correction(s)`);
-        
-        contact.weCorrections.forEach((correction, corrIdx) => {
-          try {
-            corrections.push({
-              adresse: `${contact.strasse} ${contact.nummer}${contact.zusatz ? ` ${contact.zusatz}` : ''}`,
-              ort: `${contact.plz} ${contact.ort}`,
-              urspruenglicheWE: correction.originalWe || 0,
-              korrigierteWE: correction.correctedWe || 0,
-              geeVorhanden: correction.hasGEE ? 'Ja' : 'Nein',
-              begruendung: correction.reason || '',
-              datum: correction.date ? new Date(correction.date).toLocaleDateString('de-DE') : 'N/A'
-            });
-            console.log(`[Export WE-Korrekturen] Added correction ${corrIdx + 1} from contact ${index}`);
-          } catch (err) {
-            console.error(`[Export WE-Korrekturen] Error processing correction ${corrIdx} in contact ${index}:`, err);
-          }
+    contacts.forEach(contact => {
+      if (contact.weCorrections && contact.weCorrections.length > 0) {
+        contact.weCorrections.forEach(correction => {
+          corrections.push({
+            adresse: `${contact.strasse} ${contact.nummer}${contact.zusatz ? ` ${contact.zusatz}` : ''}`,
+            ort: `${contact.plz} ${contact.ort}`,
+            urspruenglicheWE: correction.originalWe,
+            korrigierteWE: correction.correctedWe,
+            geeVorhanden: correction.hasGEE ? 'Ja' : 'Nein',
+            begruendung: correction.reason || '',
+            datum: new Date(correction.date).toLocaleDateString('de-DE')
+          });
         });
       }
     });
     
-    console.log('[Export WE-Korrekturen] Summary:');
-    console.log(`  - Total contacts: ${contacts.length}`);
-    console.log(`  - Contacts with corrections: ${contactsWithCorrections}`);
-    console.log(`  - Total corrections found: ${corrections.length}`);
+    console.log('[Export WE-Korrekturen] Corrections found:', corrections.length);
     
     if (corrections.length === 0) {
-      console.warn('[Export WE-Korrekturen] No corrections to export!');
-      alert('Keine WE-Korrekturen zum Exportieren vorhanden.\n\nBitte erstellen Sie zuerst WE-Korrekturen in der Adressverwaltung.');
+      alert('Keine WE-Korrekturen zum Exportieren vorhanden.');
       return;
     }
     
@@ -3586,21 +3564,17 @@
     
     // CSV Zeilen
     const csvRows = [headers.join(';')];
-    corrections.forEach((correction, idx) => {
-      try {
-        const row = [
-          `"${correction.adresse}"`,
-          `"${correction.ort}"`,
-          correction.urspruenglicheWE,
-          correction.korrigierteWE,
-          correction.geeVorhanden,
-          `"${(correction.begruendung || '').replace(/"/g, '""')}"`,
-          correction.datum
-        ];
-        csvRows.push(row.join(';'));
-      } catch (err) {
-        console.error(`[Export WE-Korrekturen] Error creating CSV row ${idx}:`, err);
-      }
+    corrections.forEach(correction => {
+      const row = [
+        `"${correction.adresse}"`,
+        `"${correction.ort}"`,
+        correction.urspruenglicheWE,
+        correction.korrigierteWE,
+        correction.geeVorhanden,
+        `"${correction.begruendung}"`,
+        correction.datum
+      ];
+      csvRows.push(row.join(';'));
     });
     
     // CSV erstellen
@@ -3608,9 +3582,7 @@
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const filename = `WE-Korrekturen_${new Date().toISOString().split('T')[0]}.csv`;
     
-    console.log('[Export WE-Korrekturen] CSV content size:', csvContent.length, 'bytes');
-    console.log('[Export WE-Korrekturen] Filename:', filename);
-    console.log('[Export WE-Korrekturen] Creating download link...');
+    console.log('[Export WE-Korrekturen] Creating download...');
     
     // Download
     try {
@@ -3619,28 +3591,14 @@
       link.setAttribute('href', url);
       link.setAttribute('download', filename);
       link.style.visibility = 'hidden';
-      link.style.display = 'none';
       document.body.appendChild(link);
-      
-      console.log('[Export WE-Korrekturen] Link created, triggering click...');
       link.click();
-      
-      // Cleanup after a short delay
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        console.log('[Export WE-Korrekturen] Cleanup completed');
-      }, 100);
-      
-      console.log('[Export WE-Korrekturen] ✓ Download successful!');
-      console.log('[Export WE-Korrekturen] ==================== END ====================');
-      
-      // Success notification
-      alert(`✓ Export erfolgreich!\n\n${corrections.length} WE-Korrektur(en) wurden exportiert.\nDatei: ${filename}`);
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      console.log('[Export WE-Korrekturen] Download successful!');
     } catch(e) {
-      console.error('[Export WE-Korrekturen] ❌ Download failed:', e);
-      console.error('[Export WE-Korrekturen] Error stack:', e.stack);
-      alert('❌ Fehler beim Export:\n\n' + e.message + '\n\nBitte versuchen Sie es erneut oder kontaktieren Sie den Support.');
+      console.error('[Export WE-Korrekturen] Download failed:', e);
+      alert('Fehler beim Export: ' + e.message);
     }
   }
   
@@ -5714,55 +5672,22 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   function updateUserMarker(lat, lng) {
     console.log('[Map] Updating user position:', lat, lng);
     
-    if (!map) {
-      console.error('[Map] Map not initialized!');
-      return;
-    }
-    
     if (!userMarker) {
-      // Create custom icon with high visibility - simple and reliable approach
+      // Create custom icon for user location (person icon)
       const personIcon = L.divIcon({
-        html: `
-          <div style="position: relative; width: 48px; height: 48px; margin-left: -24px; margin-top: -24px;">
-            <div class="user-pulse" style="position: absolute; top: 4px; left: 4px; width: 40px; height: 40px; background: rgba(37, 99, 235, 0.3); border-radius: 50%;"></div>
-            <div style="position: absolute; top: 8px; left: 8px; width: 32px; height: 32px; background: #2563eb; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="white" stroke="none" style="padding: 4px;">
-                <circle cx="12" cy="8" r="3.5"/>
-                <path d="M7 21v-2a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v2"/>
-              </svg>
-            </div>
-          </div>
-          <style>
-            @keyframes userPulse {
-              0%, 100% { transform: scale(1); opacity: 0.6; }
-              50% { transform: scale(1.6); opacity: 0.1; }
-            }
-            .user-pulse {
-              animation: userPulse 2s ease-in-out infinite !important;
-            }
-            .user-location-marker {
-              z-index: 10000 !important;
-            }
-          </style>`,
+        html: '<svg width="40" height="40" viewBox="0 0 24 24" fill="#2563eb" stroke="white" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>',
         className: 'user-location-marker',
-        iconSize: [48, 48],
-        iconAnchor: [24, 24]
+        iconSize: [40, 40],
+        iconAnchor: [20, 40]
       });
 
-      userMarker = L.marker([lat, lng], { 
-        icon: personIcon,
-        zIndexOffset: 10000  // Ensure it's on top of everything
-      }).addTo(map);
-      
-      userMarker.bindPopup('<b style="font-size: 14px;">📍 Ihr Standort</b><br><small style="color: #6b7280;">Wird in Echtzeit aktualisiert</small>');
-      map.setView([lat, lng], 16);
-      
-      console.log('[Map] ✓ User marker created and added to map at', lat, lng);
-      console.log('[Map] ✓ Marker zIndex:', 10000);
-      console.log('[Map] ✓ Map centered at zoom 16');
+      userMarker = L.marker([lat, lng], { icon: personIcon }).addTo(map);
+      userMarker.bindPopup('<b>Ihr Standort</b>').openPopup();
+      map.setView([lat, lng], 15);
+      console.log('[Map] User marker created and map centered');
     } else {
       userMarker.setLatLng([lat, lng]);
-      console.log('[Map] ✓ User marker position updated to', lat, lng);
+      console.log('[Map] User marker position updated');
     }
   }
 

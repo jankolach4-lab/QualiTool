@@ -7,13 +7,13 @@ returns table(project text, total_we bigint, user_count integer, users uuid[])
 language sql security definer set search_path = public as $$
   select
     coalesce(nullif(ac.ort,''), 'Unbekannt') as project,
-    count(*)::bigint as total_we,
+    sum(coalesce(ac.we, 1))::bigint as total_we,
     count(distinct ar.user_id)::int as user_count,
     array_agg(distinct ar.user_id) as users
   from public.analytics_residents ar
   join public.analytics_contacts ac on ac.contact_key::text = ar.contact_id::text
   group by 1
-  having count(*) &gt; 0
+  having sum(coalesce(ac.we, 1)) &gt; 0
   order by 1
 $$;
 
@@ -31,7 +31,7 @@ language sql security definer set search_path = public as $$
          ud.email,
          coalesce(ud.display_name, ud.email) as display_name,
          (
-           select count(*)::bigint from public.analytics_residents ar2
+           select sum(coalesce(ac2.we, 1))::bigint from public.analytics_residents ar2
            join public.analytics_contacts ac2 on ac2.contact_key::text = ar2.contact_id::text
            where ar2.user_id = b.user_id
              and coalesce(nullif(ac2.ort,''), 'Unbekannt') = p_project
