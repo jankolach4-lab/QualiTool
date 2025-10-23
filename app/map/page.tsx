@@ -134,6 +134,7 @@ export default function ProjectMap() {
                 console.log(`[Address ${addressesToMap.length + 1}]`, {
                   strasse: addrObj.strasse,
                   hausnummer: addrObj.hausnummer,
+                  zusatz: addrObj.zusatz,
                   plz: addrObj.plz,
                   ort: addrObj.ort
                 })
