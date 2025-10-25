@@ -6431,12 +6431,12 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         return;
       }
       
-      // Create new contact
+      // Create new contact with coordinates
       const newContact = {
         id: Date.now() + Math.random(),
         strasse: addr.strasse,
         nummer: addr.nummer,
-        zusatz: addr.zusatz,
+        zusatz: addr.zusatz || '',
         plz: addr.plz,
         ort: addr.ort,
         we: 1, // Standard WE = 1
@@ -6456,6 +6456,11 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       
       contacts.push(newContact);
       addedCount++;
+      
+      // Log for debugging
+      if (addedCount <= 3) {
+        console.log(`[Polygon] Added: ${addr.strasse} ${addr.nummer}${addr.zusatz || ''} - Coords: ${addr.lat}, ${addr.lng}`);
+      }
     });
     
     console.log(`[Polygon] Added ${addedCount} new addresses, skipped ${skippedCount} duplicates`);
