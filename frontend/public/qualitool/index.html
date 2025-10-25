@@ -1614,6 +1614,20 @@
       <!-- 6. Map section -->
       <div class="map-section">
         <h2>Kartenansicht</h2>
+        <div class="map-controls" style="margin-bottom: 10px; display: flex; gap: 10px; align-items: center;">
+          <button id="drawPolygonBtn" onclick="startPolygonDrawing()" class="primary-btn" style="background: #10b981;">
+            <span style="font-size: 18px;">✏️</span> Polygon zeichnen
+          </button>
+          <button id="addAddressesBtn" onclick="addAddressesFromPolygon()" class="primary-btn" style="background: #3b82f6; display: none;">
+            <span style="font-size: 18px;">➕</span> <span id="addAddressesText">Adressen hinzufügen</span>
+          </button>
+          <button id="cancelPolygonBtn" onclick="cancelPolygonDrawing()" class="secondary-btn" style="display: none;">
+            ❌ Abbrechen
+          </button>
+          <div id="polygonPreview" style="display: none; padding: 8px 12px; background: #f0f9ff; border: 1px solid #3b82f6; border-radius: 4px; font-size: 14px;">
+            <strong id="polygonPreviewText"></strong>
+          </div>
+        </div>
         <div id="map"></div>
         <div class="map-legend">
           <h4>Legende</h4>
