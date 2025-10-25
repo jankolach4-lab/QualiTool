@@ -6465,7 +6465,13 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     
     // Refresh UI
     renderContacts();
-    updateMapMarkers();
+    
+    // Update map markers
+    if (map) {
+      console.log('[Polygon] Refreshing map markers...');
+      addAddressMarkers();
+      console.log('[Polygon] ✓ Map markers refreshed');
+    }
     
     // Show success message FIRST
     alert(`✅ Erfolgreich hinzugefügt!\n\n${addedCount} neue Adressen\n${skippedCount} bereits vorhanden (übersprungen)\n\nAlle neuen Adressen haben WE = 1`);
