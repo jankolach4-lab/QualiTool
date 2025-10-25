@@ -6277,6 +6277,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       if (foundAddresses.length === 0) {
         document.getElementById('polygonPreviewText').textContent = '⚠️ Keine Adressen gefunden';
         document.getElementById('addAddressesBtn').style.display = 'none';
+        document.getElementById('clearPolygonBtn').style.display = 'inline-block';
       } else {
         const limitText = addresses.length > 1000 ? ' (max 1000)' : '';
         document.getElementById('polygonPreviewText').innerHTML = `
@@ -6284,7 +6285,11 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         `;
         document.getElementById('addAddressesText').textContent = `${foundAddresses.length} Adressen hinzufügen`;
         document.getElementById('addAddressesBtn').style.display = 'inline-block';
+        document.getElementById('clearPolygonBtn').style.display = 'inline-block';
       }
+      
+      // Hide cancel button, show clear button
+      document.getElementById('cancelPolygonBtn').style.display = 'none';
       
     } catch (error) {
       console.error('[Polygon] Error querying addresses:', error);
