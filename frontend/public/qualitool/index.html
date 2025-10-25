@@ -6467,11 +6467,30 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     renderContacts();
     updateMapMarkers();
     
-    // Clear polygon
-    cancelPolygonDrawing();
-    
-    // Show success message
+    // Show success message FIRST
     alert(`✅ Erfolgreich hinzugefügt!\n\n${addedCount} neue Adressen\n${skippedCount} bereits vorhanden (übersprungen)\n\nAlle neuen Adressen haben WE = 1`);
+    
+    // Clear polygon AFTER alert (ensures user sees it's done)
+    console.log('[Polygon] Clearing polygon after adding addresses...');
+    
+    // Force clear drawn items
+    if (drawnItems) {
+      drawnItems.clearLayers();
+      console.log('[Polygon] ✓ Polygon cleared from map');
+    }
+    
+    // Clear references
+    currentPolygon = null;
+    foundAddresses = [];
+    
+    // Reset UI
+    document.getElementById('drawPolygonBtn').style.display = 'inline-block';
+    document.getElementById('addAddressesBtn').style.display = 'none';
+    document.getElementById('clearPolygonBtn').style.display = 'none';
+    document.getElementById('cancelPolygonBtn').style.display = 'none';
+    document.getElementById('polygonPreview').style.display = 'none';
+    
+    console.log('[Polygon] ✓ Polygon automatically cleared after adding addresses');
   }
   
   // Make functions globally available
