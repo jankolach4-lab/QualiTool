@@ -6464,22 +6464,31 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     });
     
     console.log(`[Polygon] Added ${addedCount} new addresses, skipped ${skippedCount} duplicates`);
+    console.log(`[Polygon] Total contacts now: ${contacts.length}`);
     
     // Save contacts
     saveContacts();
+    console.log('[Polygon] ✓ Contacts saved to localStorage');
     
-    // Refresh UI
+    // Refresh contact list UI
     renderContacts();
+    console.log('[Polygon] ✓ Contact list UI refreshed');
     
-    // Update map markers
+    // Update map markers - CRITICAL for showing new addresses
     if (map) {
       console.log('[Polygon] Refreshing map markers...');
+      console.log(`[Polygon] Current addressMarkers count: ${addressMarkers.length}`);
+      
+      // Force re-render all markers
       addAddressMarkers();
-      console.log('[Polygon] ✓ Map markers refreshed');
+      
+      console.log(`[Polygon] ✓ Map markers refreshed, new count: ${addressMarkers.length}`);
+    } else {
+      console.warn('[Polygon] ⚠ Map not initialized, markers not updated!');
     }
     
-    // Show success message FIRST
-    alert(`✅ Erfolgreich hinzugefügt!\n\n${addedCount} neue Adressen\n${skippedCount} bereits vorhanden (übersprungen)\n\nAlle neuen Adressen haben WE = 1`);
+    // Show success message
+    alert(`✅ Erfolgreich hinzugefügt!\n\n${addedCount} neue Adressen\n${skippedCount} bereits vorhanden (übersprungen)\n\nAlle neuen Adressen haben WE = 1\n\nDie Marker sollten jetzt auf der Karte sichtbar sein.`);
     
     // Clear polygon AFTER alert (ensures user sees it's done)
     console.log('[Polygon] Clearing polygon after adding addresses...');
