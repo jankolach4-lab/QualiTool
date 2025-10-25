@@ -6488,7 +6488,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     }
     
     // Show success message
-    alert(`✅ Erfolgreich hinzugefügt!\n\n${addedCount} neue Adressen\n${skippedCount} bereits vorhanden (übersprungen)\n\nAlle neuen Adressen haben WE = 1\n\nDie Marker sollten jetzt auf der Karte sichtbar sein.`);
+    alert(`✅ Erfolgreich hinzugefügt!\n\n${addedCount} neue Adressen\n${skippedCount} bereits vorhanden (übersprungen)\n\n⚠️ Hinweis: WE-Anzahl ist leer und muss manuell eingetragen werden.\n\nDie Marker sollten jetzt auf der Karte sichtbar sein.`);
     
     // Clear polygon AFTER alert (ensures user sees it's done)
     console.log('[Polygon] Clearing polygon after adding addresses...');
