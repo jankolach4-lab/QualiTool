@@ -5833,6 +5833,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     let hasCompletion = false;
     let allCompletions = true;
     let hasKeinInteresse = false;
+    let hasKeinEintritt = false;
     let hasBeraten = false;
 
     contact.residents.forEach(resident => {
@@ -5849,14 +5850,19 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       if (status === 'kein-interesse') {
         hasKeinInteresse = true;
       }
+      if (status === 'kein-eintritt') {
+        hasKeinEintritt = true;
+      }
       if (status === 'beraten') {
         hasBeraten = true;
       }
     });
 
-    // Priority order: Kein Interesse > Beraten > Completions > Standard
+    // Priority order: Kein Interesse > Kein Eintritt persönlich > Beraten > Completions > Standard
     if (hasKeinInteresse) {
       return '#ef4444'; // Rot - Kein Interesse
+    } else if (hasKeinEintritt) {
+      return '#f59f9f'; // Hellrot - Kein Eintritt persönlich
     } else if (hasBeraten && !hasCompletion) {
       return '#fbbf24'; // Gelb - Bereits beraten (aber keine Abschlüsse)
     } else if (allCompletions && hasCompletion) {
