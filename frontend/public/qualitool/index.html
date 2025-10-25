@@ -5716,6 +5716,12 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   let userMarker = null;
   let watchId = null;
   let addressMarkers = [];
+  
+  // Polygon drawing variables
+  let drawnItems = null;
+  let drawControl = null;
+  let currentPolygon = null;
+  let foundAddresses = [];
 
   function initializeMap() {
     if (map) {
