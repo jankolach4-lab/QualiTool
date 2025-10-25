@@ -6212,20 +6212,47 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   function cancelPolygonDrawing() {
     console.log('[Polygon] Cancelling polygon drawing');
     
+    // Clear drawn items
     if (drawnItems) {
       drawnItems.clearLayers();
+      console.log('[Polygon] Cleared drawn layers');
     }
     
+    // Remove polygon reference
     currentPolygon = null;
     foundAddresses = [];
     
     // Reset UI
     document.getElementById('drawPolygonBtn').style.display = 'inline-block';
     document.getElementById('addAddressesBtn').style.display = 'none';
+    document.getElementById('clearPolygonBtn').style.display = 'none';
     document.getElementById('cancelPolygonBtn').style.display = 'none';
     document.getElementById('polygonPreview').style.display = 'none';
     
-    console.log('[Polygon] Drawing cancelled');
+    console.log('[Polygon] Drawing cancelled, UI reset');
+  }
+  
+  function clearPolygonManually() {
+    console.log('[Polygon] Manual polygon clear requested');
+    
+    // Clear all drawn items
+    if (drawnItems) {
+      drawnItems.clearLayers();
+      console.log('[Polygon] ✓ Polygon layers cleared from map');
+    }
+    
+    // Clear references
+    currentPolygon = null;
+    foundAddresses = [];
+    
+    // Reset UI to initial state
+    document.getElementById('drawPolygonBtn').style.display = 'inline-block';
+    document.getElementById('addAddressesBtn').style.display = 'none';
+    document.getElementById('clearPolygonBtn').style.display = 'none';
+    document.getElementById('cancelPolygonBtn').style.display = 'none';
+    document.getElementById('polygonPreview').style.display = 'none';
+    
+    console.log('[Polygon] ✓ Polygon manually cleared');
   }
   
   async function onPolygonDrawn(polygonLayer) {
