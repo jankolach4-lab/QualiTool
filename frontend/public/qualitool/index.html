@@ -2298,6 +2298,10 @@
     
     console.log('[StreetFilter] Updating with', contacts.length, 'contacts');
     
+    // Save current filter value to restore after update
+    const currentFilterValue = streetFilter.value;
+    console.log('[StreetFilter] Current filter:', currentFilterValue || 'Alle Straßen');
+    
     const streets = new Set();
     contacts.forEach(contact => {
       if (contact.strasse) {
@@ -2321,8 +2325,17 @@
       streetFilter.appendChild(option);
     });
     
-    // Reset to "Alle Straßen" 
-    streetFilter.value = '';
+    // Restore previous filter value if it still exists in the new list
+    if (currentFilterValue && streetsList.includes(currentFilterValue)) {
+      streetFilter.value = currentFilterValue;
+      console.log('[StreetFilter] ✓ Restored filter:', currentFilterValue);
+    } else {
+      // Only reset to "Alle Straßen" if previous filter doesn't exist anymore
+      streetFilter.value = '';
+      if (currentFilterValue) {
+        console.log('[StreetFilter] ⚠ Previous filter not found, reset to "Alle Straßen"');
+      }
+    }
     
     console.log('[StreetFilter] ✓ Updated successfully');
   }
