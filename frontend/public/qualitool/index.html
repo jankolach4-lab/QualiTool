@@ -6432,6 +6432,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       }
       
       // Create new contact with coordinates
+      // residents Array bleibt komplett leer - WE müssen manuell hinzugefügt werden
       const newContact = {
         id: Date.now() + Math.random(),
         strasse: addr.strasse,
@@ -6442,16 +6443,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         we: 0, // Leer - muss manuell eingetragen werden
         lat: addr.lat,
         lng: addr.lng,
-        residents: [
-          {
-            id: Date.now() + Math.random(),
-            name: '', // Leer
-            status: '', // Leer
-            telefon: '', // Leer
-            notizen: '',
-            statusHistory: []
-          }
-        ]
+        residents: [] // Komplett leer - keine Default-Residents
       };
       
       contacts.push(newContact);
