@@ -130,13 +130,17 @@ jobs:
         run: |
           cd android
           cat > keystore.properties << EOF
-          storeFile=app/release.keystore
+          storeFile=release.keystore
           storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
           keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
           EOF
           echo "✓ keystore.properties created"
           cat keystore.properties
+          
+          # Copy keystore to android/ root as well (some configs read from there)
+          cp app/release.keystore release.keystore
+          echo "✓ Keystore also copied to android/release.keystore"
 
       - name: Configure build.gradle for Release Signing
         run: |
