@@ -267,7 +267,7 @@ jobs:
           tag_name: v${{ steps.get_version.outputs.version }}
           name: QualiTool v${{ steps.get_version.outputs.version }}
           body_path: frontend/changelog.txt
-          files: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          files: frontend/android/app/build/outputs/apk/release/app-release.apk
           draft: false
           prerelease: false
         env:
