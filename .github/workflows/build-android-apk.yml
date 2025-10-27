@@ -122,19 +122,21 @@ jobs:
 
       - name: Decode Release Keystore
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/release.keystore
-          echo "✓ Keystore decoded and saved to android/release.keystore"
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+          echo "✓ Keystore decoded and saved to android/app/release.keystore"
+          ls -la android/app/release.keystore
 
       - name: Create keystore.properties
         run: |
           cd android
           cat > keystore.properties << EOF
-          storeFile=release.keystore
+          storeFile=app/release.keystore
           storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
           keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
           EOF
           echo "✓ keystore.properties created"
+          cat keystore.properties
 
       - name: Configure build.gradle for Release Signing
         run: |
