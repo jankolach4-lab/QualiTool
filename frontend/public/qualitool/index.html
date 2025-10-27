@@ -948,6 +948,64 @@
     border-top: 1px solid #e5e7eb;
   }
 
+  /* Settings Section */
+  .settings-section {
+    display: none;
+    padding: 16px 18px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .settings-section h2 {
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+
+  .settings-card {
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  .settings-card h3 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    color: #374151;
+  }
+
+  .settings-card p {
+    margin: 8px 0;
+    font-size: 14px;
+    color: #6b7280;
+  }
+
+  #updateStatus {
+    padding: 15px;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+
+  #updateStatus.success {
+    background: #d1fae5;
+    border: 1px solid #10b981;
+    color: #065f46;
+  }
+
+  #updateStatus.error {
+    background: #fee2e2;
+    border: 1px solid #ef4444;
+    color: #991b1b;
+  }
+
+  #updateStatus.info {
+    background: #dbeafe;
+    border: 1px solid #3b82f6;
+    color: #1e40af;
+  }
+
   .popup-status-change label {
     display: block;
     font-size: 0.85em;
