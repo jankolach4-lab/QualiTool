@@ -6774,6 +6774,9 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       });
       
       if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Noch kein Release verfügbar.\n\nDas Repository existiert, aber es wurde noch kein Release erstellt.\n\nBitte warten Sie auf das erste Release oder kontaktieren Sie den Entwickler.');
+        }
         throw new Error(`GitHub API error: ${response.status}`);
       }
       
