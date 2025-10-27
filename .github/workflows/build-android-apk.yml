@@ -137,3 +137,91 @@ jobs:
           path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
+
+      - name: Get version from package.json
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Version: $VERSION"
+
+      - name: Check if release exists
+        id: check_release
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          RELEASE_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/v${VERSION}")
+          
+          if [ "$RELEASE_EXISTS" = "200" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Release v${VERSION} already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "✓ Release v${VERSION} does not exist yet"
+          fi
+
+      - name: Generate Changelog
+        id: changelog
+        if: steps.check_release.outputs.exists == 'false'
+        run: |
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LAST_TAG" ]; then
+            # First release - use all commits
+            COMMITS=$(git log --pretty=format:"- %s (%an)" --no-merges | head -20)
+          else
+            # Get commits since last tag
+            COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s (%an)" --no-merges)
+          fi
+          
+          # Create changelog
+          cat > changelog.txt << 'EOF'
+          ## 🎉 Was ist neu?
+          
+          $COMMITS
+          
+          ## 📥 Installation
+          
+          1. Laden Sie die APK-Datei herunter
+          2. Öffnen Sie die Datei auf Ihrem Android-Gerät
+          3. Bestätigen Sie die Installation
+          4. Alle Daten bleiben erhalten (bei Update)
+          
+          ## ⚠️ Wichtig
+          
+          - Erste Installation: Erlauben Sie alle Berechtigungen (Standort, Speicher)
+          - Update: Vorherige Version muss gleichen Signing-Key haben
+          - Bei Problemen: Kontaktieren Sie den Support
+          
+          ---
+          © 2024-2025 Janko Lach
+          EOF
+          
+          # Replace $COMMITS placeholder
+          sed -i "s|\$COMMITS|${COMMITS}|g" changelog.txt
+          
+          echo "✓ Changelog generated"
+          cat changelog.txt
+
+      - name: Create GitHub Release
+        if: steps.check_release.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: QualiTool v${{ steps.get_version.outputs.version }}
+          body_path: frontend/changelog.txt
+          files: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release Summary
+        if: steps.check_release.outputs.exists == 'false'
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          echo "🎉 Release v${VERSION} created successfully!"
+          echo "📦 APK uploaded to: https://github.com/${{ github.repository }}/releases/tag/v${VERSION}"
+          echo "🔄 Users can now update via the app's Settings page"
