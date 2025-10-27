@@ -3179,6 +3179,11 @@
           if (mount) { if (typeof renderWeCorrectionsList==='function') renderWeCorrectionsList(mount); mount.style.display='block'; }
           break;
         }
+        case 'settings': {
+          setDisp('.settings-section','block');
+          if (typeof initSettingsSection==='function') initSettingsSection();
+          break;
+        }
         default: {
           setDisp('.search-box','flex');
           setDisp('.status-filters','flex');
