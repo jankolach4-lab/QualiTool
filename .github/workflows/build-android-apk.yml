@@ -120,15 +120,70 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Decode Release Keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/release.keystore
+          echo "✓ Keystore decoded and saved to android/release.keystore"
+
+      - name: Create keystore.properties
+        run: |
+          cd android
+          cat > keystore.properties << EOF
+          storeFile=release.keystore
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+          echo "✓ keystore.properties created"
+
+      - name: Configure build.gradle for Release Signing
+        run: |
+          cd android/app
+          
+          # Backup original build.gradle
+          cp build.gradle build.gradle.bak
+          
+          # Add signing config after android { block
+          awk '
+          /android \{/ {
+            print
+            print "    signingConfigs {"
+            print "        release {"
+            print "            def keystorePropertiesFile = rootProject.file(\"keystore.properties\")"
+            print "            if (keystorePropertiesFile.exists()) {"
+            print "                def keystoreProperties = new Properties()"
+            print "                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))"
+            print "                storeFile file(keystoreProperties[\"storeFile\"])"
+            print "                storePassword keystoreProperties[\"storePassword\"]"
+            print "                keyAlias keystoreProperties[\"keyAlias\"]"
+            print "                keyPassword keystoreProperties[\"keyPassword\"]"
+            print "            }"
+            print "        }"
+            print "    }"
+            next
+          }
+          /buildTypes \{/,/release \{/ {
+            print
+            if (/release \{/) {
+              print "            signingConfig signingConfigs.release"
+            }
+            next
+          }
+          { print }
+          ' build.gradle.bak > build.gradle
+          
+          echo "✓ build.gradle configured for release signing"
+
       - name: Grant execute permission for Gradle
         run: |
           cd android
           chmod +x ./gradlew
 
-      - name: Build Debug APK
+      - name: Build Release APK (Signed)
         run: |
           cd android
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
+          echo "✓ Signed Release APK built successfully"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
