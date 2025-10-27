@@ -6686,6 +6686,292 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       console.log('[Map] Watch cleared');
     }
   });
+
+  // ========== UPDATE SYSTEM ==========
+  
+  const UPDATE_CONFIG = {
+    githubOwner: 'jankolach4-lab',
+    githubRepo: 'QualiTool',
+    currentVersion: '0.1.0', // TODO: Read from package.json or build
+    autoCheckEnabled: localStorage.getItem('autoUpdateCheck') === 'true'
+  };
+
+  function initSettingsSection() {
+    console.log('[Update] Initializing settings section');
+    
+    // Display current version
+    document.getElementById('currentVersion').textContent = UPDATE_CONFIG.currentVersion;
+    
+    // Display last check time
+    const lastCheck = localStorage.getItem('lastUpdateCheck');
+    if (lastCheck) {
+      const date = new Date(parseInt(lastCheck));
+      document.getElementById('lastUpdateCheck').textContent = date.toLocaleString('de-DE');
+    }
+    
+    // Update auto-check button
+    updateAutoCheckButton();
+    
+    // Auto-check on startup (if enabled and not checked today)
+    if (UPDATE_CONFIG.autoCheckEnabled) {
+      const now = Date.now();
+      const lastCheck = parseInt(localStorage.getItem('lastUpdateCheck') || '0');
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      
+      if (now - lastCheck > oneDayMs) {
+        console.log('[Update] Auto-check enabled, checking for updates...');
+        setTimeout(() => checkForUpdates(true), 2000); // Silent check after 2 seconds
+      }
+    }
+  }
+
+  function updateAutoCheckButton() {
+    const btn = document.getElementById('autoUpdateText');
+    if (btn) {
+      btn.textContent = UPDATE_CONFIG.autoCheckEnabled ? 'Auto-Check: An' : 'Auto-Check: Aus';
+    }
+  }
+
+  function toggleAutoUpdateCheck() {
+    UPDATE_CONFIG.autoCheckEnabled = !UPDATE_CONFIG.autoCheckEnabled;
+    localStorage.setItem('autoUpdateCheck', UPDATE_CONFIG.autoCheckEnabled.toString());
+    updateAutoCheckButton();
+    
+    const msg = UPDATE_CONFIG.autoCheckEnabled 
+      ? '✅ Automatische Update-Prüfung aktiviert!\n\nDie App prüft beim Start (max 1x täglich) auf neue Versionen.'
+      : '❌ Automatische Update-Prüfung deaktiviert.\n\nSie können weiterhin manuell nach Updates suchen.';
+    
+    alert(msg);
+    console.log('[Update] Auto-check:', UPDATE_CONFIG.autoCheckEnabled);
+  }
+
+  async function checkForUpdates(silent = false) {
+    console.log('[Update] Checking for updates...', silent ? '(silent)' : '(manual)');
+    
+    const btn = document.getElementById('checkUpdateBtn');
+    const statusDiv = document.getElementById('updateStatus');
+    
+    if (!silent && btn) {
+      btn.disabled = true;
+      btn.textContent = '🔄 Prüfe...';
+    }
+    
+    try {
+      // Fetch latest release from GitHub
+      const apiUrl = `https://api.github.com/repos/${UPDATE_CONFIG.githubOwner}/${UPDATE_CONFIG.githubRepo}/releases/latest`;
+      console.log('[Update] API URL:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`GitHub API error: ${response.status}`);
+      }
+      
+      const release = await response.json();
+      console.log('[Update] Latest release:', release.tag_name);
+      
+      // Update last check time
+      localStorage.setItem('lastUpdateCheck', Date.now().toString());
+      document.getElementById('lastUpdateCheck').textContent = new Date().toLocaleString('de-DE');
+      
+      // Parse versions
+      const latestVersion = release.tag_name.replace(/^v/, ''); // Remove 'v' prefix
+      const currentVersion = UPDATE_CONFIG.currentVersion;
+      
+      console.log('[Update] Current:', currentVersion, 'Latest:', latestVersion);
+      
+      // Compare versions
+      if (compareVersions(latestVersion, currentVersion) > 0) {
+        // Update available!
+        console.log('[Update] ✅ Update available!');
+        showUpdateAvailable(release, silent);
+      } else {
+        // Up to date
+        console.log('[Update] ✓ App is up to date');
+        if (!silent) {
+          showUpdateStatus('success', `✅ Ihre App ist aktuell!\n\nVersion ${currentVersion} ist die neueste verfügbare Version.`);
+        }
+      }
+      
+      // Display changelog
+      if (release.body) {
+        document.getElementById('changelogContent').innerHTML = `
+          <h4 style="margin: 0 0 10px 0;">Version ${release.tag_name}</h4>
+          <div style="white-space: pre-wrap; font-size: 13px; line-height: 1.6;">${escapeHtml(release.body)}</div>
+        `;
+      }
+      
+    } catch (error) {
+      console.error('[Update] Error checking for updates:', error);
+      if (!silent) {
+        showUpdateStatus('error', `❌ Fehler beim Prüfen auf Updates:\n\n${error.message}\n\nBitte prüfen Sie Ihre Internetverbindung.`);
+      }
+    } finally {
+      if (!silent && btn) {
+        btn.disabled = false;
+        btn.textContent = '🔍 Nach Updates suchen';
+      }
+    }
+  }
+
+  function showUpdateAvailable(release, silent) {
+    const latestVersion = release.tag_name;
+    const downloadUrl = release.assets.find(asset => asset.name.endsWith('.apk'))?.browser_download_url;
+    
+    if (!downloadUrl) {
+      console.error('[Update] No APK found in release');
+      if (!silent) {
+        showUpdateStatus('error', '❌ Keine APK-Datei im Release gefunden.');
+      }
+      return;
+    }
+    
+    const message = `🎉 <strong>Update verfügbar!</strong><br><br>
+      Neue Version: <strong>${latestVersion}</strong><br>
+      Aktuelle Version: ${UPDATE_CONFIG.currentVersion}<br><br>
+      <button onclick="downloadAndInstallUpdate('${downloadUrl}', '${latestVersion}')" class="primary-btn" style="width: 100%; margin-top: 10px;">
+        📥 Jetzt herunterladen & installieren
+      </button>
+      <br><br>
+      <small style="color: #666;">Nach dem Download müssen Sie die Installation manuell bestätigen.</small>
+    `;
+    
+    showUpdateStatus('info', message);
+    
+    if (!silent) {
+      // Also show alert for immediate attention
+      const doUpdate = confirm(`🎉 Update verfügbar!\n\nNeue Version: ${latestVersion}\nAktuelle Version: ${UPDATE_CONFIG.currentVersion}\n\nMöchten Sie das Update jetzt herunterladen?`);
+      if (doUpdate) {
+        downloadAndInstallUpdate(downloadUrl, latestVersion);
+      }
+    }
+  }
+
+  async function downloadAndInstallUpdate(downloadUrl, version) {
+    console.log('[Update] Downloading APK from:', downloadUrl);
+    
+    const statusDiv = document.getElementById('updateStatus');
+    showUpdateStatus('info', '📥 <strong>Download läuft...</strong><br><br>Bitte warten Sie, dies kann einige Sekunden dauern.');
+    
+    try {
+      const isNativeApp = window.__CapHelper && window.__CapHelper.isNative();
+      
+      if (isNativeApp) {
+        // CAPACITOR (Android) - Use Filesystem + Open File
+        const Filesystem = window.__CapHelper.getPlugin('Filesystem');
+        
+        if (!Filesystem) {
+          throw new Error('Capacitor Filesystem Plugin nicht verfügbar');
+        }
+        
+        // Download APK
+        const response = await fetch(downloadUrl);
+        const blob = await response.blob();
+        
+        // Convert to base64
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          try {
+            const base64Data = reader.result.split(',')[1];
+            const filename = `QualiTool_${version}.apk`;
+            
+            // Write to Downloads directory
+            const result = await Filesystem.writeFile({
+              path: filename,
+              data: base64Data,
+              directory: 'EXTERNAL_STORAGE', // Downloads folder
+              encoding: 'base64'
+            });
+            
+            console.log('[Update] APK saved to:', result.uri);
+            
+            showUpdateStatus('success', `✅ <strong>Download abgeschlossen!</strong><br><br>
+              Datei gespeichert: ${filename}<br><br>
+              <strong>Nächste Schritte:</strong><br>
+              1. Öffnen Sie Ihre Downloads<br>
+              2. Tippen Sie auf die APK-Datei<br>
+              3. Bestätigen Sie die Installation<br><br>
+              <small>Die App wird automatisch aktualisiert, alle Daten bleiben erhalten.</small>
+            `);
+            
+            alert(`✅ Download erfolgreich!\n\nDatei: ${filename}\n\nÖffnen Sie Ihre Downloads und tippen Sie auf die APK-Datei, um das Update zu installieren.`);
+            
+          } catch (err) {
+            console.error('[Update] Error saving APK:', err);
+            throw err;
+          }
+        };
+        reader.readAsDataURL(blob);
+        
+      } else {
+        // WEB BROWSER - Standard download
+        console.log('[Update] Web browser detected, standard download');
+        
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `QualiTool_${version}.apk`;
+        link.click();
+        
+        showUpdateStatus('success', `✅ <strong>Download gestartet!</strong><br><br>
+          Die APK-Datei wird in Ihren Downloads-Ordner heruntergeladen.<br><br>
+          <strong>Installation:</strong> Öffnen Sie die Datei und bestätigen Sie die Installation.
+        `);
+      }
+      
+    } catch (error) {
+      console.error('[Update] Download/Install error:', error);
+      showUpdateStatus('error', `❌ <strong>Fehler beim Download:</strong><br><br>${error.message}`);
+      alert(`❌ Fehler beim Download:\n\n${error.message}\n\nBitte versuchen Sie es später erneut.`);
+    }
+  }
+
+  function showUpdateStatus(type, message) {
+    const statusDiv = document.getElementById('updateStatus');
+    if (!statusDiv) return;
+    
+    statusDiv.className = type;
+    statusDiv.innerHTML = message;
+    statusDiv.style.display = 'block';
+  }
+
+  function compareVersions(v1, v2) {
+    // Simple version comparison (e.g., "0.2.0" vs "0.1.0")
+    const parts1 = v1.split('.').map(Number);
+    const parts2 = v2.split('.').map(Number);
+    
+    for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+      const p1 = parts1[i] || 0;
+      const p2 = parts2[i] || 0;
+      
+      if (p1 > p2) return 1;
+      if (p1 < p2) return -1;
+    }
+    
+    return 0;
+  }
+
+  function escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+  }
+
+  // Make functions globally available
+  window.initSettingsSection = initSettingsSection;
+  window.checkForUpdates = checkForUpdates;
+  window.toggleAutoUpdateCheck = toggleAutoUpdateCheck;
+  window.downloadAndInstallUpdate = downloadAndInstallUpdate;
+
+  // ========== END UPDATE SYSTEM ==========
 </script>
 
 </body>
