@@ -6924,9 +6924,18 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       }
       
     } catch (error) {
-      console.error('[Update] Download/Install error:', error);
-      showUpdateStatus('error', `❌ <strong>Fehler beim Download:</strong><br><br>${error.message}`);
-      alert(`❌ Fehler beim Download:\n\n${error.message}\n\nBitte versuchen Sie es später erneut.`);
+      console.error('[Update] Error opening browser:', error);
+      
+      // Fallback: Show direct link
+      showUpdateStatus('error', `⚠️ <strong>Browser konnte nicht automatisch geöffnet werden</strong><br><br>
+        Bitte öffnen Sie diesen Link manuell in Ihrem Browser:<br><br>
+        <a href="${downloadUrl}" target="_blank" style="color: #3b82f6; word-break: break-all;">${downloadUrl}</a><br><br>
+        <button onclick="window.open('${downloadUrl}', '_blank')" class="primary-btn" style="margin-top: 10px;">
+          🔗 Link im Browser öffnen
+        </button>
+      `);
+      
+      alert(`⚠️ Automatischer Download fehlgeschlagen.\n\nBitte kopieren Sie den Link aus der App und öffnen Sie ihn in Ihrem Browser.\n\nOder tippen Sie auf den Button "Link im Browser öffnen".`);
     }
   }
 
