@@ -6865,7 +6865,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     const message = `🎉 <strong>Update verfügbar!</strong><br><br>
       Neue Version: <strong>${latestVersion}</strong><br>
       Aktuelle Version: ${UPDATE_CONFIG.currentVersion}<br><br>
-      <button onclick="downloadAndInstallUpdate('${downloadUrl}', '${latestVersion}')" class="primary-btn" style="width: 100%; margin-top: 10px;">
+      <button onclick="(async () => { await downloadAndInstallUpdate('${downloadUrl}', '${latestVersion}'); })()" class="primary-btn" style="width: 100%; margin-top: 10px;">
         📥 Jetzt herunterladen & installieren
       </button>
       <br><br>
