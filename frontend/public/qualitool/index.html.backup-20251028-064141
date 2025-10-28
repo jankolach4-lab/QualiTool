@@ -1525,17 +1525,15 @@
       <div class="import-section collapsed">
         <h3 onclick="toggleImportSection()">Adressen importieren</h3>
         <div class="import-content" style="display:block;">
+          <p>Unterstütztes Format: Excel (XLSX, XLS)</p>
+          <p>Erforderliche Spalten: PLZ, Ort, Straße, Nr., Zusatz, WE</p>
           <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls">
           <span id="fileName"></span>
-          <div class="import-export-buttons" style="display:flex; flex-direction: column; gap: 10px;">
-            <div style="display: flex; gap: 10px;">
-              <button onclick="document.getElementById('excelImport').click()" class="import-btn" style="flex: 1;">Excel importieren</button>
-              <input type="file" id="excelImport" style="display: none" accept=".xlsx,.xls" onchange="importFromExcel(this.files[0])">
-            </div>
-            <div style="display: flex; gap: 10px;">
-              <button onclick="exportToExcel()" class="import-btn" style="flex: 1;">Excel exportieren</button>
-              <button onclick="exportToCSV()" class="import-btn" style="flex: 1;">CSV exportieren</button>
-            </div>
+          <div class="import-export-buttons" style="display:flex;">
+            <button onclick="document.getElementById('excelImport').click()" class="import-btn">Excel importieren</button>
+            <button onclick="exportToExcel()" class="import-btn">Excel exportieren</button>
+            <button onclick="exportToCSV()" class="import-btn">CSV exportieren</button>
+            <input type="file" id="excelImport" style="display: none" accept=".xlsx,.xls" onchange="importFromExcel(this.files[0])">
           </div>
         </div>
       </div>
@@ -6700,7 +6698,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   const UPDATE_CONFIG = {
     githubOwner: 'jankolach4-lab',
     githubRepo: 'QualiTool',
-    currentVersion: '0.2.0', // Updated for v0.2.0 release
+    currentVersion: '0.1.0', // TODO: Read from package.json or build
     autoCheckEnabled: localStorage.getItem('autoUpdateCheck') === 'true'
   };
 

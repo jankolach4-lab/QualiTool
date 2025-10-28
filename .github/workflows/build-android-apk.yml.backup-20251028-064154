@@ -1,0 +1,288 @@
+name: Android APK (Capacitor)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/build-android-apk.yml'
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          yarn install --frozen-lockfile || yarn install
+          yarn add --dev typescript@^5.6 || true
+          # Ensure Capacitor core is available for CLI operations
+          yarn add @capacitor/core@^6 -W || yarn add @capacitor/core@^6
+
+      - name: Build web assets
+        run: |
+          yarn build
+
+      - name: Show Capacitor version
+        run: npx cap --version || true
+
+      - name: Add Android platform (idempotent)
+        run: |
+          npx cap add android || echo 'Android platform already present'
+
+      - name: Set Android version from package.json
+        run: |
+          VERSION_NAME=$(node -p "require('./package.json').version")
+          # Use Unix timestamp as versionCode (always increasing, even from very old versions)
+          # Format: YYYYMMDDHH (e.g., 2025012315 for Jan 23, 2025, 15:00)
+          VERSION_CODE=$(date +%Y%m%d%H)
+          
+          echo "📦 Setting Android version:"
+          echo "   versionName: $VERSION_NAME"
+          echo "   versionCode: $VERSION_CODE"
+          echo "   (This will work even if old APK has versionCode 1 or no version)"
+          
+          # Update build.gradle with version from package.json
+          if [ -f android/app/build.gradle ]; then
+            # Replace both versionCode patterns (handle both "1" and any existing number)
+            sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" android/app/build.gradle
+            sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle
+            
+            echo "✓ build.gradle updated successfully"
+            echo "   versionCode: $VERSION_CODE (guarantees update from any old version)"
+            echo "   versionName: $VERSION_NAME"
+          else
+            echo "⚠ build.gradle not found yet, version will be set during cap sync"
+          fi
+
+      - name: Generate Android icons
+        run: npx @capacitor/assets generate --android || true
+
+      - name: Verify built web assets
+        run: |
+          test -f build/qualitool/index.html
+          test -f build/qualitool/login.html
+          grep -qi "<!DOCTYPE html" build/qualitool/index.html || (echo "index.html marker not found" && exit 1)
+          grep -q "Login zum Qualifizierungs" build/qualitool/login.html || (echo "login.html marker not found" && exit 1)
+          head -n 5 build/index.html || true
+
+      - name: Copy/sync web assets to Android
+        run: |
+          npx cap sync android
+          test -f android/app/src/main/assets/public/qualitool/login.html
+          grep -q "Login zum Qualifizierungs" android/app/src/main/assets/public/qualitool/login.html || (echo "android assets missing login" && exit 1)
+          grep -q "qualitool/index.html" android/app/src/main/assets/public/index.html || (echo "redirect to qualitool not present" && exit 1)
+          head -n 5 android/app/src/main/assets/public/index.html || true
+
+      # Remove previous SaveAs injection step (we avoid native plugin for now)
+      - name: Patch AndroidManifest for permissions (Storage + Location)
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if [ -f "$MANIFEST" ]; then
+            # Add legacy external storage for Android 10
+            if ! grep -q "requestLegacyExternalStorage" "$MANIFEST"; then
+              sed -i 's/<application /<application android:requestLegacyExternalStorage="true" /' "$MANIFEST"
+            fi
+            # Ensure legacy write permission for API 29
+            if ! grep -q "WRITE_EXTERNAL_STORAGE" "$MANIFEST"; then
+              sed -i '/<uses-permission android:name="android.permission.INTERNET" \/>/a \\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" \/>' "$MANIFEST"
+            fi
+            # Add location permissions for map feature
+            if ! grep -q "ACCESS_FINE_LOCATION" "$MANIFEST"; then
+              sed -i '/<uses-permission android:name="android.permission.INTERNET" \/>/a \\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" \/>\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" \/>' "$MANIFEST"
+            fi
+            echo "AndroidManifest.xml patched successfully"
+            echo "Permissions added: WRITE_EXTERNAL_STORAGE, ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION"
+          fi
+
+      - name: Remove SaveAs injection step
+        run: |
+          echo 'Skipping SaveAs native plugin injection to stabilise build.'
+
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Decode Release Keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+          echo "✓ Keystore decoded and saved to android/app/release.keystore"
+          ls -la android/app/release.keystore
+
+      - name: Create keystore.properties
+        run: |
+          cd android
+          cat > keystore.properties << EOF
+          storeFile=release.keystore
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+          echo "✓ keystore.properties created"
+          cat keystore.properties
+          
+          # Copy keystore to android/ root as well (some configs read from there)
+          cp app/release.keystore release.keystore
+          echo "✓ Keystore also copied to android/release.keystore"
+
+      - name: Configure build.gradle for Release Signing
+        run: |
+          cd android/app
+          
+          # Backup original build.gradle
+          cp build.gradle build.gradle.bak
+          
+          # Add signing config after android { block
+          awk '
+          /android \{/ {
+            print
+            print "    signingConfigs {"
+            print "        release {"
+            print "            def keystorePropertiesFile = rootProject.file(\"keystore.properties\")"
+            print "            if (keystorePropertiesFile.exists()) {"
+            print "                def keystoreProperties = new Properties()"
+            print "                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))"
+            print "                storeFile file(keystoreProperties[\"storeFile\"])"
+            print "                storePassword keystoreProperties[\"storePassword\"]"
+            print "                keyAlias keystoreProperties[\"keyAlias\"]"
+            print "                keyPassword keystoreProperties[\"keyPassword\"]"
+            print "            }"
+            print "        }"
+            print "    }"
+            next
+          }
+          /buildTypes \{/,/release \{/ {
+            print
+            if (/release \{/) {
+              print "            signingConfig signingConfigs.release"
+            }
+            next
+          }
+          { print }
+          ' build.gradle.bak > build.gradle
+          
+          echo "✓ build.gradle configured for release signing"
+
+      - name: Grant execute permission for Gradle
+        run: |
+          cd android
+          chmod +x ./gradlew
+
+      - name: Build Release APK (Signed)
+        run: |
+          cd android
+          ./gradlew assembleRelease
+          echo "✓ Signed Release APK built successfully"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualitool-release-apk
+          path: frontend/android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Get version from package.json
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Version: $VERSION"
+
+      - name: Check if release exists
+        id: check_release
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          RELEASE_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/v${VERSION}")
+          
+          if [ "$RELEASE_EXISTS" = "200" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Release v${VERSION} already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "✓ Release v${VERSION} does not exist yet"
+          fi
+
+      - name: Generate Changelog
+        id: changelog
+        if: steps.check_release.outputs.exists == 'false'
+        run: |
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LAST_TAG" ]; then
+            # First release - use all commits
+            COMMITS=$(git log --pretty=format:"- %s (%an)" --no-merges | head -20)
+          else
+            # Get commits since last tag
+            COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s (%an)" --no-merges)
+          fi
+          
+          # Create changelog
+          cat > changelog.txt << 'EOF'
+          ## 🎉 Was ist neu?
+          
+          $COMMITS
+          
+          ## 📥 Installation
+          
+          1. Laden Sie die APK-Datei herunter
+          2. Öffnen Sie die Datei auf Ihrem Android-Gerät
+          3. Bestätigen Sie die Installation
+          4. Alle Daten bleiben erhalten (bei Update)
+          
+          ## ⚠️ Wichtig
+          
+          - Erste Installation: Erlauben Sie alle Berechtigungen (Standort, Speicher)
+          - Update: Vorherige Version muss gleichen Signing-Key haben
+          - Bei Problemen: Kontaktieren Sie den Support
+          
+          ---
+          © 2024-2025 Janko Lach
+          EOF
+          
+          # Replace $COMMITS placeholder
+          sed -i "s|\$COMMITS|${COMMITS}|g" changelog.txt
+          
+          echo "✓ Changelog generated"
+          cat changelog.txt
+
+      - name: Create GitHub Release
+        if: steps.check_release.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: QualiTool v${{ steps.get_version.outputs.version }}
+          body_path: frontend/changelog.txt
+          files: frontend/android/app/build/outputs/apk/release/app-release.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release Summary
+        if: steps.check_release.outputs.exists == 'false'
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          echo "🎉 Release v${VERSION} created successfully!"
+          echo "📦 APK uploaded to: https://github.com/${{ github.repository }}/releases/tag/v${VERSION}"
+          echo "🔄 Users can now update via the app's Settings page"
