@@ -1,89 +1,75 @@
 <analysis>
-This trajectory details an AI engineer's work on a legacy React application, QualiTool, and parts of a Next.js Admin Dashboard. The work is iterative, addressing various bugs and feature requests. Initially, the focus was on fixing QualiTool's Supabase synchronization and UI/UX improvements like address list layout and street filtering. Recurring issues included filter persistence in the Android APK.
+The AI engineer's work primarily involved enhancing a legacy React app (QualiTool) and a Next.js Admin Dashboard. The trajectory started with bug fixes in QualiTool, including Supabase synchronization, UI/UX improvements (address list, street filtering), and the persistent street filter bug in Android. Significant features added to QualiTool included a combined Dashboard with statistics and bar charts, daily activity summaries, and a real-time, color-coded map view with geocoding and user location tracking, adjusted for Capacitor. The engineer also addressed an Admin Dashboard WE-count inaccuracy by correcting SQL functions.
 
-The core of the recent work involved significant enhancements to QualiTool's interface: creating a combined Dashboard view with statistics and calendar, implementing bar charts for daily statistics with color coding and auto-scaling, and adding a daily activity summary bar. A major feature added was a real-time, color-coded map view showing addresses and the user's location, with intelligent background geocoding and dynamic updates. Challenges included ensuring map marker visibility, location services on Android APK, and correctly handling address suffixes. The engineer also attempted a Dark Mode, which was subsequently reverted. The current phase is tackling a CSV export bug, an Admin Dashboard map issue, and the QualiTool location marker display.
+A major focus shifted to implementing an in-app update mechanism for the Android APK. This involved creating a settings page, integrating with GitHub Releases, and extensive debugging of failed to fetch errors during update checks and downloads, primarily due to GitHub API access and Android WebView limitations. A critical issue was the Paket steht in Konflikt error during updates, identified as a signing-key problem, leading to a detailed manual update guide.
+
+The engineer also implemented map enhancements: adding a light-red marker for Kein Eintritt persönlich status and a polygon drawing tool to add addresses to the list. This polygon feature required debugging issues like map marker display for newly added addresses and street filter inconsistencies. The current challenge is the persistent failed to fetch error during APK updates, with the engineer attempting to completely remove internal download logic, relying on external browser handling.
 </analysis>
 
 <product_requirements>
-The Qualifizierungstool admin dashboard provides real-time analytics for projects and VPs, featuring an overall view of total projects, VPs, and residential units. It includes a project table with details (city, WE, VP count, completions, status percentage, progress bar) and a map button to open a project-specific completion map. Project Analytics offers charts for daily completions, status changes, and breakdowns. A Project Projection Tool forecasts completions. The QualiTool (legacy app) needs stable Supabase synchronization, a functional sidebar, and Excel Export for general contacts.
+The Qualifizierungstool provides real-time analytics for projects and VPs, displaying total projects, VPs, and residential units. It features a project table with city, WE, VP count, completions, status, and a map button. Project Analytics shows daily completions, status changes, and breakdowns, with a Project Projection Tool. The legacy QualiTool needs stable Supabase sync, functional sidebar, and Excel Export.
 
-**Implemented Features (during this trajectory):**
-- **QualiTool UI/UX:**
-    - Address list layout: PLZ/Ort (smaller) above Straße/Nr. (bold, smaller), more space for WE, Name, Status.
-    - Street filter for even/odd house numbers.
-    - Status priority: Kein Eintritt persönlich and Kein Interesse prioritized by recency.
-    - CSV Export for WE-Korrekturen.
-    - New Dashboard section combining Statistik anzeigen and Aktivitätenkalender.
-    - Compact statistics tiles.
-    - Bar charts for Abschlüsse and Qualifizierungen for the current month in the Dashboard, with professional x-axis, auto-scaling, and color-coding (red for 1, orange for 2, yellow for 3, light green for 4, dark green for 5+ completions).
-    - Daily statistics row on the address list view (Statusänderungen, Gespräche, Termine, Abschlüsse for current day) with elegant SVG icons.
-- **Admin Dashboard:** Alphabetical sorting for project list.
-- **Map View (New QualiTool Feature):**
-    - Sidebar page with user's real-time GPS location (man icon) and all addresses from the list.
-    - Address color coding: Blue (Standard), Dark Green (all WE completed), Light Green (at least 1 WE completed, not all), Red (Kein Interesse), Yellow (Bereits beraten).
-    - Marker click: Shows house info + direct status change.
-    - Intelligent background geocoding with caching and selective marker updates.
-    - Supports house numbers with suffixes (e.g., 20A) in map markers and popups.
-    - Location tracking in Android APK using standard Geolocation API.
-- **Visit Recommendation:** List display extended to bottom of app, last visit hint on same line as address.
-- **Street Filter:** Ensured correct initialization and application on contact list load.
+**Implemented Features (this trajectory):**
+- **QualiTool UI/UX:** Address list layout improvements, street filter (even/odd), status priority (Kein Eintritt persönlich, Kein Interesse), CSV export for WE-Korrekturen, new Dashboard section (statistics, calendar), compact statistics, bar charts (Abschlüsse, Qualifizierungen) with color-coding and auto-scaling, daily statistics row with SVG icons.
+- **Admin Dashboard:** Alphabetical sorting for project list. WE-Count corrected in Admin Dashboard from address count to sum of Wohneinheiten.
+- **Map View (QualiTool):** Real-time GPS location (man icon), address color coding (Blue, Dark Green, Light Green, Red, Yellow), marker click for info/status change, intelligent background geocoding with caching, house number suffixes support, location tracking via standard Geolocation API. New light-red marker for Kein Eintritt persönlich status with legend update.
+- **Polygon Drawing (QualiTool Map):** Ability to draw polygon on map, add addresses within the polygon to the contact list (max 1000), default empty WE field for new addresses, clear polygon after addition (auto and manual), ensures newly added addresses appear on map.
+- **Visit Recommendation:** Extended list height, formatted address/last visit.
+- **Street Filter:** Correct initialization and application on contact list load, persistence after adding new addresses.
+- **Update System:** In-app update check (GitHub API), download, and installation for Android APK, including versioning logic, release key setup, and browser-based download handling.
 </product_requirements>
 
 <key_technical_concepts>
-- **Frontend:** Next.js (React, TypeScript), HTML, CSS, Leaflet (mapping), Capacitor (Android APK).
-- **BaaS:** Supabase (PostgreSQL, Authentication, Row Level Security, RPC functions).
-- **Database:** PostgreSQL (, ,  tables).
-- **Date/Time:** .
-- **Geocoding:** Nominatim (OpenStreetMap).
-- **Data Processing:** SheetJS/XLSX (for CSV operations).
-- **Client-side Storage:**  for geocoding cache and theme settings.
+- **Frontend:** React (legacy app), Next.js (Admin Dashboard), HTML, CSS, JavaScript.
+- **Mapping:** Leaflet (OpenStreetMap), Leaflet.draw (polygon drawing).
+- **Mobile Development:** Capacitor (for Android APK builds), Capacitor Filesystem, Share, and Browser plugins.
+- **Backend-as-a-Service (BaaS):** Supabase (PostgreSQL, RLS, RPC functions).
+- **GitHub:** GitHub Actions (CI/CD for APK builds, releases), GitHub API (for update checks).
+- **Build Tools:**  (Java for Android signing keys).
 </key_technical_concepts>
 
 <code_architecture>
-
+fn_dashboard_guarded_projects
 
 **Key files and changes:**
 
--   ****:
-    *   **Importance**: The core legacy QualiTool application, where most UI/UX, logic, and feature integrations occur.
-    *   **Changes**:
-        *   **Dashboard Integration**: Added new sidebar button for Dashboard and  in  to display combined Statistik and Aktivitätenkalender. Removed old buttons. Reordered sections (Statistik above Kalender).
-        *   **Statistics Layout**: CSS adjustments (, , ) for more compact display.
-        *   **Calendar to Bar Charts**: Rewrote  to generate two bar charts (, ). Added HTML structure for charts, CSS for chart styling (scrollable x-axis, bar colors, y-axis, grid lines), and JavaScript logic for dynamic height calculation, value display, and color coding. Implemented automatic scaling and ensured numbers are not cut off. Made y-axis and grid lines white (invisible).
-        *   **Daily Statistics Row**: Added HTML and CSS for a  row on the contact list view, displaying Statusänderungen, Gespräche, Termine, Abschlüsse. Implemented  and integrated its call into . Replaced emoji icons with elegant SVG icons.
-        *   **Map View Integration**: Added Leaflet CSS and JS. Added a  HTML element. Added a Map sidebar button with a distinct icon. Added  to . Implemented , , ,  functions. Configured address color coding (blue, dark green, light green, red, yellow). Integrated geocoding cache () and background processing. Ensured map refresh on contact changes ( called via , , ).
-        *   **Location Services**: Integrated  for user location tracking, adjusted for Capacitor (Android APK) compatibility, and fixed issues with permission prompts and marker display. Ensures house number suffixes are included in geocoding and marker popups.
-        *   **Visit Recommendation**: Extended list height and formatted address/last visit on one line.
-        *   **Street Filter**: Ensured  is called on initial contact list render.
-        *   **Dark Mode**: (Implemented and reverted) Added toggle, CSS variables, and JavaScript for theme switching.
--   ****:
-    *   **Importance**: Login page for QualiTool.
-    *   **Changes**:  and  implemented to ensure user data row exists in Supabase upon login.
--   ****:
-    *   **Importance**: Admin Dashboard displaying project analytics.
-    *   **Changes**: Implemented alphabetical sorting for the projects list within the  function.
--   ** (CREATED)**:
-    *   **Importance**: Multiple backups of the QualiTool's main page were created before major changes, allowing for rollback.
-
+-   ****: The core legacy QualiTool.
+    *   **Dashboard:** Added Dashboard section, combined statistics and calendar. Implemented bar charts for daily stats, daily activity row.
+    *   **Map View:** Integrated Leaflet, user location tracking, address color coding. Implemented polygon drawing with add/clear functions.
+    *   **Update System:** Added settings page, update check logic (GitHub API), download/install functionality. Debugged failed to fetch errors by attempting to remove  for downloads.
+    *   **Fixes:** CSV export debugging, location marker display, street filter persistence, contact creation (empty residents array).
+-   ****: Admin Dashboard map page.
+    *   **Changes**: Added debug logging for  field for suffix handling.
+-   ****: Capacitor bridge.
+    *   **Changes**: Adapted CSV export to use Capacitor Filesystem and Share.
+-   ****: Capacitor configuration.
+    *   **Changes**: Added Geolocation permissions for Android APK.
+-   ****: Supabase SQL functions.
+    *   **Changes**: Corrected  and  to  for accurate WE counting instead of  of residents.
+-   ****: GitHub Actions for Android APK builds.
+    *   **Changes**: Added automatic versioning, release publishing to GitHub. Modified to use GitHub secrets for signing keys and corrected keystore paths multiple times to resolve build failures.
+-   ****: Frontend dependencies.
+    *   **Changes**: Version number updated several times (0.1.0 to 0.2.0, 0.2.1, 0.2.2, 0.2.3, 0.2.4) for update testing. Added  dependency.
 </code_architecture>
 
 <pending_tasks>
--   **QualiTool WE-Korrekturen CSV Export**: User reports it is not working again.
--   **Admin Dashboard Map Suffixes**: Addresses with suffixes are not being displayed correctly on the Admin Dashboard map.
--   **QualiTool Location Marker**: User's location is detected and permissions granted, but the Männchen marker for the user's position is not visible on the map.
+-   **QualiTool WE-Korrekturen CSV Export**: User reports it is not working again (specifically, file not saved/downloaded on tablet). (Addressed, but still part of download issues)
+-   **QualiTool Location Marker**: User's location is detected and permissions granted, but the Männchen marker for the user's position is not visible on the map. (Addressed, but still part of location display issues)
+-   **Admin Dashboard Map Suffixes**: Addresses with suffixes are not being displayed correctly on the Admin Dashboard map. (Addressed, but Next.js rebuild was implied)
 -   **QualiTool Straßenfilter persistence (APK)**: The street filter still disappears after app restart in the Android APK. This is an acknowledged, unresolved problem.
 -   **Projection Tool Enhancements**: Optional UI hints, Bundesland selection persistence in Supabase, alternative rate models, small badge with forecast on project card.
 -   **Polygontool Enhancements**: Further geocoding improvements or integration of a second geocoding provider. Standard behavior for points exactly on the polygon boundary.
+-   **Update Process failed to fetch error**: The core issue of downloading the APK update from GitHub using the in-app mechanism persists.
 </pending_tasks>
 
 <current_work>
-Immediately prior to this summary, the AI engineer was addressing three distinct issues reported by the user:
-1.  **CSV Export of WE-Korrekturen not working:** The engineer inspected the  function in  and noted that it appeared correctly implemented as a global function. No further action has been taken on this specific problem yet, assuming the function itself is fine and the issue might be with its invocation or data.
-2.  **QualiTool Location Marker not showing:** The user reported that while location permissions work and the location is tracked, the visual marker for the user's position (Männchen) is not displayed on the map in QualiTool. The engineer has modified the  function in  to improve its reliability in creating and updating this marker.
-3.  **Admin Dashboard Map not showing addresses with suffixes:** The user noted that addresses with suffixes (e.g., 12A) are not correctly represented on the project completion map within the Admin Dashboard. The engineer has just identified the relevant Admin Dashboard files,  and , and is poised to begin investigating and implementing a fix for this. The trajectory ended with the user's prompt to Mach weiter, indicating work should continue on these items.
+Immediately prior to this summary, the AI engineer was engaged in a persistent and critical bug: the failed to fetch error encountered when attempting to download an update for the QualiTool Android APK from within the application. The user repeatedly reported this error despite multiple attempted fixes.
+
+The engineer initially believed the issue was related to GitHub API access for release checking (404s, resolved by making the repo public) or general download handling in . They then identified that Android Webview often blocks direct  calls for large files and implemented a solution to open the download URL in an external browser using  and the Capacitor Browser Plugin.
+
+However, the failed to fetch error persisted. The latest diagnosis by the engineer (Chat 485, 496) was that remnants of the old  code were still being executed after attempting to open the external browser, or that the  for the *update check* itself was failing. The most recent action was to completely remove all internal  logic related to both checking for updates and downloading them, aiming to solely rely on the external browser solution. The application version was successively incremented (from 0.2.0 to 0.2.4) with each attempted fix. The user's last message, Immer noch der gleiche Fehler, indicates the problem is still unresolved.
 </current_work>
 
 <optional_next_step>
-Investigate and fix the Admin Dashboard map issue where addresses with suffixes are not displayed correctly.
+Increment the version to 0.2.5, push the changes which completely remove internal fetch logic for updates, and instruct the user to re-test the update download process in the native APK.
 </optional_next_step>
-
