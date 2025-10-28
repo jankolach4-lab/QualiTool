@@ -6866,11 +6866,22 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     console.log('[Update] Opening download in external browser:', downloadUrl);
     
     try {
-      // ALWAYS open in external browser - most reliable method
-      // Android WebView has restrictions, external browser handles downloads perfectly
+      // Try Capacitor Browser plugin first (best for native apps)
+      const Browser = window.__CapHelper && window.__CapHelper.getPlugin('Browser');
       
-      // Open URL in system browser (outside of app)
-      window.open(downloadUrl, '_system');
+      if (Browser) {
+        console.log('[Update] Using Capacitor Browser plugin');
+        await Browser.open({ 
+          url: downloadUrl,
+          presentationStyle: 'popover'
+        });
+        console.log('[Update] Capacitor Browser opened successfully');
+      } else {
+        // Fallback: Use window.open with _system target
+        console.log('[Update] Capacitor Browser not available, using window.open');
+        window.open(downloadUrl, '_system');
+        console.log('[Update] window.open executed');
+      }
       
       showUpdateStatus('success', `✅ <strong>Browser geöffnet!</strong><br><br>
         Der Download wird in Ihrem Standard-Browser gestartet.<br><br>
@@ -6880,14 +6891,12 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         3. ODER: Öffnen Sie Downloads → "QualiTool_${version}.apk"<br>
         4. Bestätigen Sie die Installation<br>
         5. Die App wird aktualisiert, alle Daten bleiben erhalten<br><br>
-        <small style="color: #666;">Sie können die App während des Downloads weiter nutzen.</small>
+        <small style="color: #666;">Sie können zum QualiTool zurückkehren während der Download läuft.</small>
       `);
-      
-      console.log('[Update] External browser opened successfully');
       
       // Show helpful alert
       setTimeout(() => {
-        alert(`✅ Download startet im Browser!\n\nDatei: QualiTool_${version}.apk\n\nWarten Sie auf die Download-Benachrichtigung und tippen Sie dann auf die APK-Datei.\n\nSie können diese App während des Downloads weiter nutzen.`);
+        alert(`✅ Browser wurde geöffnet!\n\nDatei: QualiTool_${version}.apk\n\nDer Download startet automatisch im Browser.\n\nWarten Sie auf die Download-Benachrichtigung und tippen Sie dann auf die APK-Datei um das Update zu installieren.`);
       }, 500);
       
       // Fallback for web browser (shouldn't happen in Capacitor app)
