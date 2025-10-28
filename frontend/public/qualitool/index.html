@@ -6920,37 +6920,8 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         alert(`✅ Browser wurde geöffnet!\n\nDatei: QualiTool_${version}.apk\n\nDer Download startet automatisch im Browser.\n\nWarten Sie auf die Download-Benachrichtigung und tippen Sie dann auf die APK-Datei um das Update zu installieren.`);
       }, 500);
       
-      // Fallback for web browser (shouldn't happen in Capacitor app)
-      console.log('[Update] Web mode - attempting fetch download');
-      
-      // Download APK with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
-      
-      const response = await fetch(downloadUrl, { 
-        signal: controller.signal,
-        mode: 'cors'
-      });
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        throw new Error(`Download failed: ${response.status} ${response.statusText}`);
-      }
-      
-      const blob = await response.blob();
-      
-      // WEB BROWSER - Standard download (from fallback above)
-      console.log('[Update] Creating download link for blob');
-        
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = `QualiTool_${version}.apk`;
-        link.click();
-        
-        showUpdateStatus('success', `✅ <strong>Download gestartet!</strong><br><br>
-          Die APK-Datei wird in Ihren Downloads-Ordner heruntergeladen.<br><br>
-          <strong>Installation:</strong> Öffnen Sie die Datei und bestätigen Sie die Installation.
-        `);
+      // WICHTIG: Hier beenden, nicht weiter fetch() ausführen!
+      return;
       }
       
     } catch (error) {
