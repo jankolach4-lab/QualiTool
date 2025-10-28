@@ -6820,7 +6820,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       if (compareVersions(latestVersion, currentVersion) > 0) {
         // Update available!
         console.log('[Update] ✅ Update available!');
-        showUpdateAvailable(release, silent);
+        await showUpdateAvailable(release, silent);
       } else {
         // Up to date
         console.log('[Update] ✓ App is up to date');
