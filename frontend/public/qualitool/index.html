@@ -6883,32 +6883,67 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     }
   }
 
-  function downloadAndInstallUpdate(downloadUrl, version) {
-    console.log('[Update] Opening download URL in browser:', downloadUrl);
+  async function downloadAndInstallUpdate(downloadUrl, version) {
+    console.log('[Update] Opening download URL:', downloadUrl);
     
-    // Einfachste Lösung: Öffne URL direkt im System-Browser
-    // Kein async, kein await, kein try-catch mit fetch-Fallback
-    window.open(downloadUrl, '_blank');
-    
-    console.log('[Update] window.open() called with _blank');
-    
-    // Zeige Success-Message
-    showUpdateStatus('success', `✅ <strong>Browser geöffnet!</strong><br><br>
-      Der Download wird in Ihrem Browser gestartet.<br><br>
-      <strong>Nächste Schritte:</strong><br>
-      1. Warten Sie bis der Download abgeschlossen ist<br>
-      2. Tippen Sie auf die Download-Benachrichtigung<br>
-      3. ODER: Öffnen Sie Downloads → "QualiTool_${version}.apk"<br>
-      4. Bestätigen Sie die Installation<br>
-      5. Die App wird aktualisiert, alle Daten bleiben erhalten<br><br>
-      <small style="color: #666;">Falls kein Browser öffnet, öffnen Sie den Link manuell:<br>
-      <a href="${downloadUrl}" target="_blank" style="color: #3b82f6; font-size: 12px; word-break: break-all;">${downloadUrl}</a></small>
-    `);
-    
-    // Alert nach kurzer Verzögerung
-    setTimeout(() => {
-      alert(`✅ Browser sollte geöffnet sein!\n\nDatei: QualiTool_${version}.apk\n\nDer Download startet automatisch.\n\nWarten Sie auf die Download-Benachrichtigung und tippen Sie auf die APK-Datei um das Update zu installieren.\n\nFalls kein Browser öffnet, kopieren Sie den Link aus der Statusmeldung.`);
-    }, 500);
+    try {
+      // Versuche zuerst Capacitor Browser Plugin (nur in nativer App verfügbar)
+      const BrowserPlugin = window.__CapHelper?.getPlugin('Browser');
+      
+      if (window.__CapHelper?.isNative() && BrowserPlugin) {
+        console.log('[Update] Using Capacitor Browser Plugin...');
+        
+        try {
+          await BrowserPlugin.open({ 
+            url: downloadUrl,
+            presentationStyle: 'popover'
+          });
+          console.log('[Update] ✅ Capacitor Browser opened successfully');
+        } catch (browserError) {
+          console.warn('[Update] Capacitor Browser.open failed, trying window.open:', browserError);
+          // Fallback zu window.open wenn Browser Plugin fehlschlägt
+          window.open(downloadUrl, '_system');
+        }
+      } else {
+        // Fallback für Web oder wenn Plugin nicht verfügbar
+        console.log('[Update] Using window.open with _system...');
+        window.open(downloadUrl, '_system');
+      }
+      
+      console.log('[Update] Download initiated');
+      
+      // Zeige Success-Message
+      showUpdateStatus('success', `✅ <strong>Browser geöffnet!</strong><br><br>
+        Der Download wird in Ihrem Browser gestartet.<br><br>
+        <strong>Nächste Schritte:</strong><br>
+        1. Warten Sie bis der Download abgeschlossen ist<br>
+        2. Tippen Sie auf die Download-Benachrichtigung<br>
+        3. ODER: Öffnen Sie Downloads → "QualiTool_${version}.apk"<br>
+        4. Bestätigen Sie die Installation<br>
+        5. Die App wird aktualisiert, alle Daten bleiben erhalten<br><br>
+        <small style="color: #666;">Falls kein Browser öffnet, öffnen Sie den Link manuell:<br>
+        <a href="${downloadUrl}" target="_blank" style="color: #3b82f6; font-size: 12px; word-break: break-all;">${downloadUrl}</a></small>
+      `);
+      
+      // Alert nach kurzer Verzögerung
+      setTimeout(() => {
+        alert(`✅ Browser sollte geöffnet sein!\n\nDatei: QualiTool_${version}.apk\n\nDer Download startet automatisch.\n\nWarten Sie auf die Download-Benachrichtigung und tippen Sie auf die APK-Datei um das Update zu installieren.\n\nFalls kein Browser öffnet, kopieren Sie den Link aus der Statusmeldung.`);
+      }, 500);
+      
+    } catch (error) {
+      console.error('[Update] Error opening download URL:', error);
+      
+      // Zeige Fehler mit manuellem Fallback-Link
+      showUpdateStatus('error', `❌ <strong>Fehler beim Öffnen des Browsers</strong><br><br>
+        ${error.message}<br><br>
+        <strong>Manueller Download:</strong><br>
+        Bitte öffnen Sie diesen Link manuell in Ihrem Browser:<br><br>
+        <a href="${downloadUrl}" target="_blank" style="color: #3b82f6; font-size: 12px; word-break: break-all; text-decoration: underline;">${downloadUrl}</a><br><br>
+        <button onclick="navigator.clipboard.writeText('${downloadUrl}').then(() => alert('Link kopiert!')).catch(() => alert('Fehler beim Kopieren'))" class="primary-btn" style="width: 100%; margin-top: 10px;">
+          📋 Link in Zwischenablage kopieren
+        </button>
+      `);
+    }
   }
 
   function showUpdateStatus(type, message) {
