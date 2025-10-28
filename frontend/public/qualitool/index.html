@@ -6850,7 +6850,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     }
   }
 
-  function showUpdateAvailable(release, silent) {
+  async function showUpdateAvailable(release, silent) {
     const latestVersion = release.tag_name;
     const downloadUrl = release.assets.find(asset => asset.name.endsWith('.apk'))?.browser_download_url;
     
