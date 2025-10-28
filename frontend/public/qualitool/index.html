@@ -6921,45 +6921,9 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       }
       
       const blob = await response.blob();
-        
-        // Convert to base64
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          try {
-            const base64Data = reader.result.split(',')[1];
-            const filename = `QualiTool_${version}.apk`;
-            
-            // Write to Downloads directory
-            const result = await Filesystem.writeFile({
-              path: filename,
-              data: base64Data,
-              directory: 'EXTERNAL_STORAGE', // Downloads folder
-              encoding: 'base64'
-            });
-            
-            console.log('[Update] APK saved to:', result.uri);
-            
-            showUpdateStatus('success', `✅ <strong>Download abgeschlossen!</strong><br><br>
-              Datei gespeichert: ${filename}<br><br>
-              <strong>Nächste Schritte:</strong><br>
-              1. Öffnen Sie Ihre Downloads<br>
-              2. Tippen Sie auf die APK-Datei<br>
-              3. Bestätigen Sie die Installation<br><br>
-              <small>Die App wird automatisch aktualisiert, alle Daten bleiben erhalten.</small>
-            `);
-            
-            alert(`✅ Download erfolgreich!\n\nDatei: ${filename}\n\nÖffnen Sie Ihre Downloads und tippen Sie auf die APK-Datei, um das Update zu installieren.`);
-            
-          } catch (err) {
-            console.error('[Update] Error saving APK:', err);
-            throw err;
-          }
-        };
-        reader.readAsDataURL(blob);
-        
-      } else {
-        // WEB BROWSER - Standard download
-        console.log('[Update] Web browser detected, standard download');
+      
+      // WEB BROWSER - Standard download (from fallback above)
+      console.log('[Update] Creating download link for blob');
         
         const link = document.createElement('a');
         link.href = downloadUrl;
