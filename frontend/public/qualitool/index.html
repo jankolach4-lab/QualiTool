@@ -1671,7 +1671,9 @@
               <label for="endTime">Bis:</label>
               <input type="time" id="endTime" min="06:00" max="23:00" value="23:00">
             </div>
-            <button onclick="showVisitRecommendations()">Empfehlungen anzeigen</button>
+            <div style="display: flex; align-items: flex-end;">
+              <button onclick="showVisitRecommendations()" style="height: 38px; margin: 0;">Empfehlungen anzeigen</button>
+            </div>
           </div>
           <div id="recommendationResults"></div>
         </div>
@@ -6700,7 +6702,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   const UPDATE_CONFIG = {
     githubOwner: 'jankolach4-lab',
     githubRepo: 'QualiTool',
-    currentVersion: '0.2.5', // Using Capacitor Browser Plugin for download
+    currentVersion: '0.2.6', // UI fix: Visit recommendation button height
     autoCheckEnabled: localStorage.getItem('autoUpdateCheck') === 'true'
   };
 
