@@ -6883,61 +6883,32 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     }
   }
 
-  async function downloadAndInstallUpdate(downloadUrl, version) {
-    console.log('[Update] Opening download in external browser:', downloadUrl);
+  function downloadAndInstallUpdate(downloadUrl, version) {
+    console.log('[Update] Opening download URL in browser:', downloadUrl);
     
-    try {
-      // Try Capacitor Browser plugin first (best for native apps)
-      const Browser = window.__CapHelper && window.__CapHelper.getPlugin('Browser');
-      
-      if (Browser) {
-        console.log('[Update] Using Capacitor Browser plugin');
-        await Browser.open({ 
-          url: downloadUrl,
-          presentationStyle: 'popover'
-        });
-        console.log('[Update] Capacitor Browser opened successfully');
-      } else {
-        // Fallback: Use window.open with _system target
-        console.log('[Update] Capacitor Browser not available, using window.open');
-        window.open(downloadUrl, '_system');
-        console.log('[Update] window.open executed');
-      }
-      
-      showUpdateStatus('success', `✅ <strong>Browser geöffnet!</strong><br><br>
-        Der Download wird in Ihrem Standard-Browser gestartet.<br><br>
-        <strong>Nächste Schritte:</strong><br>
-        1. Warten Sie bis der Download abgeschlossen ist<br>
-        2. Tippen Sie auf die Download-Benachrichtigung<br>
-        3. ODER: Öffnen Sie Downloads → "QualiTool_${version}.apk"<br>
-        4. Bestätigen Sie die Installation<br>
-        5. Die App wird aktualisiert, alle Daten bleiben erhalten<br><br>
-        <small style="color: #666;">Sie können zum QualiTool zurückkehren während der Download läuft.</small>
-      `);
-      
-      // Show helpful alert
-      setTimeout(() => {
-        alert(`✅ Browser wurde geöffnet!\n\nDatei: QualiTool_${version}.apk\n\nDer Download startet automatisch im Browser.\n\nWarten Sie auf die Download-Benachrichtigung und tippen Sie dann auf die APK-Datei um das Update zu installieren.`);
-      }, 500);
-      
-      // WICHTIG: Hier beenden, nicht weiter fetch() ausführen!
-      return;
-      }
-      
-    } catch (error) {
-      console.error('[Update] Error opening browser:', error);
-      
-      // Fallback: Show direct link
-      showUpdateStatus('error', `⚠️ <strong>Browser konnte nicht automatisch geöffnet werden</strong><br><br>
-        Bitte öffnen Sie diesen Link manuell in Ihrem Browser:<br><br>
-        <a href="${downloadUrl}" target="_blank" style="color: #3b82f6; word-break: break-all;">${downloadUrl}</a><br><br>
-        <button onclick="window.open('${downloadUrl}', '_blank')" class="primary-btn" style="margin-top: 10px;">
-          🔗 Link im Browser öffnen
-        </button>
-      `);
-      
-      alert(`⚠️ Automatischer Download fehlgeschlagen.\n\nBitte kopieren Sie den Link aus der App und öffnen Sie ihn in Ihrem Browser.\n\nOder tippen Sie auf den Button "Link im Browser öffnen".`);
-    }
+    // Einfachste Lösung: Öffne URL direkt im System-Browser
+    // Kein async, kein await, kein try-catch mit fetch-Fallback
+    window.open(downloadUrl, '_blank');
+    
+    console.log('[Update] window.open() called with _blank');
+    
+    // Zeige Success-Message
+    showUpdateStatus('success', `✅ <strong>Browser geöffnet!</strong><br><br>
+      Der Download wird in Ihrem Browser gestartet.<br><br>
+      <strong>Nächste Schritte:</strong><br>
+      1. Warten Sie bis der Download abgeschlossen ist<br>
+      2. Tippen Sie auf die Download-Benachrichtigung<br>
+      3. ODER: Öffnen Sie Downloads → "QualiTool_${version}.apk"<br>
+      4. Bestätigen Sie die Installation<br>
+      5. Die App wird aktualisiert, alle Daten bleiben erhalten<br><br>
+      <small style="color: #666;">Falls kein Browser öffnet, öffnen Sie den Link manuell:<br>
+      <a href="${downloadUrl}" target="_blank" style="color: #3b82f6; font-size: 12px; word-break: break-all;">${downloadUrl}</a></small>
+    `);
+    
+    // Alert nach kurzer Verzögerung
+    setTimeout(() => {
+      alert(`✅ Browser sollte geöffnet sein!\n\nDatei: QualiTool_${version}.apk\n\nDer Download startet automatisch.\n\nWarten Sie auf die Download-Benachrichtigung und tippen Sie auf die APK-Datei um das Update zu installieren.\n\nFalls kein Browser öffnet, kopieren Sie den Link aus der Statusmeldung.`);
+    }, 500);
   }
 
   function showUpdateStatus(type, message) {
