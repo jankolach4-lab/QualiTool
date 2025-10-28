@@ -6700,7 +6700,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   const UPDATE_CONFIG = {
     githubOwner: 'jankolach4-lab',
     githubRepo: 'QualiTool',
-    currentVersion: '0.2.2', // Open download in external browser
+    currentVersion: '0.2.4', // Fixed: return after browser open (no fetch fallback)
     autoCheckEnabled: localStorage.getItem('autoUpdateCheck') === 'true'
   };
 
@@ -6769,21 +6769,42 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       const apiUrl = `https://api.github.com/repos/${UPDATE_CONFIG.githubOwner}/${UPDATE_CONFIG.githubRepo}/releases/latest`;
       console.log('[Update] API URL:', apiUrl);
       
-      const response = await fetch(apiUrl, {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json'
-        }
+      // Use XMLHttpRequest as fallback for native apps (more reliable than fetch)
+      const release = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', apiUrl, true);
+        xhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
+        xhr.timeout = 15000; // 15 second timeout
+        
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch (e) {
+              reject(new Error('Failed to parse response: ' + e.message));
+            }
+          } else if (xhr.status === 404) {
+            reject(new Error('Noch kein Release verfügbar.\n\nDas Repository existiert, aber es wurde noch kein Release erstellt.\n\nBitte warten Sie auf das erste Release oder kontaktieren Sie den Entwickler.'));
+          } else {
+            reject(new Error(`GitHub API error: ${xhr.status}`));
+          }
+        };
+        
+        xhr.onerror = function() {
+          reject(new Error('Netzwerkfehler beim Abrufen der Update-Informationen.\n\nBitte prüfen Sie Ihre Internetverbindung.'));
+        };
+        
+        xhr.ontimeout = function() {
+          reject(new Error('Zeitüberschreitung beim Abrufen der Update-Informationen.\n\nBitte versuchen Sie es später erneut.'));
+        };
+        
+        xhr.send();
       });
       
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Noch kein Release verfügbar.\n\nDas Repository existiert, aber es wurde noch kein Release erstellt.\n\nBitte warten Sie auf das erste Release oder kontaktieren Sie den Entwickler.');
-        }
-        throw new Error(`GitHub API error: ${response.status}`);
-      }
-      
-      const release = await response.json();
       console.log('[Update] Latest release:', release.tag_name);
+      
+      // Continue with dummy response object for compatibility
+      const response = { ok: true, status: 200 };
       
       // Update last check time
       localStorage.setItem('lastUpdateCheck', Date.now().toString());
@@ -6899,37 +6920,8 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         alert(`✅ Browser wurde geöffnet!\n\nDatei: QualiTool_${version}.apk\n\nDer Download startet automatisch im Browser.\n\nWarten Sie auf die Download-Benachrichtigung und tippen Sie dann auf die APK-Datei um das Update zu installieren.`);
       }, 500);
       
-      // Fallback for web browser (shouldn't happen in Capacitor app)
-      console.log('[Update] Web mode - attempting fetch download');
-      
-      // Download APK with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
-      
-      const response = await fetch(downloadUrl, { 
-        signal: controller.signal,
-        mode: 'cors'
-      });
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        throw new Error(`Download failed: ${response.status} ${response.statusText}`);
-      }
-      
-      const blob = await response.blob();
-      
-      // WEB BROWSER - Standard download (from fallback above)
-      console.log('[Update] Creating download link for blob');
-        
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = `QualiTool_${version}.apk`;
-        link.click();
-        
-        showUpdateStatus('success', `✅ <strong>Download gestartet!</strong><br><br>
-          Die APK-Datei wird in Ihren Downloads-Ordner heruntergeladen.<br><br>
-          <strong>Installation:</strong> Öffnen Sie die Datei und bestätigen Sie die Installation.
-        `);
+      // WICHTIG: Hier beenden, nicht weiter fetch() ausführen!
+      return;
       }
       
     } catch (error) {
