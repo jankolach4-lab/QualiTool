@@ -6700,7 +6700,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   const UPDATE_CONFIG = {
     githubOwner: 'jankolach4-lab',
     githubRepo: 'QualiTool',
-    currentVersion: '0.2.1', // Fixed APK download issue
+    currentVersion: '0.2.2', // Open download in external browser
     autoCheckEnabled: localStorage.getItem('autoUpdateCheck') === 'true'
   };
 
@@ -6863,45 +6863,41 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   }
 
   async function downloadAndInstallUpdate(downloadUrl, version) {
-    console.log('[Update] Downloading APK from:', downloadUrl);
-    
-    const statusDiv = document.getElementById('updateStatus');
-    showUpdateStatus('info', '📥 <strong>Download läuft...</strong><br><br>Bitte warten Sie, dies kann einige Sekunden dauern.');
+    console.log('[Update] Opening download in external browser:', downloadUrl);
     
     try {
-      const isNativeApp = window.__CapHelper && window.__CapHelper.isNative();
+      // Try Capacitor Browser plugin first (best for native apps)
+      const Browser = window.__CapHelper && window.__CapHelper.getPlugin('Browser');
       
-      if (isNativeApp) {
-        // CAPACITOR (Android) - Direct download without fetch (better for large files)
-        console.log('[Update] Native app detected, using direct browser download');
-        
-        // Create invisible link and trigger download
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = `QualiTool_${version}.apk`;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        
-        // Cleanup
-        setTimeout(() => {
-          document.body.removeChild(link);
-        }, 100);
-        
-        showUpdateStatus('success', `✅ <strong>Download gestartet!</strong><br><br>
-          Die APK wird in Ihren Downloads-Ordner heruntergeladen.<br><br>
-          <strong>Nächste Schritte:</strong><br>
-          1. Warten Sie bis Download abgeschlossen ist (Benachrichtigung)<br>
-          2. Öffnen Sie Ihre Downloads<br>
-          3. Tippen Sie auf "QualiTool_${version}.apk"<br>
-          4. Bestätigen Sie die Installation<br><br>
-          <small>Die App wird automatisch aktualisiert, alle Daten bleiben erhalten.</small>
-        `);
-        
-        alert(`✅ Download gestartet!\n\nDatei: QualiTool_${version}.apk\n\nPrüfen Sie Ihre Download-Benachrichtigung oder öffnen Sie den Downloads-Ordner.\n\nTippen Sie auf die APK-Datei um das Update zu installieren.`);
-        
-        return;
+      if (Browser) {
+        console.log('[Update] Using Capacitor Browser plugin');
+        await Browser.open({ 
+          url: downloadUrl,
+          presentationStyle: 'popover'
+        });
+        console.log('[Update] Capacitor Browser opened successfully');
+      } else {
+        // Fallback: Use window.open with _system target
+        console.log('[Update] Capacitor Browser not available, using window.open');
+        window.open(downloadUrl, '_system');
+        console.log('[Update] window.open executed');
       }
+      
+      showUpdateStatus('success', `✅ <strong>Browser geöffnet!</strong><br><br>
+        Der Download wird in Ihrem Standard-Browser gestartet.<br><br>
+        <strong>Nächste Schritte:</strong><br>
+        1. Warten Sie bis der Download abgeschlossen ist<br>
+        2. Tippen Sie auf die Download-Benachrichtigung<br>
+        3. ODER: Öffnen Sie Downloads → "QualiTool_${version}.apk"<br>
+        4. Bestätigen Sie die Installation<br>
+        5. Die App wird aktualisiert, alle Daten bleiben erhalten<br><br>
+        <small style="color: #666;">Sie können zum QualiTool zurückkehren während der Download läuft.</small>
+      `);
+      
+      // Show helpful alert
+      setTimeout(() => {
+        alert(`✅ Browser wurde geöffnet!\n\nDatei: QualiTool_${version}.apk\n\nDer Download startet automatisch im Browser.\n\nWarten Sie auf die Download-Benachrichtigung und tippen Sie dann auf die APK-Datei um das Update zu installieren.`);
+      }, 500);
       
       // Fallback for web browser (shouldn't happen in Capacitor app)
       console.log('[Update] Web mode - attempting fetch download');
@@ -6937,9 +6933,18 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       }
       
     } catch (error) {
-      console.error('[Update] Download/Install error:', error);
-      showUpdateStatus('error', `❌ <strong>Fehler beim Download:</strong><br><br>${error.message}`);
-      alert(`❌ Fehler beim Download:\n\n${error.message}\n\nBitte versuchen Sie es später erneut.`);
+      console.error('[Update] Error opening browser:', error);
+      
+      // Fallback: Show direct link
+      showUpdateStatus('error', `⚠️ <strong>Browser konnte nicht automatisch geöffnet werden</strong><br><br>
+        Bitte öffnen Sie diesen Link manuell in Ihrem Browser:<br><br>
+        <a href="${downloadUrl}" target="_blank" style="color: #3b82f6; word-break: break-all;">${downloadUrl}</a><br><br>
+        <button onclick="window.open('${downloadUrl}', '_blank')" class="primary-btn" style="margin-top: 10px;">
+          🔗 Link im Browser öffnen
+        </button>
+      `);
+      
+      alert(`⚠️ Automatischer Download fehlgeschlagen.\n\nBitte kopieren Sie den Link aus der App und öffnen Sie ihn in Ihrem Browser.\n\nOder tippen Sie auf den Button "Link im Browser öffnen".`);
     }
   }
 
