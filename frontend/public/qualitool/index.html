@@ -6700,7 +6700,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   const UPDATE_CONFIG = {
     githubOwner: 'jankolach4-lab',
     githubRepo: 'QualiTool',
-    currentVersion: '0.2.4', // Fixed: return after browser open (no fetch fallback)
+    currentVersion: '0.2.5', // Using Capacitor Browser Plugin for download
     autoCheckEnabled: localStorage.getItem('autoUpdateCheck') === 'true'
   };
 
@@ -6820,7 +6820,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       if (compareVersions(latestVersion, currentVersion) > 0) {
         // Update available!
         console.log('[Update] ✅ Update available!');
-        showUpdateAvailable(release, silent);
+        await showUpdateAvailable(release, silent);
       } else {
         // Up to date
         console.log('[Update] ✓ App is up to date');
@@ -6850,7 +6850,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     }
   }
 
-  function showUpdateAvailable(release, silent) {
+  async function showUpdateAvailable(release, silent) {
     const latestVersion = release.tag_name;
     const downloadUrl = release.assets.find(asset => asset.name.endsWith('.apk'))?.browser_download_url;
     
@@ -6865,7 +6865,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
     const message = `🎉 <strong>Update verfügbar!</strong><br><br>
       Neue Version: <strong>${latestVersion}</strong><br>
       Aktuelle Version: ${UPDATE_CONFIG.currentVersion}<br><br>
-      <button onclick="downloadAndInstallUpdate('${downloadUrl}', '${latestVersion}')" class="primary-btn" style="width: 100%; margin-top: 10px;">
+      <button onclick="(async () => { await downloadAndInstallUpdate('${downloadUrl}', '${latestVersion}'); })()" class="primary-btn" style="width: 100%; margin-top: 10px;">
         📥 Jetzt herunterladen & installieren
       </button>
       <br><br>
@@ -6878,65 +6878,71 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       // Also show alert for immediate attention
       const doUpdate = confirm(`🎉 Update verfügbar!\n\nNeue Version: ${latestVersion}\nAktuelle Version: ${UPDATE_CONFIG.currentVersion}\n\nMöchten Sie das Update jetzt herunterladen?`);
       if (doUpdate) {
-        downloadAndInstallUpdate(downloadUrl, latestVersion);
+        await downloadAndInstallUpdate(downloadUrl, latestVersion);
       }
     }
   }
 
   async function downloadAndInstallUpdate(downloadUrl, version) {
-    console.log('[Update] Opening download in external browser:', downloadUrl);
+    console.log('[Update] Opening download URL:', downloadUrl);
     
     try {
-      // Try Capacitor Browser plugin first (best for native apps)
-      const Browser = window.__CapHelper && window.__CapHelper.getPlugin('Browser');
+      // Versuche zuerst Capacitor Browser Plugin (nur in nativer App verfügbar)
+      const BrowserPlugin = window.__CapHelper?.getPlugin('Browser');
       
-      if (Browser) {
-        console.log('[Update] Using Capacitor Browser plugin');
-        await Browser.open({ 
-          url: downloadUrl,
-          presentationStyle: 'popover'
-        });
-        console.log('[Update] Capacitor Browser opened successfully');
+      if (window.__CapHelper?.isNative() && BrowserPlugin) {
+        console.log('[Update] Using Capacitor Browser Plugin...');
+        
+        try {
+          await BrowserPlugin.open({ 
+            url: downloadUrl,
+            presentationStyle: 'popover'
+          });
+          console.log('[Update] ✅ Capacitor Browser opened successfully');
+        } catch (browserError) {
+          console.warn('[Update] Capacitor Browser.open failed, trying window.open:', browserError);
+          // Fallback zu window.open wenn Browser Plugin fehlschlägt
+          window.open(downloadUrl, '_system');
+        }
       } else {
-        // Fallback: Use window.open with _system target
-        console.log('[Update] Capacitor Browser not available, using window.open');
+        // Fallback für Web oder wenn Plugin nicht verfügbar
+        console.log('[Update] Using window.open with _system...');
         window.open(downloadUrl, '_system');
-        console.log('[Update] window.open executed');
       }
       
+      console.log('[Update] Download initiated');
+      
+      // Zeige Success-Message
       showUpdateStatus('success', `✅ <strong>Browser geöffnet!</strong><br><br>
-        Der Download wird in Ihrem Standard-Browser gestartet.<br><br>
+        Der Download wird in Ihrem Browser gestartet.<br><br>
         <strong>Nächste Schritte:</strong><br>
         1. Warten Sie bis der Download abgeschlossen ist<br>
         2. Tippen Sie auf die Download-Benachrichtigung<br>
         3. ODER: Öffnen Sie Downloads → "QualiTool_${version}.apk"<br>
         4. Bestätigen Sie die Installation<br>
         5. Die App wird aktualisiert, alle Daten bleiben erhalten<br><br>
-        <small style="color: #666;">Sie können zum QualiTool zurückkehren während der Download läuft.</small>
+        <small style="color: #666;">Falls kein Browser öffnet, öffnen Sie den Link manuell:<br>
+        <a href="${downloadUrl}" target="_blank" style="color: #3b82f6; font-size: 12px; word-break: break-all;">${downloadUrl}</a></small>
       `);
       
-      // Show helpful alert
+      // Alert nach kurzer Verzögerung
       setTimeout(() => {
-        alert(`✅ Browser wurde geöffnet!\n\nDatei: QualiTool_${version}.apk\n\nDer Download startet automatisch im Browser.\n\nWarten Sie auf die Download-Benachrichtigung und tippen Sie dann auf die APK-Datei um das Update zu installieren.`);
+        alert(`✅ Browser sollte geöffnet sein!\n\nDatei: QualiTool_${version}.apk\n\nDer Download startet automatisch.\n\nWarten Sie auf die Download-Benachrichtigung und tippen Sie auf die APK-Datei um das Update zu installieren.\n\nFalls kein Browser öffnet, kopieren Sie den Link aus der Statusmeldung.`);
       }, 500);
       
-      // WICHTIG: Hier beenden, nicht weiter fetch() ausführen!
-      return;
-      }
-      
     } catch (error) {
-      console.error('[Update] Error opening browser:', error);
+      console.error('[Update] Error opening download URL:', error);
       
-      // Fallback: Show direct link
-      showUpdateStatus('error', `⚠️ <strong>Browser konnte nicht automatisch geöffnet werden</strong><br><br>
+      // Zeige Fehler mit manuellem Fallback-Link
+      showUpdateStatus('error', `❌ <strong>Fehler beim Öffnen des Browsers</strong><br><br>
+        ${error.message}<br><br>
+        <strong>Manueller Download:</strong><br>
         Bitte öffnen Sie diesen Link manuell in Ihrem Browser:<br><br>
-        <a href="${downloadUrl}" target="_blank" style="color: #3b82f6; word-break: break-all;">${downloadUrl}</a><br><br>
-        <button onclick="window.open('${downloadUrl}', '_blank')" class="primary-btn" style="margin-top: 10px;">
-          🔗 Link im Browser öffnen
+        <a href="${downloadUrl}" target="_blank" style="color: #3b82f6; font-size: 12px; word-break: break-all; text-decoration: underline;">${downloadUrl}</a><br><br>
+        <button onclick="navigator.clipboard.writeText('${downloadUrl}').then(() => alert('Link kopiert!')).catch(() => alert('Fehler beim Kopieren'))" class="primary-btn" style="width: 100%; margin-top: 10px;">
+          📋 Link in Zwischenablage kopieren
         </button>
       `);
-      
-      alert(`⚠️ Automatischer Download fehlgeschlagen.\n\nBitte kopieren Sie den Link aus der App und öffnen Sie ihn in Ihrem Browser.\n\nOder tippen Sie auf den Button "Link im Browser öffnen".`);
     }
   }
 
