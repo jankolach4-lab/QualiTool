@@ -6700,7 +6700,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   const UPDATE_CONFIG = {
     githubOwner: 'jankolach4-lab',
     githubRepo: 'QualiTool',
-    currentVersion: '0.2.0', // Updated for v0.2.0 release
+    currentVersion: '0.2.1', // Fixed APK download issue
     autoCheckEnabled: localStorage.getItem('autoUpdateCheck') === 'true'
   };
 
@@ -6872,55 +6872,58 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       const isNativeApp = window.__CapHelper && window.__CapHelper.isNative();
       
       if (isNativeApp) {
-        // CAPACITOR (Android) - Use Filesystem + Open File
-        const Filesystem = window.__CapHelper.getPlugin('Filesystem');
+        // CAPACITOR (Android) - Direct download without fetch (better for large files)
+        console.log('[Update] Native app detected, using direct browser download');
         
-        if (!Filesystem) {
-          throw new Error('Capacitor Filesystem Plugin nicht verfügbar');
-        }
+        // Create invisible link and trigger download
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `QualiTool_${version}.apk`;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
         
-        // Download APK
-        const response = await fetch(downloadUrl);
-        const blob = await response.blob();
+        // Cleanup
+        setTimeout(() => {
+          document.body.removeChild(link);
+        }, 100);
         
-        // Convert to base64
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          try {
-            const base64Data = reader.result.split(',')[1];
-            const filename = `QualiTool_${version}.apk`;
-            
-            // Write to Downloads directory
-            const result = await Filesystem.writeFile({
-              path: filename,
-              data: base64Data,
-              directory: 'EXTERNAL_STORAGE', // Downloads folder
-              encoding: 'base64'
-            });
-            
-            console.log('[Update] APK saved to:', result.uri);
-            
-            showUpdateStatus('success', `✅ <strong>Download abgeschlossen!</strong><br><br>
-              Datei gespeichert: ${filename}<br><br>
-              <strong>Nächste Schritte:</strong><br>
-              1. Öffnen Sie Ihre Downloads<br>
-              2. Tippen Sie auf die APK-Datei<br>
-              3. Bestätigen Sie die Installation<br><br>
-              <small>Die App wird automatisch aktualisiert, alle Daten bleiben erhalten.</small>
-            `);
-            
-            alert(`✅ Download erfolgreich!\n\nDatei: ${filename}\n\nÖffnen Sie Ihre Downloads und tippen Sie auf die APK-Datei, um das Update zu installieren.`);
-            
-          } catch (err) {
-            console.error('[Update] Error saving APK:', err);
-            throw err;
-          }
-        };
-        reader.readAsDataURL(blob);
+        showUpdateStatus('success', `✅ <strong>Download gestartet!</strong><br><br>
+          Die APK wird in Ihren Downloads-Ordner heruntergeladen.<br><br>
+          <strong>Nächste Schritte:</strong><br>
+          1. Warten Sie bis Download abgeschlossen ist (Benachrichtigung)<br>
+          2. Öffnen Sie Ihre Downloads<br>
+          3. Tippen Sie auf "QualiTool_${version}.apk"<br>
+          4. Bestätigen Sie die Installation<br><br>
+          <small>Die App wird automatisch aktualisiert, alle Daten bleiben erhalten.</small>
+        `);
         
-      } else {
-        // WEB BROWSER - Standard download
-        console.log('[Update] Web browser detected, standard download');
+        alert(`✅ Download gestartet!\n\nDatei: QualiTool_${version}.apk\n\nPrüfen Sie Ihre Download-Benachrichtigung oder öffnen Sie den Downloads-Ordner.\n\nTippen Sie auf die APK-Datei um das Update zu installieren.`);
+        
+        return;
+      }
+      
+      // Fallback for web browser (shouldn't happen in Capacitor app)
+      console.log('[Update] Web mode - attempting fetch download');
+      
+      // Download APK with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      
+      const response = await fetch(downloadUrl, { 
+        signal: controller.signal,
+        mode: 'cors'
+      });
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      
+      // WEB BROWSER - Standard download (from fallback above)
+      console.log('[Update] Creating download link for blob');
         
         const link = document.createElement('a');
         link.href = downloadUrl;
