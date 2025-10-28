@@ -6806,16 +6806,6 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       // Continue with dummy response object for compatibility
       const response = { ok: true, status: 200 };
       
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Noch kein Release verfügbar.\n\nDas Repository existiert, aber es wurde noch kein Release erstellt.\n\nBitte warten Sie auf das erste Release oder kontaktieren Sie den Entwickler.');
-        }
-        throw new Error(`GitHub API error: ${response.status}`);
-      }
-      
-      const release = await response.json();
-      console.log('[Update] Latest release:', release.tag_name);
-      
       // Update last check time
       localStorage.setItem('lastUpdateCheck', Date.now().toString());
       document.getElementById('lastUpdateCheck').textContent = new Date().toLocaleString('de-DE');
