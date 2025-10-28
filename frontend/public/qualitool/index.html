@@ -6878,7 +6878,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       // Also show alert for immediate attention
       const doUpdate = confirm(`🎉 Update verfügbar!\n\nNeue Version: ${latestVersion}\nAktuelle Version: ${UPDATE_CONFIG.currentVersion}\n\nMöchten Sie das Update jetzt herunterladen?`);
       if (doUpdate) {
-        downloadAndInstallUpdate(downloadUrl, latestVersion);
+        await downloadAndInstallUpdate(downloadUrl, latestVersion);
       }
     }
   }
