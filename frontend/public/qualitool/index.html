@@ -2353,9 +2353,9 @@
     localStorage.setItem('contacts', JSON.stringify(contacts));
     try { window.contacts = contacts; } catch(_) {}
     try { setLocalContacts(getUserIdFromLocalStorage(), contacts); } catch(_){}
-    try { enqueueContactsSnapshot(); } catch(_) {}
+    try { enqueueFullContactsSnapshot(); } catch(_) {}
     try { rescanAndEnqueueStatusDiffs(); } catch(_) {}
-    try { flushSoon(); } catch(_) {}
+    try { flushQueue(); } catch(_) {}
     // Auto‑Sync nach Änderungen zuverlässig anstoßen (debounced)
     try { scheduleAutoSync('saveContacts'); } catch(_) {}
     
