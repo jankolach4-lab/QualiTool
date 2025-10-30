@@ -2353,9 +2353,9 @@
     localStorage.setItem('contacts', JSON.stringify(contacts));
     try { window.contacts = contacts; } catch(_) {}
     try { setLocalContacts(getUserIdFromLocalStorage(), contacts); } catch(_){}
-    try { enqueueContactsSnapshot(); } catch(_) {}
+    try { enqueueFullContactsSnapshot(); } catch(_) {}
     try { rescanAndEnqueueStatusDiffs(); } catch(_) {}
-    try { flushSoon(); } catch(_) {}
+    try { flushQueue(); } catch(_) {}
     // Auto‑Sync nach Änderungen zuverlässig anstoßen (debounced)
     try { scheduleAutoSync('saveContacts'); } catch(_) {}
     
@@ -6672,7 +6672,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   const UPDATE_CONFIG = {
     githubOwner: 'jankolach4-lab',
     githubRepo: 'QualiTool',
-    currentVersion: '0.2.9', // FIX: Removed @capacitor/browser (caused sync issues)
+    currentVersion: '0.3.0', // CRITICAL: enqueueFullContactsSnapshot + flushQueue (no delay!)
     autoCheckEnabled: localStorage.getItem('autoUpdateCheck') === 'true'
   };
 
