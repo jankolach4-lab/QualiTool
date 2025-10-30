@@ -6672,7 +6672,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   const UPDATE_CONFIG = {
     githubOwner: 'jankolach4-lab',
     githubRepo: 'QualiTool',
-    currentVersion: '0.2.9', // FIX: Removed @capacitor/browser (caused sync issues)
+    currentVersion: '0.3.0', // CRITICAL: enqueueFullContactsSnapshot + flushQueue (no delay!)
     autoCheckEnabled: localStorage.getItem('autoUpdateCheck') === 'true'
   };
 
