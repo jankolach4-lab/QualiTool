@@ -6672,7 +6672,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   const UPDATE_CONFIG = {
     githubOwner: 'jankolach4-lab',
     githubRepo: 'QualiTool',
-    currentVersion: '0.2.8', // CRITICAL FIX: Supabase sync restored (simple code from backup)
+    currentVersion: '0.2.9', // FIX: Removed @capacitor/browser (caused sync issues)
     autoCheckEnabled: localStorage.getItem('autoUpdateCheck') === 'true'
   };
 
