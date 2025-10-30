@@ -2396,14 +2396,27 @@
     }
     
     // SOFORT flushen (nicht flushSoon!)
-    try {
-      if (typeof flushQueue === 'function') {
-        flushQueue();
-        console.log('[SaveContacts] IMMEDIATE flush triggered');
+    // FIX: Retry-Mechanismus falls Funktion noch nicht geladen ist
+    const tryFlushQueue = (attempt = 0) => {
+      try {
+        if (typeof window.flushQueue === 'function') {
+          window.flushQueue();
+          console.log('[SaveContacts] ✅ IMMEDIATE flush triggered');
+          return true;
+        } else if (attempt < 5) {
+          console.warn(`[SaveContacts] ⏳ flushQueue not yet defined, retry ${attempt + 1}/5...`);
+          setTimeout(() => tryFlushQueue(attempt + 1), 250);
+          return false;
+        } else {
+          console.error('[SaveContacts] ❌ flushQueue not available after 5 retries');
+          return false;
+        }
+      } catch(e) {
+        console.error('[SaveContacts] flushQueue failed:', e);
+        return false;
       }
-    } catch(e) {
-      console.error('[SaveContacts] flushQueue failed:', e);
-    }
+    };
+    tryFlushQueue();
     
     // Nach dem Speichern Filter erneut anwenden, um aktive Filter beizubehalten
     setTimeout(() => {
