@@ -2350,77 +2350,15 @@
     }
   }
   function saveContacts() {
-    console.log('[SaveContacts] Saving contacts to localStorage and triggering IMMEDIATE sync');
-    // Speichere in localStorage (WICHTIG für Auto-Sync!)
     localStorage.setItem('contacts', JSON.stringify(contacts));
     try { window.contacts = contacts; } catch(_) {}
     try { setLocalContacts(getUserIdFromLocalStorage(), contacts); } catch(_){}
-    
-    // WICHTIG: enqueueFullContactsSnapshot() statt enqueueContactsSnapshot()
-    // um Hash-Check zu umgehen und IMMER zu synchronisieren
-    // FIX: Retry-Mechanismus falls Funktion noch nicht geladen ist
-    const tryEnqueueSnapshot = (attempt = 0) => {
-      try { 
-        if (typeof window.enqueueFullContactsSnapshot === 'function') {
-          window.enqueueFullContactsSnapshot(); 
-          console.log('[SaveContacts] ✅ Full snapshot enqueued (no hash check)');
-          return true;
-        } else if (attempt < 5) {
-          console.warn(`[SaveContacts] ⏳ enqueueFullContactsSnapshot not yet defined, retry ${attempt + 1}/5...`);
-          setTimeout(() => tryEnqueueSnapshot(attempt + 1), 200);
-          return false;
-        } else {
-          console.error('[SaveContacts] ❌ enqueueFullContactsSnapshot not available after 5 retries');
-          return false;
-        }
-      } catch(e) { 
-        console.error('[SaveContacts] enqueueFullContactsSnapshot failed:', e);
-        return false;
-      }
-    };
-    tryEnqueueSnapshot();
-    
-    // Update map if open
-    if (typeof window.onContactsChanged === 'function') {
-      window.onContactsChanged();
-    }
-    
-    // Status-Diffs auch enqueuen (zusätzlich)
-    try {
-      if (typeof window.rescanAndEnqueueStatusDiffs === 'function') {
-        window.rescanAndEnqueueStatusDiffs();
-        console.log('[SaveContacts] Status diffs enqueued');
-      }
-    } catch(e) {
-      console.error('[SaveContacts] rescanAndEnqueueStatusDiffs failed:', e);
-    }
-    
-    // SOFORT flushen (nicht flushSoon!)
-    // FIX: Retry-Mechanismus falls Funktion noch nicht geladen ist
-    const tryFlushQueue = (attempt = 0) => {
-      try {
-        if (typeof window.flushQueue === 'function') {
-          window.flushQueue();
-          console.log('[SaveContacts] ✅ IMMEDIATE flush triggered');
-          return true;
-        } else if (attempt < 5) {
-          console.warn(`[SaveContacts] ⏳ flushQueue not yet defined, retry ${attempt + 1}/5...`);
-          setTimeout(() => tryFlushQueue(attempt + 1), 250);
-          return false;
-        } else {
-          console.error('[SaveContacts] ❌ flushQueue not available after 5 retries');
-          return false;
-        }
-      } catch(e) {
-        console.error('[SaveContacts] flushQueue failed:', e);
-        return false;
-      }
-    };
-    tryFlushQueue();
-    
-    // Nach dem Speichern Filter erneut anwenden, um aktive Filter beizubehalten
-    setTimeout(() => {
-      const streetFilter = document.getElementById('streetFilter');
+    try { enqueueContactsSnapshot(); } catch(_) {}
+    try { rescanAndEnqueueStatusDiffs(); } catch(_) {}
+    try { flushSoon(); } catch(_) {}
+    // Auto‑Sync nach Änderungen zuverlässig anstoßen (debounced)
+    try { scheduleAutoSync('saveContacts'); } catch(_) {}
+  }
       const houseNumberFilter = document.getElementById('houseNumberFilter');
       const searchInput = document.getElementById('searchInput');
       
