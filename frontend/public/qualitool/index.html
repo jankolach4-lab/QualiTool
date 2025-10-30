@@ -2358,7 +2358,15 @@
     try { flushSoon(); } catch(_) {}
     // Auto‑Sync nach Änderungen zuverlässig anstoßen (debounced)
     try { scheduleAutoSync('saveContacts'); } catch(_) {}
-  }
+    
+    // Update map if open
+    if (typeof window.onContactsChanged === 'function') {
+      window.onContactsChanged();
+    }
+    
+    // Nach dem Speichern Filter erneut anwenden, um aktive Filter beizubehalten
+    setTimeout(() => {
+      const streetFilter = document.getElementById('streetFilter');
       const houseNumberFilter = document.getElementById('houseNumberFilter');
       const searchInput = document.getElementById('searchInput');
       
