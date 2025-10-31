@@ -2975,6 +2975,34 @@
       const option = document.createElement('option');
       option.value = city;
       option.textContent = city;
+
+  function updateExportProjectFilter() {
+    const exportProjectFilter = document.getElementById('exportProjectFilter');
+    if (!exportProjectFilter) return;
+    
+    // Collect unique cities
+    const cities = new Set();
+    contacts.forEach(contact => {
+      if (contact.ort) {
+        cities.add(contact.ort);
+      }
+    });
+    
+    // Clear existing options except first one
+    while (exportProjectFilter.options.length > 1) {
+      exportProjectFilter.remove(1);
+    }
+    
+    // Add sorted cities
+    const citiesList = Array.from(cities).sort();
+    citiesList.forEach(city => {
+      const option = document.createElement('option');
+      option.value = city;
+      option.textContent = city;
+      exportProjectFilter.appendChild(option);
+    });
+  }
+
       dashboardProjectFilter.appendChild(option);
     });
     
