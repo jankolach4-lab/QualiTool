@@ -1532,13 +1532,6 @@
               <button onclick="document.getElementById('excelImport').click()" class="import-btn" style="flex: 1;">Excel importieren</button>
               <input type="file" id="excelImport" style="display: none" accept=".xlsx,.xls" onchange="importFromExcel(this.files[0])">
             </div>
-            <!-- Project filter for export -->
-            <div style="padding: 10px; background: #f3f4f6; border-radius: 6px; margin-bottom: 5px;">
-              <label for="exportProjectFilter" style="font-weight: 600; margin-right: 10px; font-size: 13px;">Projekt für Export:</label>
-              <select id="exportProjectFilter" style="padding: 5px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px;">
-                <option value="all">Alle Projekte</option>
-              </select>
-            </div>
             <div style="display: flex; gap: 10px;">
               <button onclick="exportToExcel()" class="import-btn" style="flex: 1;">Excel exportieren</button>
               <button onclick="exportToCSV()" class="import-btn" style="flex: 1;">CSV exportieren</button>
@@ -1607,13 +1600,6 @@
       <div class="statistics-section">
         <h3 class="statistics-header" onclick="toggleStatistics()">Statusauswertung</h3>
         <div id="statusStats" style="display: none;">
-          <!-- Project filter for Dashboard -->
-          <div style="margin-bottom: 15px; padding: 10px; background: #f3f4f6; border-radius: 8px;">
-            <label for="dashboardProjectFilter" style="font-weight: 600; margin-right: 10px;">Projekt wählen:</label>
-            <select id="dashboardProjectFilter" onchange="updateDashboard()" style="padding: 6px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;">
-              <option value="all">Alle Projekte</option>
-            </select>
-          </div>
           <div class="statistics-grid" id="statsGrid">
             <!-- Statistics will be inserted here dynamically -->
           </div>
@@ -1852,15 +1838,12 @@
         <button onclick="filterByStatus('abschl-anderer-vp')" class="filter-btn">Abschl. anderer VP</button>
       </div>
 
-      <!-- Project/Street/House Number filters -->
+      <!-- Street filter -->
       <div class="street-filter-container">
-        <select id="cityFilter" class="street-filter" onchange="applyFilters()" style="width: 30%;">
-          <option value="all">Alle Orte</option>
-        </select>
-        <select id="streetFilter" class="street-filter" onchange="applyFilters()" style="width: 30%;">
+        <select id="streetFilter" class="street-filter" onchange="applyFilters()">
           <option value="all">Alle Straßen</option>
         </select>
-        <select id="houseNumberFilter" class="street-filter" onchange="applyFilters()" style="width: 30%;">
+        <select id="houseNumberFilter" class="street-filter" onchange="applyFilters()">
           <option value="all">Alle Hausnummern</option>
           <option value="even">Nur gerade</option>
           <option value="odd">Nur ungerade</option>
@@ -2126,7 +2109,6 @@
       contacts = sortContacts(contacts);
       saveContacts();
       updateStreetFilter();
-      updateCityFilter();
       renderContacts();
       alert(`Import erfolgreich: ${rows.length - 1} Adressen importiert`);
     } catch (err) {
@@ -2384,14 +2366,12 @@
     
     // Nach dem Speichern Filter erneut anwenden, um aktive Filter beizubehalten
     setTimeout(() => {
-      const cityFilter = document.getElementById('cityFilter');
       const streetFilter = document.getElementById('streetFilter');
       const houseNumberFilter = document.getElementById('houseNumberFilter');
       const searchInput = document.getElementById('searchInput');
       
       // Prüfe ob irgendein Filter aktiv ist
       const hasActiveFilter = 
-        (cityFilter && cityFilter.value !== 'all') ||
         (streetFilter && streetFilter.value !== 'all') ||
         (houseNumberFilter && houseNumberFilter.value !== 'all') ||
         (searchInput && searchInput.value.trim() !== '') ||
@@ -2403,57 +2383,6 @@
       }
     }, 50);
   }
-  
-  function updateCityFilter() {
-    const cityFilter = document.getElementById('cityFilter');
-    if (!cityFilter) {
-      console.warn('[updateCityFilter] City filter element not found');
-      return;
-    }
-    
-    console.log('[CityFilter] Updating with', contacts.length, 'contacts');
-    
-    // Save current filter value to restore after update
-    const currentFilterValue = localStorage.getItem('selectedCity') || cityFilter.value;
-    console.log('[CityFilter] Current filter:', currentFilterValue || 'Alle Orte');
-    
-    const cities = new Set();
-    contacts.forEach(contact => {
-      if (contact.ort) {
-        cities.add(contact.ort);
-      }
-    });
-    
-    // Clear existing options except first one
-    while (cityFilter.options.length > 1) {
-      cityFilter.remove(1);
-    }
-    
-    // Add sorted cities
-    const citiesList = Array.from(cities).sort();
-    console.log('[CityFilter] Found', citiesList.length, 'unique cities');
-    
-    citiesList.forEach(city => {
-      const option = document.createElement('option');
-      option.value = city;
-      option.textContent = city;
-      cityFilter.appendChild(option);
-    });
-    
-    // Restore previous filter value if it still exists in the new list
-    if (currentFilterValue && currentFilterValue !== 'all' && citiesList.includes(currentFilterValue)) {
-      cityFilter.value = currentFilterValue;
-      console.log('[CityFilter] ✓ Restored filter:', currentFilterValue);
-    } else {
-      cityFilter.value = 'all';
-      if (currentFilterValue && currentFilterValue !== 'all') {
-        console.log('[CityFilter] ⚠ Previous filter not found, reset to "Alle Orte"');
-      }
-    }
-    
-    console.log('[CityFilter] ✓ Updated successfully');
-  }
-
   function updateStreetFilter() {
     const streetFilter = document.getElementById('streetFilter');
     if (!streetFilter) {
@@ -2711,8 +2640,6 @@
       }
       contactList.appendChild(contactCard);
     });
-    if (typeof updateDashboardProjectFilter === 'function') updateDashboardProjectFilter();
-    if (typeof updateExportProjectFilter === 'function') updateExportProjectFilter();
     updateStatistics();
   }
 
@@ -2776,15 +2703,8 @@
 
   function applyFilters() {
     const searchTerm = (document.getElementById('searchInput').value || '').toLowerCase();
-    const selectedCity = document.getElementById('cityFilter').value;
     const selectedStreet = document.getElementById('streetFilter').value;
     const selectedHouseNumber = document.getElementById('houseNumberFilter').value;
-    
-    // Save selected city to localStorage for persistence
-    if (selectedCity) {
-      localStorage.setItem('selectedCity', selectedCity);
-    }
-    
     const filteredContacts = contacts.filter(contact => {
       if (!contact) return false;
       const searchMatch = (contact.plz?.toString() || '').includes(searchTerm) || 
@@ -2801,7 +2721,6 @@
                          currentFilter !== 'nicht-vermarktbar' && 
                          contact.residents?.some(resident => getHighestPriorityStatus(resident) === currentFilter) || 
                          false;
-      const cityMatch = selectedCity === 'all' || contact.ort === selectedCity;
       const streetMatch = selectedStreet === 'all' || contact.strasse === selectedStreet;
       
       // Hausnummer-Filter: gerade/ungerade
@@ -2816,10 +2735,9 @@
         }
       }
       
-      return searchMatch && statusMatch && cityMatch && streetMatch && houseNumberMatch;
+      return searchMatch && statusMatch && streetMatch && houseNumberMatch;
     });
     renderContacts(filteredContacts);
-    document.getElementById('cityFilter').value = selectedCity;
     document.getElementById('streetFilter').value = selectedStreet;
     document.getElementById('houseNumberFilter').value = selectedHouseNumber;
   }
@@ -2889,9 +2807,6 @@
   }
 
   function getDayStats(date) {
-    const dashboardProjectFilter = document.getElementById('dashboardProjectFilter');
-    const selectedProject = dashboardProjectFilter ? dashboardProjectFilter.value : 'all';
-    
     let startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     let endOfDay = new Date(date);
@@ -2899,11 +2814,6 @@
     let total = 0;
     let completions = 0;
     contacts.forEach(contact => {
-      // Apply project filter
-      if (selectedProject !== 'all' && contact.ort !== selectedProject) {
-        return;
-      }
-      
       if (contact.residents) {
         contact.residents.forEach(resident => {
           if (resident.statusHistory) {
@@ -2925,96 +2835,10 @@
   }
 
   function getMonthStats(year, month) {
-    const dashboardProjectFilter = document.getElementById('dashboardProjectFilter');
-    const selectedProject = dashboardProjectFilter ? dashboardProjectFilter.value : 'all';
-    
     let totalCompletions = 0;
     contacts.forEach(contact => {
-      // Apply project filter
-      if (selectedProject !== 'all' && contact.ort !== selectedProject) {
-        return;
-      }
-      
       if (contact.residents) {
         contact.residents.forEach(resident => {
-
-  function updateDashboard() {
-    // Save selected project to localStorage
-    const dashboardProjectFilter = document.getElementById('dashboardProjectFilter');
-    if (dashboardProjectFilter) {
-      localStorage.setItem('selectedDashboardProject', dashboardProjectFilter.value);
-    }
-    
-    // Update both statistics and calendar
-    updateStatistics();
-    renderCalendar();
-  }
-  
-  function updateDashboardProjectFilter() {
-    const dashboardProjectFilter = document.getElementById('dashboardProjectFilter');
-    if (!dashboardProjectFilter) return;
-    
-    // Get saved selection
-    const savedProject = localStorage.getItem('selectedDashboardProject') || 'all';
-    
-    // Collect unique cities
-    const cities = new Set();
-    contacts.forEach(contact => {
-      if (contact.ort) {
-        cities.add(contact.ort);
-      }
-    });
-    
-    // Clear existing options except first one
-    while (dashboardProjectFilter.options.length > 1) {
-      dashboardProjectFilter.remove(1);
-    }
-    
-    // Add sorted cities
-    const citiesList = Array.from(cities).sort();
-    citiesList.forEach(city => {
-      const option = document.createElement('option');
-      option.value = city;
-      option.textContent = city;
-
-  function updateExportProjectFilter() {
-    const exportProjectFilter = document.getElementById('exportProjectFilter');
-    if (!exportProjectFilter) return;
-    
-    // Collect unique cities
-    const cities = new Set();
-    contacts.forEach(contact => {
-      if (contact.ort) {
-        cities.add(contact.ort);
-      }
-    });
-    
-    // Clear existing options except first one
-    while (exportProjectFilter.options.length > 1) {
-      exportProjectFilter.remove(1);
-    }
-    
-    // Add sorted cities
-    const citiesList = Array.from(cities).sort();
-    citiesList.forEach(city => {
-      const option = document.createElement('option');
-      option.value = city;
-      option.textContent = city;
-      exportProjectFilter.appendChild(option);
-    });
-  }
-
-      dashboardProjectFilter.appendChild(option);
-    });
-    
-    // Restore saved selection
-    if (savedProject && citiesList.includes(savedProject)) {
-      dashboardProjectFilter.value = savedProject;
-    } else {
-      dashboardProjectFilter.value = 'all';
-    }
-  }
-
           if (resident.statusHistory) {
             resident.statusHistory.forEach(entry => {
               const entryDate = new Date(entry.date);
@@ -3469,7 +3293,6 @@
       // Filter beibehalten nach Speichern
       renderContacts();
       updateStreetFilter();
-      updateCityFilter();
     } else {
       alert('Keine Adressen mit dieser PLZ gefunden');
     }
@@ -3514,7 +3337,6 @@
       // Filter beibehalten nach Speichern
       renderContacts();
       updateStreetFilter();
-      updateCityFilter();
     } else {
       alert('Keine Adressen in den ausgewählten Straßen gefunden');
     }
@@ -3633,23 +3455,9 @@
   }
 
   async function exportToCSV() {
-    // Get selected project from export filter
-    const exportProjectFilter = document.getElementById('exportProjectFilter');
-    const selectedProject = exportProjectFilter ? exportProjectFilter.value : 'all';
-    
-    // Filter contacts by selected project
-    const filteredContacts = selectedProject === 'all' 
-      ? contacts 
-      : contacts.filter(contact => contact.ort === selectedProject);
-    
-    if (filteredContacts.length === 0) {
-      alert('Keine Kontakte für das ausgewählte Projekt gefunden.');
-      return;
-    }
-    
     const headers = ['PLZ', 'Ort', 'Strasse', 'Nummer', 'Zusatz', 'WE', 'BewohnerName', 'BewohnerTelefon', 'Status', 'Notizen', 'IstMieter', 'StatusVerlauf'];
     let csvContent = headers.join(',') + '\n';
-    filteredContacts.forEach(contact => {
+    contacts.forEach(contact => {
       if (!contact.residents || contact.residents.length === 0) {
         const row = [contact.plz || '', contact.ort || '', contact.strasse || '', contact.nummer || '', contact.zusatz || '', contact.we || '', '', '', '', '', '', ''].map(field => `"${(field + '').replace(/"/g, '""')}"`);
         csvContent += row.join(',') + '\n';
@@ -3661,7 +3469,7 @@
       }
     });
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const place = selectedProject !== 'all' ? String(selectedProject).replace(/\s+/g,'-').toLowerCase() : ((filteredContacts && filteredContacts[0] && filteredContacts[0].ort) ? String(filteredContacts[0].ort).replace(/\s+/g,'-').toLowerCase() : 'alle-orte');
+    const place = (contacts && contacts[0] && contacts[0].ort) ? String(contacts[0].ort).replace(/\s+/g,'-').toLowerCase() : 'ort';
     const d = new Date();
     const pad = n => (n<10?('0'+n):n);
     const filename = `qualifizierungen_${place}_${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}.csv`;
@@ -4139,7 +3947,6 @@
 
         saveContacts();
         updateStreetFilter();
-      updateCityFilter();
         renderContacts();
 
         alert(`Import erfolgreich: ${importedContacts.length} Adressen ${shouldAppend ? 'hinzugefügt' : 'importiert'}`);
@@ -4160,23 +3967,8 @@
 
   async function exportToExcel() {
     if (!(await ensureXLSXReady())) return;
-    
-    // Get selected project from export filter
-    const exportProjectFilter = document.getElementById('exportProjectFilter');
-    const selectedProject = exportProjectFilter ? exportProjectFilter.value : 'all';
-    
-    // Filter contacts by selected project
-    const filteredContacts = selectedProject === 'all' 
-      ? contacts 
-      : contacts.filter(contact => contact.ort === selectedProject);
-    
-    if (filteredContacts.length === 0) {
-      alert('Keine Kontakte für das ausgewählte Projekt gefunden.');
-      return;
-    }
-    
     // Create array of objects in the format needed for XLSX
-    const exportData = filteredContacts.map(contact => {
+    const exportData = contacts.map(contact => {
       // For contacts without residents, create one row with basic info
       if (!contact.residents || contact.residents.length === 0) {
         return {
@@ -4513,7 +4305,6 @@
           console.log('[Init] Loaded', contacts.length, 'contacts from localStorage');
           renderContacts();
           updateStreetFilter();
-      updateCityFilter();
         }
       } catch(_e) { 
         localStorage.setItem('contacts','[]'); 
@@ -4551,7 +4342,6 @@
       // Verzögerter Aufruf um sicherzustellen, dass DOM vollständig geladen ist
       setTimeout(() => {
         updateStreetFilter();
-      updateCityFilter();
       }, 100);
 
       // saveContacts erweitern, ohne UI zu ändern
@@ -4569,7 +4359,6 @@
           localStorage.setItem('contacts', JSON.stringify(cloud));
           renderContacts();
           updateStreetFilter();
-      updateCityFilter();
         }
       } catch(e){ console.warn('Initiale Cloud-Sync Warnung:', e.message||e); }
 
@@ -4588,10 +4377,6 @@
   function updateStatistics() {
     const statsGrid = document.getElementById('statsGrid');
     if (!statsGrid) return;
-
-    // Get selected project from dashboard filter
-    const dashboardProjectFilter = document.getElementById('dashboardProjectFilter');
-    const selectedProject = dashboardProjectFilter ? dashboardProjectFilter.value : 'all';
 
     // Reset statistics grid
     statsGrid.innerHTML = '';
@@ -4616,13 +4401,8 @@
     let totalStatusChanges = 0;
     let totalCompletions = 0;
 
-    // Count statuses and total status changes (with project filter)
+    // Count statuses and total status changes
     contacts.forEach(contact => {
-      // Apply project filter
-      if (selectedProject !== 'all' && contact.ort !== selectedProject) {
-        return; // Skip this contact
-      }
-      
       const weCount = parseInt(contact.we) || 0;
       totalUnits += weCount;
     
