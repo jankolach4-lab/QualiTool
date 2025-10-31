@@ -2880,6 +2880,9 @@
   }
 
   function getDayStats(date) {
+    const dashboardProjectFilter = document.getElementById('dashboardProjectFilter');
+    const selectedProject = dashboardProjectFilter ? dashboardProjectFilter.value : 'all';
+    
     let startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     let endOfDay = new Date(date);
@@ -2887,6 +2890,11 @@
     let total = 0;
     let completions = 0;
     contacts.forEach(contact => {
+      // Apply project filter
+      if (selectedProject !== 'all' && contact.ort !== selectedProject) {
+        return;
+      }
+      
       if (contact.residents) {
         contact.residents.forEach(resident => {
           if (resident.statusHistory) {
@@ -2908,8 +2916,16 @@
   }
 
   function getMonthStats(year, month) {
+    const dashboardProjectFilter = document.getElementById('dashboardProjectFilter');
+    const selectedProject = dashboardProjectFilter ? dashboardProjectFilter.value : 'all';
+    
     let totalCompletions = 0;
     contacts.forEach(contact => {
+      // Apply project filter
+      if (selectedProject !== 'all' && contact.ort !== selectedProject) {
+        return;
+      }
+      
       if (contact.residents) {
         contact.residents.forEach(resident => {
           if (resident.statusHistory) {
