@@ -2711,8 +2711,8 @@
       }
       contactList.appendChild(contactCard);
     });
-    updateDashboardProjectFilter();
-    updateExportProjectFilter();
+    if (typeof updateDashboardProjectFilter === 'function') updateDashboardProjectFilter();
+    if (typeof updateExportProjectFilter === 'function') updateExportProjectFilter();
     updateStatistics();
   }
 
