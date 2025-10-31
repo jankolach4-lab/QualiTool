@@ -2928,6 +2928,56 @@
       
       if (contact.residents) {
         contact.residents.forEach(resident => {
+
+  function updateDashboard() {
+    // Save selected project to localStorage
+    const dashboardProjectFilter = document.getElementById('dashboardProjectFilter');
+    if (dashboardProjectFilter) {
+      localStorage.setItem('selectedDashboardProject', dashboardProjectFilter.value);
+    }
+    
+    // Update both statistics and calendar
+    updateStatistics();
+    renderCalendar();
+  }
+  
+  function updateDashboardProjectFilter() {
+    const dashboardProjectFilter = document.getElementById('dashboardProjectFilter');
+    if (!dashboardProjectFilter) return;
+    
+    // Get saved selection
+    const savedProject = localStorage.getItem('selectedDashboardProject') || 'all';
+    
+    // Collect unique cities
+    const cities = new Set();
+    contacts.forEach(contact => {
+      if (contact.ort) {
+        cities.add(contact.ort);
+      }
+    });
+    
+    // Clear existing options except first one
+    while (dashboardProjectFilter.options.length > 1) {
+      dashboardProjectFilter.remove(1);
+    }
+    
+    // Add sorted cities
+    const citiesList = Array.from(cities).sort();
+    citiesList.forEach(city => {
+      const option = document.createElement('option');
+      option.value = city;
+      option.textContent = city;
+      dashboardProjectFilter.appendChild(option);
+    });
+    
+    // Restore saved selection
+    if (savedProject && citiesList.includes(savedProject)) {
+      dashboardProjectFilter.value = savedProject;
+    } else {
+      dashboardProjectFilter.value = 'all';
+    }
+  }
+
           if (resident.statusHistory) {
             resident.statusHistory.forEach(entry => {
               const entryDate = new Date(entry.date);
