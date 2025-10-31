@@ -1600,6 +1600,13 @@
       <div class="statistics-section">
         <h3 class="statistics-header" onclick="toggleStatistics()">Statusauswertung</h3>
         <div id="statusStats" style="display: none;">
+          <!-- Project filter for Dashboard -->
+          <div style="margin-bottom: 15px; padding: 10px; background: #f3f4f6; border-radius: 8px;">
+            <label for="dashboardProjectFilter" style="font-weight: 600; margin-right: 10px;">Projekt wählen:</label>
+            <select id="dashboardProjectFilter" onchange="updateDashboard()" style="padding: 6px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;">
+              <option value="all">Alle Projekte</option>
+            </select>
+          </div>
           <div class="statistics-grid" id="statsGrid">
             <!-- Statistics will be inserted here dynamically -->
           </div>
