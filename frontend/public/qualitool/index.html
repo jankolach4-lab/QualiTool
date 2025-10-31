@@ -2386,6 +2386,57 @@
       }
     }, 50);
   }
+  
+  function updateCityFilter() {
+    const cityFilter = document.getElementById('cityFilter');
+    if (!cityFilter) {
+      console.warn('[updateCityFilter] City filter element not found');
+      return;
+    }
+    
+    console.log('[CityFilter] Updating with', contacts.length, 'contacts');
+    
+    // Save current filter value to restore after update
+    const currentFilterValue = localStorage.getItem('selectedCity') || cityFilter.value;
+    console.log('[CityFilter] Current filter:', currentFilterValue || 'Alle Orte');
+    
+    const cities = new Set();
+    contacts.forEach(contact => {
+      if (contact.ort) {
+        cities.add(contact.ort);
+      }
+    });
+    
+    // Clear existing options except first one
+    while (cityFilter.options.length > 1) {
+      cityFilter.remove(1);
+    }
+    
+    // Add sorted cities
+    const citiesList = Array.from(cities).sort();
+    console.log('[CityFilter] Found', citiesList.length, 'unique cities');
+    
+    citiesList.forEach(city => {
+      const option = document.createElement('option');
+      option.value = city;
+      option.textContent = city;
+      cityFilter.appendChild(option);
+    });
+    
+    // Restore previous filter value if it still exists in the new list
+    if (currentFilterValue && currentFilterValue !== 'all' && citiesList.includes(currentFilterValue)) {
+      cityFilter.value = currentFilterValue;
+      console.log('[CityFilter] ✓ Restored filter:', currentFilterValue);
+    } else {
+      cityFilter.value = 'all';
+      if (currentFilterValue && currentFilterValue !== 'all') {
+        console.log('[CityFilter] ⚠ Previous filter not found, reset to "Alle Orte"');
+      }
+    }
+    
+    console.log('[CityFilter] ✓ Updated successfully');
+  }
+
   function updateStreetFilter() {
     const streetFilter = document.getElementById('streetFilter');
     if (!streetFilter) {
