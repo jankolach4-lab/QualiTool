@@ -2370,12 +2370,14 @@
     
     // Nach dem Speichern Filter erneut anwenden, um aktive Filter beizubehalten
     setTimeout(() => {
+      const cityFilter = document.getElementById('cityFilter');
       const streetFilter = document.getElementById('streetFilter');
       const houseNumberFilter = document.getElementById('houseNumberFilter');
       const searchInput = document.getElementById('searchInput');
       
       // Prüfe ob irgendein Filter aktiv ist
       const hasActiveFilter = 
+        (cityFilter && cityFilter.value !== 'all') ||
         (streetFilter && streetFilter.value !== 'all') ||
         (houseNumberFilter && houseNumberFilter.value !== 'all') ||
         (searchInput && searchInput.value.trim() !== '') ||
