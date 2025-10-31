@@ -1838,12 +1838,15 @@
         <button onclick="filterByStatus('abschl-anderer-vp')" class="filter-btn">Abschl. anderer VP</button>
       </div>
 
-      <!-- Street filter -->
+      <!-- Project/Street/House Number filters -->
       <div class="street-filter-container">
-        <select id="streetFilter" class="street-filter" onchange="applyFilters()">
+        <select id="cityFilter" class="street-filter" onchange="applyFilters()" style="width: 30%;">
+          <option value="all">Alle Orte</option>
+        </select>
+        <select id="streetFilter" class="street-filter" onchange="applyFilters()" style="width: 30%;">
           <option value="all">Alle Straßen</option>
         </select>
-        <select id="houseNumberFilter" class="street-filter" onchange="applyFilters()">
+        <select id="houseNumberFilter" class="street-filter" onchange="applyFilters()" style="width: 30%;">
           <option value="all">Alle Hausnummern</option>
           <option value="even">Nur gerade</option>
           <option value="odd">Nur ungerade</option>
