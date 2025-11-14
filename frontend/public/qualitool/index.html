@@ -4869,6 +4869,29 @@
   function enqueueFullContactsSnapshot(){
     try{
       const normalized = normalizeContacts(readLocalContactsRaw());
+      
+      // 🚨 CRITICAL GUARD: NEVER send empty array to Supabase if data exists
+      // This prevents catastrophic data loss from race conditions
+      if (!normalized || normalized.length === 0) {
+        console.warn('[enqueueFullContactsSnapshot] ⚠️ BLOCKED: Attempted to sync empty array. This prevents data loss.');
+        console.warn('[enqueueFullContactsSnapshot] Local contacts:', normalized?.length || 0);
+        console.warn('[enqueueFullContactsSnapshot] Global contacts:', window.contacts?.length || 0);
+        
+        // If global contacts exists and has data, use it instead
+        if (window.contacts && Array.isArray(window.contacts) && window.contacts.length > 0) {
+          console.warn('[enqueueFullContactsSnapshot] ✅ Using global contacts array instead:', window.contacts.length);
+          const globalNormalized = normalizeContacts(window.contacts);
+          enqueue({ type: 'contacts', data: globalNormalized, ts: Date.now(), force: true });
+          try { localStorage.setItem(LAST_HASH_KEY, stableStringify(globalNormalized)); } catch(_){ }
+          return;
+        }
+        
+        // Otherwise, do NOT sync - better to skip than to delete all data
+        console.error('[enqueueFullContactsSnapshot] ❌ SYNC ABORTED: No valid data to sync. Skipping to prevent data loss.');
+        return;
+      }
+      
+      console.log('[enqueueFullContactsSnapshot] ✅ Syncing', normalized.length, 'contacts');
       enqueue({ type: 'contacts', data: normalized, ts: Date.now(), force: true });
       try { localStorage.setItem(LAST_HASH_KEY, stableStringify(normalized)); } catch(_){ }
     }catch(e){ console.warn('Full-Snapshot fehlgeschlagen:', e); }
