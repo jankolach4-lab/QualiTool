@@ -4910,6 +4910,37 @@ async function manualDirectSyncNow(){
     if (!user) throw new Error('Keine Session vorhanden');
 
     const snapshot = normalizeContacts(readLocalContactsRaw());
+    
+    // 🚨 CRITICAL GUARD: NEVER send empty array to Supabase
+    if (!snapshot || snapshot.length === 0) {
+      console.warn('[manualDirectSyncNow] ⚠️ BLOCKED: Attempted to sync empty array');
+      
+      // Try using global contacts
+      if (window.contacts && Array.isArray(window.contacts) && window.contacts.length > 0) {
+        console.warn('[manualDirectSyncNow] ✅ Using global contacts array:', window.contacts.length);
+        const globalSnapshot = normalizeContacts(window.contacts);
+        localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: globalSnapshot.length, source: 'global' }));
+        
+        // Continue with global snapshot
+        try{
+          const { error } = await client.rpc('fn_public_upsert_user_contacts', { p_user_id: user.id, p_contacts: globalSnapshot });
+          if (error) throw error;
+        }catch(e1){
+          localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'rpc_upsert_failed', err: String(e1 && e1.message || e1) }));
+          const { error: e2 } = await client.from('user_contacts').upsert({ user_id: user.id, contacts: globalSnapshot }, { onConflict: 'user_id' });
+          if (e2) throw e2;
+        }
+        localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'upsert_ok', count: globalSnapshot.length }));
+        return;
+      }
+      
+      // No valid data - abort
+      const errorMsg = 'No valid contacts to sync - aborting to prevent data loss';
+      console.error('[manualDirectSyncNow] ❌', errorMsg);
+      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'aborted_empty', error: errorMsg }));
+      throw new Error(errorMsg);
+    }
+    
     localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: snapshot.length }));
 
     // Primär: RPC mit p_user_id
