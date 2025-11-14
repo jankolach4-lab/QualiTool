@@ -6726,7 +6726,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   const UPDATE_CONFIG = {
     githubOwner: 'jankolach4-lab',
     githubRepo: 'QualiTool',
-    currentVersion: '0.3.0', // CRITICAL: enqueueFullContactsSnapshot + flushQueue (no delay!)
+    currentVersion: '0.3.1', // CRITICAL FIX: Empty array guard prevents data loss
     autoCheckEnabled: localStorage.getItem('autoUpdateCheck') === 'true'
   };
 
