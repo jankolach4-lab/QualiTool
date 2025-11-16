@@ -4226,8 +4226,23 @@
 
   async function exportToExcel() {
     if (!(await ensureXLSXReady())) return;
+    
+    // Get selected project from export filter
+    const exportFilter = document.getElementById('exportProjectFilter');
+    const selectedProject = exportFilter ? exportFilter.value : 'all';
+    
+    // Filter contacts by project
+    const filteredContacts = selectedProject === 'all' 
+      ? contacts 
+      : contacts.filter(contact => contact.ort === selectedProject);
+    
+    if (filteredContacts.length === 0) {
+      alert('Keine Kontakte für das ausgewählte Projekt gefunden.');
+      return;
+    }
+    
     // Create array of objects in the format needed for XLSX
-    const exportData = contacts.map(contact => {
+    const exportData = filteredContacts.map(contact => {
       // For contacts without residents, create one row with basic info
       if (!contact.residents || contact.residents.length === 0) {
         return {
