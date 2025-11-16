@@ -4839,24 +4839,9 @@
     const statsDiv = document.getElementById('statusStats');
     statsDiv.style.display = statsDiv.style.display === 'none' ? 'block' : 'none';
     if (statsDiv.style.display === 'block') {
-      // Call update functions when opening
       setTimeout(() => {
-        const filter = document.getElementById('dashboardProjectFilter');
-        
-        // Check if function exists
-        const funcExists = typeof updateDashboardProjectFilter === 'function';
-        const funcInWindow = typeof window.updateDashboardProjectFilter === 'function';
-        
-        alert('Dashboard Filter Element: ' + (filter ? 'JA ('+filter.options.length+' Options)' : 'NEIN') + '\n' +
-              'Funktion existiert: ' + funcExists + '\n' +
-              'In window: ' + funcInWindow);
-        
-        if (funcExists) {
-          updateDashboardProjectFilter();
-        } else if (funcInWindow) {
-          window.updateDashboardProjectFilter();
-        }
-        
+        // Use _NEW functions
+        if (window.updateDashboardProjectFilter_NEW) window.updateDashboardProjectFilter_NEW();
         updateStatistics();
       }, 100);
     }
