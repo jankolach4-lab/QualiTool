@@ -2510,57 +2510,35 @@
     
 
   // ========== DASHBOARD PROJECT FILTER ==========
-  let cachedCities = []; // Cache cities for lazy loading
-  
   function updateDashboardProjectFilter() {
     const filter = document.getElementById('dashboardProjectFilter');
-    if (!filter) {
-      console.warn('[DashboardFilter] Element not found - will populate when section opens');
-      return;
-    }
-    
-    console.log('[DashboardFilter] Updating with', contacts.length, 'contacts');
+    if (!filter) return; // Element nicht da = Sektion noch nicht geöffnet
     
     const savedProject = localStorage.getItem('selectedDashboardProject') || 'all';
     
-    // Use cached cities or collect from contacts
-    if (cachedCities.length === 0) {
-      const cities = new Set();
-      contacts.forEach(contact => {
-        if (contact.ort) cities.add(contact.ort);
-      });
-      cachedCities = Array.from(cities).sort();
-    }
-    
-    console.log('[DashboardFilter] Found', cachedCities.length, 'unique cities:', cachedCities);
+    // Sammle Städte DIREKT (wie beim CityFilter)
+    const cities = new Set();
+    contacts.forEach(contact => {
+      if (contact.ort) cities.add(contact.ort);
+    });
     
     // Clear and rebuild
     while (filter.options.length > 1) filter.remove(1);
     
-    cachedCities.forEach(city => {
+    const citiesList = Array.from(cities).sort();
+    citiesList.forEach(city => {
       const option = document.createElement('option');
       option.value = city;
       option.textContent = city;
       filter.appendChild(option);
     });
     
-    console.log('[DashboardFilter] Added', cachedCities.length, 'options to dropdown');
-    
     // Restore selection
-    if (savedProject && cachedCities.includes(savedProject)) {
+    if (savedProject && citiesList.includes(savedProject)) {
       filter.value = savedProject;
     } else {
       filter.value = 'all';
     }
-  }
-  
-  function refreshCachedCities() {
-    const cities = new Set();
-    contacts.forEach(contact => {
-      if (contact.ort) cities.add(contact.ort);
-    });
-    cachedCities = Array.from(cities).sort();
-    console.log('[CityCache] Refreshed:', cachedCities.length, 'cities');
   }
   
   function onDashboardProjectChange() {
