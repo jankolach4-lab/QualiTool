@@ -2737,12 +2737,15 @@
                          (contact.we?.toString()?.toLowerCase() || '').includes(searchTerm) || 
                          contact.residents?.some(resident => resident?.name?.toLowerCase()?.includes(searchTerm)) || 
                          false;
-      const statusMatch = currentFilter === 'all' || 
-                         currentFilter !== 'offen' && 
-                         currentFilter !== 'blacklist' && 
-                         currentFilter !== 'nicht-vermarktbar' && 
-                         contact.residents?.some(resident => getHighestPriorityStatus(resident) === currentFilter) || 
+      
+      // Multi-status filter logic
+      const statusMatch = activeFilters.includes('all') || 
+                         contact.residents?.some(resident => {
+                           const residentStatus = getHighestPriorityStatus(resident);
+                           return activeFilters.includes(residentStatus);
+                         }) ||
                          false;
+      
       const streetMatch = selectedStreet === 'all' || contact.strasse === selectedStreet;
       
       // Hausnummer-Filter: gerade/ungerade
