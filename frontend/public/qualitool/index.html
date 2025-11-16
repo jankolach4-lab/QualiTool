@@ -1535,7 +1535,7 @@
             <!-- Project filter for export -->
             <div style="padding: 8px; background: #f3f4f6; border-radius: 6px;">
               <label for="exportProjectFilter" style="font-weight: 600; margin-right: 10px; font-size: 13px;">Projekt für Export:</label>
-              <select id="exportProjectFilter" style="padding: 5px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; min-width: 180px;">
+              <select id="exportProjectFilter" onchange="onExportProjectChange()" style="padding: 5px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; min-width: 180px;">
                 <option value="all">Alle Projekte</option>
               </select>
             </div>
