@@ -4791,6 +4791,50 @@
     statsGrid.appendChild(statusChangesCard);
   }
 
+
+  // ========== DASHBOARD & EXPORT FILTERS (moved here to ensure they load) ==========
+  window.updateDashboardProjectFilter_NEW = function() {
+    const filter = document.getElementById('dashboardProjectFilter');
+    if (!filter) return;
+    
+    const cities = new Set();
+    contacts.forEach(contact => {
+      if (contact.ort) cities.add(contact.ort);
+    });
+    
+    while (filter.options.length > 1) filter.remove(1);
+    
+    Array.from(cities).sort().forEach(city => {
+      const option = document.createElement('option');
+      option.value = city;
+      option.textContent = city;
+      filter.appendChild(option);
+    });
+    
+    const saved = localStorage.getItem('selectedDashboardProject') || 'all';
+    if (Array.from(cities).includes(saved)) filter.value = saved;
+  };
+  
+  window.updateExportProjectFilter_NEW = function() {
+    const filter = document.getElementById('exportProjectFilter');
+    if (!filter) return;
+    
+    const cities = new Set();
+    contacts.forEach(contact => {
+      if (contact.ort) cities.add(contact.ort);
+    });
+    
+    while (filter.options.length > 1) filter.remove(1);
+    
+    Array.from(cities).sort().forEach(city => {
+      const option = document.createElement('option');
+      option.value = city;
+      option.textContent = city;
+      filter.appendChild(option);
+    });
+  };
+  // ========== END FILTERS ==========
+
   function toggleStatistics() {
     const statsDiv = document.getElementById('statusStats');
     statsDiv.style.display = statsDiv.style.display === 'none' ? 'block' : 'none';
