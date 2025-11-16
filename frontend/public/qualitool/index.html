@@ -2211,11 +2211,10 @@
     if (btns) btns.style.display = willExpand ? 'flex' : 'none';
     
     // Update export filter when section opens
-    if (willExpand && typeof updateExportProjectFilter === 'function') {
+    if (willExpand) {
       setTimeout(() => {
-        console.log('[toggleImportSection] Calling updateExportProjectFilter, cache:', cachedCities);
-        updateExportProjectFilter();
-      }, 50);
+        if (typeof updateExportProjectFilter === 'function') updateExportProjectFilter();
+      }, 100);
     }
   }
   function toggleEntrySection() {
