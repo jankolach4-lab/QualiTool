@@ -1,75 +1,117 @@
 <analysis>
-The AI engineer's work primarily involved enhancing a legacy React app (QualiTool) and a Next.js Admin Dashboard. The trajectory started with bug fixes in QualiTool, including Supabase synchronization, UI/UX improvements (address list, street filtering), and the persistent street filter bug in Android. Significant features added to QualiTool included a combined Dashboard with statistics and bar charts, daily activity summaries, and a real-time, color-coded map view with geocoding and user location tracking, adjusted for Capacitor. The engineer also addressed an Admin Dashboard WE-count inaccuracy by correcting SQL functions.
+The AI engineer's work focused on two primary, and often conflicting, streams: bug fixing and feature development on the legacy QualiTool Android app. The trajectory began with an attempt to fix a failed to fetch error in the in-app APK update mechanism. This led to a series of cascading issues, including build failures (wrong Java version in GitHub Actions) and the discovery that dependency changes () were the root cause of a separate, critical Supabase sync failure.
 
-A major focus shifted to implementing an in-app update mechanism for the Android APK. This involved creating a settings page, integrating with GitHub Releases, and extensive debugging of failed to fetch errors during update checks and downloads, primarily due to GitHub API access and Android WebView limitations. A critical issue was the Paket steht in Konflikt error during updates, identified as a signing-key problem, leading to a detailed manual update guide.
+A significant portion of the work involved deep, iterative debugging of this Supabase sync issue. The user reported that data was being wiped from the database. The engineer went through multiple hypotheses: timing issues, incorrect function calls, and dependency conflicts. The final, correct diagnosis was that the sync logic lacked a guard to prevent it from sending an empty contact array to Supabase, which would overwrite valid data. This critical bug was fixed in version 0.3.1.
 
-The engineer also implemented map enhancements: adding a light-red marker for Kein Eintritt persönlich status and a polygon drawing tool to add addresses to the list. This polygon feature required debugging issues like map marker display for newly added addresses and street filter inconsistencies. The current challenge is the persistent failed to fetch error during APK updates, with the engineer attempting to completely remove internal download logic, relying on external browser handling.
+The most recent work involves implementing a major new feature: multi-project (multi-city) filtering. This includes a cascading city/street filter, a multi-select status filter, and project-specific filters for the dashboard and data exports. While the contact list filters are now working, the dashboard and export filters suffer from a UI timing issue (they only populate after being clicked twice) and a logic issue (the dashboard filter doesn't update the stats).
+
+The user's primary language is German (Deutsch). The next agent must respond in German.
 </analysis>
-
 <product_requirements>
-The Qualifizierungstool provides real-time analytics for projects and VPs, displaying total projects, VPs, and residential units. It features a project table with city, WE, VP count, completions, status, and a map button. Project Analytics shows daily completions, status changes, and breakdowns, with a Project Projection Tool. The legacy QualiTool needs stable Supabase sync, functional sidebar, and Excel Export.
+The QualiTool is a mobile-first application for field agents to manage and track interactions with contacts (addresses) across different projects (cities). It provides real-time data synchronization with a Supabase backend.
 
-**Implemented Features (this trajectory):**
-- **QualiTool UI/UX:** Address list layout improvements, street filter (even/odd), status priority (Kein Eintritt persönlich, Kein Interesse), CSV export for WE-Korrekturen, new Dashboard section (statistics, calendar), compact statistics, bar charts (Abschlüsse, Qualifizierungen) with color-coding and auto-scaling, daily statistics row with SVG icons.
-- **Admin Dashboard:** Alphabetical sorting for project list. WE-Count corrected in Admin Dashboard from address count to sum of Wohneinheiten.
-- **Map View (QualiTool):** Real-time GPS location (man icon), address color coding (Blue, Dark Green, Light Green, Red, Yellow), marker click for info/status change, intelligent background geocoding with caching, house number suffixes support, location tracking via standard Geolocation API. New light-red marker for Kein Eintritt persönlich status with legend update.
-- **Polygon Drawing (QualiTool Map):** Ability to draw polygon on map, add addresses within the polygon to the contact list (max 1000), default empty WE field for new addresses, clear polygon after addition (auto and manual), ensures newly added addresses appear on map.
-- **Visit Recommendation:** Extended list height, formatted address/last visit.
-- **Street Filter:** Correct initialization and application on contact list load, persistence after adding new addresses.
-- **Update System:** In-app update check (GitHub API), download, and installation for Android APK, including versioning logic, release key setup, and browser-based download handling.
+**Core Requirements:**
+*   List, filter, and edit contacts, including their status, notes, and residential units (WE).
+*   Provide a real-time map view of contacts.
+*   Display a dashboard with statistics (e.g., completions, qualifications) and an activity calendar.
+*   Export contact data to CSV and Excel.
+*   Allow in-app updates for the Android APK.
+
+**Work Completed in Trajectory:**
+*   **Critical Bug Fix (Data Loss):** Implemented a critical guard in the Supabase sync logic to prevent the app from sending an empty contact list, which was wiping user data from the database (Version 0.3.1). This was a recurring, high-severity issue.
+*   **In-App Update System:** Debugged and partially implemented an in-app update mechanism. This involved removing a conflicting Capacitor plugin and reverting to a  solution. A cache-clearing mechanism was added to prevent sync issues after an update.
+*   **Multi-Project Filtering (Partial):**
+    *   Implemented a multi-select status filter for the contact list.
+    *   Implemented a cascading Ort (City) and Straße (Street) filter in the contact list.
+    *   Added (currently buggy) project filter dropdowns to the Dashboard and Export sections.
 </product_requirements>
-
 <key_technical_concepts>
-- **Frontend:** React (legacy app), Next.js (Admin Dashboard), HTML, CSS, JavaScript.
-- **Mapping:** Leaflet (OpenStreetMap), Leaflet.draw (polygon drawing).
-- **Mobile Development:** Capacitor (for Android APK builds), Capacitor Filesystem, Share, and Browser plugins.
-- **Backend-as-a-Service (BaaS):** Supabase (PostgreSQL, RLS, RPC functions).
-- **GitHub:** GitHub Actions (CI/CD for APK builds, releases), GitHub API (for update checks).
-- **Build Tools:**  (Java for Android signing keys).
+- **Frontend:** Legacy HTML/CSS/JavaScript, vanilla JS DOM manipulation.
+- **Backend-as-a-Service (BaaS):** Supabase (PostgreSQL database, RPC functions for data upsert).
+- **Mobile Wrapper:** Capacitor for building the Android APK.
+- **Development/Debugging:** Extensive use of usage: git [-v | --version] [-h | --help] [-C <path>] [-c <name>=<value>]
+           [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]
+           [-p | --paginate | -P | --no-pager] [--no-replace-objects] [--bare]
+           [--git-dir=<path>] [--work-tree=<path>] [--namespace=<name>]
+           [--super-prefix=<path>] [--config-env=<name>=<envvar>]
+           <command> [<args>]
+
+These are common Git commands used in various situations:
+
+start a working area (see also: git help tutorial)
+   clone     Clone a repository into a new directory
+   init      Create an empty Git repository or reinitialize an existing one
+
+work on the current change (see also: git help everyday)
+   add       Add file contents to the index
+   mv        Move or rename a file, a directory, or a symlink
+   restore   Restore working tree files
+   rm        Remove files from the working tree and from the index
+
+examine the history and state (see also: git help revisions)
+   bisect    Use binary search to find the commit that introduced a bug
+   diff      Show changes between commits, commit and working tree, etc
+   grep      Print lines matching a pattern
+   log       Show commit logs
+   show      Show various types of objects
+   status    Show the working tree status
+
+grow, mark and tweak your common history
+   branch    List, create, or delete branches
+   commit    Record changes to the repository
+   merge     Join two or more development histories together
+   rebase    Reapply commits on top of another base tip
+   reset     Reset current HEAD to the specified state
+   switch    Switch branches
+   tag       Create, list, delete or verify a tag object signed with GPG
+
+collaborate (see also: git help workflows)
+   fetch     Download objects and refs from another repository
+   pull      Fetch from and integrate with another repository or a local branch
+   push      Update remote refs along with associated objects
+
+'git help -a' and 'git help -g' list available subcommands and some
+concept guides. See 'git help <command>' or 'git help <concept>'
+to read about a specific subcommand or concept.
+See 'git help git' for an overview of the system. history to compare file versions,  for root cause analysis, and manual insertion of  and  for live debugging.
+- **CI/CD:** GitHub Actions for building and releasing the Android APK.
 </key_technical_concepts>
-
 <code_architecture>
-fn_dashboard_guarded_projects
+The application is a monolithic legacy frontend application combined with a Next.js admin dashboard. The core logic for the mobile app is almost entirely within a single, large HTML file.
 
-**Key files and changes:**
 
--   ****: The core legacy QualiTool.
-    *   **Dashboard:** Added Dashboard section, combined statistics and calendar. Implemented bar charts for daily stats, daily activity row.
-    *   **Map View:** Integrated Leaflet, user location tracking, address color coding. Implemented polygon drawing with add/clear functions.
-    *   **Update System:** Added settings page, update check logic (GitHub API), download/install functionality. Debugged failed to fetch errors by attempting to remove  for downloads.
-    *   **Fixes:** CSV export debugging, location marker display, street filter persistence, contact creation (empty residents array).
--   ****: Admin Dashboard map page.
-    *   **Changes**: Added debug logging for  field for suffix handling.
--   ****: Capacitor bridge.
-    *   **Changes**: Adapted CSV export to use Capacitor Filesystem and Share.
--   ****: Capacitor configuration.
-    *   **Changes**: Added Geolocation permissions for Android APK.
--   ****: Supabase SQL functions.
-    *   **Changes**: Corrected  and  to  for accurate WE counting instead of  of residents.
--   ****: GitHub Actions for Android APK builds.
-    *   **Changes**: Added automatic versioning, release publishing to GitHub. Modified to use GitHub secrets for signing keys and corrected keystore paths multiple times to resolve build failures.
--   ****: Frontend dependencies.
-    *   **Changes**: Version number updated several times (0.1.0 to 0.2.0, 0.2.1, 0.2.2, 0.2.3, 0.2.4) for update testing. Added  dependency.
+
+-   ****
+    -   **Importance:** This is the single most important file. It contains all the HTML, CSS, and JavaScript logic for the entire QualiTool mobile application, including UI rendering, state management, filtering, Supabase synchronization, and event handling. Its monolithic nature makes it prone to timing and scope issues.
+    -   **Summary of Changes:**
+        -   **Supabase Sync:** The , , and  functions were repeatedly modified to debug a critical data-loss bug. The final fix involved adding a guard to prevent syncing an empty array.
+        -   **Multi-Project Filters:** New HTML for filter dropdowns (, , ) was added. New JS functions (, , ) were created and modified. The  variable was changed to  (Array) to support multi-status selection.
+        -   **Bug Fixes:** Functions were moved and redefined on the  object to resolve scope and timing issues where functions were not defined when called. A cache-clearing mechanism was added on  to fix post-update sync failures.
+
+-   ****
+    -   **Importance:** Defines the CI/CD process for building the production Android APK.
+    -   **Summary of Changes:** The Java version was updated from 17 to 21 to support a newer Capacitor plugin, although that plugin was later removed.
+
+-   ****
+    -   **Importance:** Manages frontend dependencies and the application version number.
+    -   **Summary of Changes:** The version was incrementally bumped from 0.2.5 to 0.4.0. The  dependency was added and later removed as it was identified as the cause of a major sync bug.
 </code_architecture>
-
 <pending_tasks>
--   **QualiTool WE-Korrekturen CSV Export**: User reports it is not working again (specifically, file not saved/downloaded on tablet). (Addressed, but still part of download issues)
--   **QualiTool Location Marker**: User's location is detected and permissions granted, but the Männchen marker for the user's position is not visible on the map. (Addressed, but still part of location display issues)
--   **Admin Dashboard Map Suffixes**: Addresses with suffixes are not being displayed correctly on the Admin Dashboard map. (Addressed, but Next.js rebuild was implied)
--   **QualiTool Straßenfilter persistence (APK)**: The street filter still disappears after app restart in the Android APK. This is an acknowledged, unresolved problem.
--   **Projection Tool Enhancements**: Optional UI hints, Bundesland selection persistence in Supabase, alternative rate models, small badge with forecast on project card.
--   **Polygontool Enhancements**: Further geocoding improvements or integration of a second geocoding provider. Standard behavior for points exactly on the polygon boundary.
--   **Update Process failed to fetch error**: The core issue of downloading the APK update from GitHub using the in-app mechanism persists.
+- **Fix Dashboard/Export Filter Population:** The project filter dropdowns in the Dashboard and Export sections are only populated after the user clicks the section-toggle headers twice. They should be populated લાભાર્થી.
+- **Fix Dashboard Filter Logic:** When a project is selected in the Dashboard's filter, the statistics and calendar do not update to reflect the selection; they continue to show data for all projects.
+- **Post-Update Sync Stability:** A cache-clearing mechanism was added to address a sync failure after updating the APK. This needs to be confirmed as a robust, permanent solution.
 </pending_tasks>
-
 <current_work>
-Immediately prior to this summary, the AI engineer was engaged in a persistent and critical bug: the failed to fetch error encountered when attempting to download an update for the QualiTool Android APK from within the application. The user repeatedly reported this error despite multiple attempted fixes.
+The AI engineer was in the final stages of implementing the Multi-Project feature set. The user reported three critical issues with the implementation (version 0.4.0):
 
-The engineer initially believed the issue was related to GitHub API access for release checking (404s, resolved by making the repo public) or general download handling in . They then identified that Android Webview often blocks direct  calls for large files and implemented a solution to open the download URL in an external browser using  and the Capacitor Browser Plugin.
+1.  **Dashboard project filter is empty.**
+2.  **Export project filter is empty.**
+3.  **Sync breaks after updating from v0.3.0 to v0.3.1**, requiring a reinstall.
 
-However, the failed to fetch error persisted. The latest diagnosis by the engineer (Chat 485, 496) was that remnants of the old  code were still being executed after attempting to open the external browser, or that the  for the *update check* itself was failing. The most recent action was to completely remove all internal  logic related to both checking for updates and downloading them, aiming to solely rely on the external browser solution. The application version was successively incremented (from 0.2.0 to 0.2.4) with each attempted fix. The user's last message, Immer noch der gleiche Fehler, indicates the problem is still unresolved.
+After numerous debugging steps involving adding alerts and moving function definitions, the engineer partially fixed the empty filter issue. The current state is: the filters are now populated, but only after the user clicks to expand the Statusauswertung or Adressen importieren sections twice. This indicates a timing or rendering-order problem.
+
+Additionally, a new bug was discovered: once the dashboard filter is populated and a project is selected, the statistics do not update. The engineer just added  handlers (, ) and logic to call a new  function to trigger  and . The work was paused immediately after adding these handlers and compiling. The next step is to test if this latest change palavras-chave: fixes the non-responsive dashboard filter.
 </current_work>
-
 <optional_next_step>
-Increment the version to 0.2.5, push the changes which completely remove internal fetch logic for updates, and instruct the user to re-test the update download process in the native APK.
+Test and verify that the newly added  handlers for the dashboard and export filters correctly trigger the data-update functions (, , etc.) and resolve the issue where the dashboard stats don't change.
 </optional_next_step>
