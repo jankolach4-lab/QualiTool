@@ -2083,7 +2083,7 @@
   }
   window.contacts = JSON.parse(localStorage.getItem('contacts')) || [];
   let contacts = window.contacts;
-  let currentFilter = 'all';
+  let activeFilters = ['all']; // Multi-select: Array of active status filters
   let currentDate = new Date();
   async function importExcelFile(file) {
     try {
