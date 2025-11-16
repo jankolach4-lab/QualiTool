@@ -2509,7 +2509,12 @@
   // ========== DASHBOARD PROJECT FILTER ==========
   function updateDashboardProjectFilter() {
     const filter = document.getElementById('dashboardProjectFilter');
-    if (!filter) return;
+    if (!filter) {
+      console.warn('[DashboardFilter] Element not found');
+      return;
+    }
+    
+    console.log('[DashboardFilter] Updating with', contacts.length, 'contacts');
     
     const savedProject = localStorage.getItem('selectedDashboardProject') || 'all';
     
@@ -2518,6 +2523,8 @@
     contacts.forEach(contact => {
       if (contact.ort) cities.add(contact.ort);
     });
+    
+    console.log('[DashboardFilter] Found', cities.size, 'unique cities:', Array.from(cities));
     
     // Clear and rebuild
     while (filter.options.length > 1) filter.remove(1);
@@ -2529,6 +2536,8 @@
       option.textContent = city;
       filter.appendChild(option);
     });
+    
+    console.log('[DashboardFilter] Added', citiesList.length, 'options to dropdown');
     
     // Restore selection
     if (savedProject && citiesList.includes(savedProject)) {
