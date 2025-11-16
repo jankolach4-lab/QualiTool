@@ -4798,9 +4798,21 @@
       // Call update functions when opening
       setTimeout(() => {
         const filter = document.getElementById('dashboardProjectFilter');
-        alert('Dashboard Filter Element gefunden: ' + (filter ? 'JA ('+filter.options.length+' Options)' : 'NEIN'));
         
-        if (typeof updateDashboardProjectFilter === 'function') updateDashboardProjectFilter();
+        // Check if function exists
+        const funcExists = typeof updateDashboardProjectFilter === 'function';
+        const funcInWindow = typeof window.updateDashboardProjectFilter === 'function';
+        
+        alert('Dashboard Filter Element: ' + (filter ? 'JA ('+filter.options.length+' Options)' : 'NEIN') + '\n' +
+              'Funktion existiert: ' + funcExists + '\n' +
+              'In window: ' + funcInWindow);
+        
+        if (funcExists) {
+          updateDashboardProjectFilter();
+        } else if (funcInWindow) {
+          window.updateDashboardProjectFilter();
+        }
+        
         updateStatistics();
       }, 100);
     }
