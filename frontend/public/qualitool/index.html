@@ -2586,7 +2586,8 @@
     // Aktualisiere Tagesstatistik
     updateDailyStats();
     
-    // Aktualisiere Straßenfilter IMMER beim Rendern
+    // Aktualisiere Filter IMMER beim Rendern
+    if (typeof updateCityFilter === 'function') updateCityFilter();
     updateStreetFilter();
     
     contactsToRender = sortContacts([...contactsToRender]);
