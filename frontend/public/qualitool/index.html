@@ -2812,6 +2812,8 @@
 
   function applyFilters() {
     const searchTerm = (document.getElementById('searchInput').value || '').toLowerCase();
+    const cityFilter = document.getElementById('cityFilter');
+    const selectedCity = cityFilter ? cityFilter.value : 'all';
     const selectedStreet = document.getElementById('streetFilter').value;
     const selectedHouseNumber = document.getElementById('houseNumberFilter').value;
     const filteredContacts = contacts.filter(contact => {
@@ -2833,6 +2835,9 @@
                          }) ||
                          false;
       
+      // City filter (CASCADING with street)
+      const cityMatch = selectedCity === 'all' || contact.ort === selectedCity;
+      
       const streetMatch = selectedStreet === 'all' || contact.strasse === selectedStreet;
       
       // Hausnummer-Filter: gerade/ungerade
@@ -2847,7 +2852,7 @@
         }
       }
       
-      return searchMatch && statusMatch && streetMatch && houseNumberMatch;
+      return searchMatch && statusMatch && cityMatch && streetMatch && houseNumberMatch;
     });
     renderContacts(filteredContacts);
     document.getElementById('streetFilter').value = selectedStreet;
