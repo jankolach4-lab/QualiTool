@@ -2544,6 +2544,8 @@
       filter.value = 'all';
     }
   }
+  // EXPORT to window
+  try { window.updateDashboardProjectFilter = updateDashboardProjectFilter; } catch(_) {}
   
   function onDashboardProjectChange() {
     const filter = document.getElementById('dashboardProjectFilter');
