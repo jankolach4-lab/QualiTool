@@ -2408,6 +2408,90 @@
       }
     }, 50);
   }
+
+  // ========== CITY FILTER (with Street Cascading) ==========
+  function updateCityFilter() {
+    const cityFilter = document.getElementById('cityFilter');
+    if (!cityFilter) return;
+    
+    // Save current selection
+    const currentCity = localStorage.getItem('selectedCity') || cityFilter.value;
+    
+    // Collect unique cities
+    const cities = new Set();
+    contacts.forEach(contact => {
+      if (contact.ort) cities.add(contact.ort);
+    });
+    
+    // Clear and rebuild
+    while (cityFilter.options.length > 1) cityFilter.remove(1);
+    
+    const citiesList = Array.from(cities).sort();
+    citiesList.forEach(city => {
+      const option = document.createElement('option');
+      option.value = city;
+      option.textContent = city;
+      cityFilter.appendChild(option);
+    });
+    
+    // Restore selection
+    if (currentCity && currentCity !== 'all' && citiesList.includes(currentCity)) {
+      cityFilter.value = currentCity;
+    } else {
+      cityFilter.value = 'all';
+    }
+  }
+  
+  function onCityFilterChange() {
+    const cityFilter = document.getElementById('cityFilter');
+    const selectedCity = cityFilter ? cityFilter.value : 'all';
+    
+    // Save selection
+    localStorage.setItem('selectedCity', selectedCity);
+    
+    // Update street filter to show only streets from selected city (CASCADING)
+    updateStreetFilterByCitySelection(selectedCity);
+    
+    // Apply all filters
+    applyFilters();
+  }
+  
+  function updateStreetFilterByCitySelection(selectedCity) {
+    const streetFilter = document.getElementById('streetFilter');
+    if (!streetFilter) return;
+    
+    // Save current street selection
+    const currentStreet = streetFilter.value;
+    
+    // Collect streets for selected city
+    const streets = new Set();
+    contacts.forEach(contact => {
+      // CASCADING: Only include streets from selected city
+      if (selectedCity === 'all' || contact.ort === selectedCity) {
+        if (contact.strasse) streets.add(contact.strasse);
+      }
+    });
+    
+    // Clear and rebuild street filter
+    while (streetFilter.options.length > 1) streetFilter.remove(1);
+    
+    const streetsList = Array.from(streets).sort();
+    streetsList.forEach(street => {
+      const option = document.createElement('option');
+      option.value = street;
+      option.textContent = street;
+      streetFilter.appendChild(option);
+    });
+    
+    // Try to restore street selection (if still valid for this city)
+    if (currentStreet && currentStreet !== 'all' && streetsList.includes(currentStreet)) {
+      streetFilter.value = currentStreet;
+    } else {
+      streetFilter.value = 'all';
+    }
+  }
+  // ========== END CITY FILTER ==========
+
   function updateStreetFilter() {
     const streetFilter = document.getElementById('streetFilter');
     if (!streetFilter) {
