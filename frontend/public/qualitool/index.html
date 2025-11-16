@@ -2397,7 +2397,7 @@
         (streetFilter && streetFilter.value !== 'all') ||
         (houseNumberFilter && houseNumberFilter.value !== 'all') ||
         (searchInput && searchInput.value.trim() !== '') ||
-        currentFilter !== 'all';
+        !(activeFilters.length === 1 && activeFilters[0] === 'all');
       
       if (hasActiveFilter) {
         console.log('[SaveContacts] Re-applying filters after save');
