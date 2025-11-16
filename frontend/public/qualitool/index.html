@@ -1532,6 +1532,13 @@
               <button onclick="document.getElementById('excelImport').click()" class="import-btn" style="flex: 1;">Excel importieren</button>
               <input type="file" id="excelImport" style="display: none" accept=".xlsx,.xls" onchange="importFromExcel(this.files[0])">
             </div>
+            <!-- Project filter for export -->
+            <div style="padding: 8px; background: #f3f4f6; border-radius: 6px;">
+              <label for="exportProjectFilter" style="font-weight: 600; margin-right: 10px; font-size: 13px;">Projekt für Export:</label>
+              <select id="exportProjectFilter" style="padding: 5px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; min-width: 180px;">
+                <option value="all">Alle Projekte</option>
+              </select>
+            </div>
             <div style="display: flex; gap: 10px;">
               <button onclick="exportToExcel()" class="import-btn" style="flex: 1;">Excel exportieren</button>
               <button onclick="exportToCSV()" class="import-btn" style="flex: 1;">CSV exportieren</button>
