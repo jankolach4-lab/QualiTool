@@ -2212,7 +2212,10 @@
     
     // Update export filter when section opens
     if (willExpand && typeof updateExportProjectFilter === 'function') {
-      updateExportProjectFilter();
+      setTimeout(() => {
+        console.log('[toggleImportSection] Calling updateExportProjectFilter, cache:', cachedCities);
+        updateExportProjectFilter();
+      }, 50);
     }
   }
   function toggleEntrySection() {
