@@ -4404,6 +4404,37 @@
   // Support both web and Capacitor environments
   document.addEventListener('DOMContentLoaded', () => {
     console.log('[Event] DOMContentLoaded fired');
+    
+    // VERSION CHECK & CACHE CLEAR (prevents update issues)
+    const CURRENT_VERSION = '0.4.0';
+    const lastVersion = localStorage.getItem('app_version');
+    
+    if (lastVersion && lastVersion !== CURRENT_VERSION) {
+      console.warn('[VersionCheck] App updated from', lastVersion, 'to', CURRENT_VERSION);
+      console.warn('[VersionCheck] Clearing app cache to prevent conflicts...');
+      
+      // Clear specific cache items that might cause conflicts
+      try {
+        const keysToPreserve = ['contacts', 'supabase.auth.token', 'selectedCity', 'selectedDashboardProject'];
+        const allKeys = Object.keys(localStorage);
+        let clearedCount = 0;
+        
+        allKeys.forEach(key => {
+          if (!keysToPreserve.includes(key) && !key.startsWith('supabase.auth')) {
+            localStorage.removeItem(key);
+            clearedCount++;
+          }
+        });
+        
+        console.log('[VersionCheck] ✅ Cleared', clearedCount, 'cache items');
+      } catch(e) {
+        console.error('[VersionCheck] Cache clear failed:', e);
+      }
+    }
+    
+    // Save current version
+    localStorage.setItem('app_version', CURRENT_VERSION);
+    
     initializeApp();
     
     // KEIN sofortiger Sync hier - wird von initLocal() mit Session-Check gemacht
