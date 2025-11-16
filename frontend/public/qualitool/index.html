@@ -2112,6 +2112,7 @@
       contacts = sortContacts(contacts);
       saveContacts();
       updateStreetFilter();
+      if (typeof updateCityFilter === 'function') updateCityFilter();
       renderContacts();
       alert(`Import erfolgreich: ${rows.length - 1} Adressen importiert`);
     } catch (err) {
@@ -3410,6 +3411,7 @@
       // Filter beibehalten nach Speichern
       renderContacts();
       updateStreetFilter();
+      if (typeof updateCityFilter === 'function') updateCityFilter();
     } else {
       alert('Keine Adressen mit dieser PLZ gefunden');
     }
@@ -3454,6 +3456,7 @@
       // Filter beibehalten nach Speichern
       renderContacts();
       updateStreetFilter();
+      if (typeof updateCityFilter === 'function') updateCityFilter();
     } else {
       alert('Keine Adressen in den ausgewählten Straßen gefunden');
     }
@@ -4064,6 +4067,7 @@
 
         saveContacts();
         updateStreetFilter();
+      if (typeof updateCityFilter === 'function') updateCityFilter();
         renderContacts();
 
         alert(`Import erfolgreich: ${importedContacts.length} Adressen ${shouldAppend ? 'hinzugefügt' : 'importiert'}`);
@@ -4422,6 +4426,7 @@
           console.log('[Init] Loaded', contacts.length, 'contacts from localStorage');
           renderContacts();
           updateStreetFilter();
+      if (typeof updateCityFilter === 'function') updateCityFilter();
         }
       } catch(_e) { 
         localStorage.setItem('contacts','[]'); 
@@ -4459,6 +4464,7 @@
       // Verzögerter Aufruf um sicherzustellen, dass DOM vollständig geladen ist
       setTimeout(() => {
         updateStreetFilter();
+      if (typeof updateCityFilter === 'function') updateCityFilter();
       }, 100);
 
       // saveContacts erweitern, ohne UI zu ändern
@@ -4476,6 +4482,7 @@
           localStorage.setItem('contacts', JSON.stringify(cloud));
           renderContacts();
           updateStreetFilter();
+      if (typeof updateCityFilter === 'function') updateCityFilter();
         }
       } catch(e){ console.warn('Initiale Cloud-Sync Warnung:', e.message||e); }
 
