@@ -4792,6 +4792,9 @@
     if (statsDiv.style.display === 'block') {
       // Call update functions when opening
       setTimeout(() => {
+        const filter = document.getElementById('dashboardProjectFilter');
+        alert('Dashboard Filter Element gefunden: ' + (filter ? 'JA ('+filter.options.length+' Options)' : 'NEIN'));
+        
         if (typeof updateDashboardProjectFilter === 'function') updateDashboardProjectFilter();
         updateStatistics();
       }, 100);
