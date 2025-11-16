@@ -2602,6 +2602,93 @@
     };
     return statusLabels[status] || status;
   }
+  
+  // ========== DASHBOARD PROJECT FILTER ==========
+  window.updateDashboardProjectFilter = function updateDashboardProjectFilter() {
+    const filter = document.getElementById('dashboardProjectFilter');
+    if (!filter) {
+      console.warn('[updateDashboardProjectFilter] Element not found');
+      return;
+    }
+    
+    const savedProject = localStorage.getItem('selectedDashboardProject') || 'all';
+    
+    // Collect cities from contacts (use window.contacts to avoid scope issues)
+    const cities = new Set();
+    const contactList = window.contacts || contacts || [];
+    contactList.forEach(contact => {
+      if (contact.ort) cities.add(contact.ort);
+    });
+    
+    console.log('[DashboardFilter]', contactList.length, 'contacts,', cities.size, 'cities found:', Array.from(cities).join(', '));
+    
+    // Clear and rebuild
+    while (filter.options.length > 1) filter.remove(1);
+    
+    const citiesList = Array.from(cities).sort();
+    citiesList.forEach(city => {
+      const option = document.createElement('option');
+      option.value = city;
+      option.textContent = city;
+      filter.appendChild(option);
+    });
+    
+    // Restore selection
+    if (savedProject && citiesList.includes(savedProject)) {
+      filter.value = savedProject;
+    } else {
+      filter.value = 'all';
+    }
+  };
+  
+  window.onDashboardProjectChange = function onDashboardProjectChange() {
+    const filter = document.getElementById('dashboardProjectFilter');
+    if (filter) {
+      localStorage.setItem('selectedDashboardProject', filter.value);
+    }
+    
+    // Refresh dashboard
+    if (typeof updateStatistics === 'function') updateStatistics();
+    if (typeof renderCalendar === 'function') renderCalendar();
+  };
+
+  // ========== EXPORT PROJECT FILTER ==========
+  window.updateExportProjectFilter = function updateExportProjectFilter() {
+    const filter = document.getElementById('exportProjectFilter');
+    if (!filter) {
+      console.warn('[updateExportProjectFilter] Element not found');
+      return;
+    }
+    
+    // Collect cities from contacts
+    const cities = new Set();
+    const contactList = window.contacts || contacts || [];
+    contactList.forEach(contact => {
+      if (contact.ort) cities.add(contact.ort);
+    });
+    
+    console.log('[ExportFilter]', contactList.length, 'contacts,', cities.size, 'cities found');
+    
+    // Clear and rebuild
+    while (filter.options.length > 1) filter.remove(1);
+    
+    const citiesList = Array.from(cities).sort();
+    citiesList.forEach(city => {
+      const option = document.createElement('option');
+      option.value = city;
+      option.textContent = city;
+      filter.appendChild(option);
+    });
+  };
+  
+  window.onExportProjectChange = function onExportProjectChange() {
+    const filter = document.getElementById('exportProjectFilter');
+    if (filter) {
+      localStorage.setItem('selectedExportProject', filter.value);
+    }
+  };
+  // ========== END DASHBOARD/EXPORT PROJECT FILTERS ==========
+  
   function renderContacts(contactsToRender = contacts) {
     // Aktualisiere Tagesstatistik
     updateDailyStats();
