@@ -2546,8 +2546,16 @@
   // TEST: Alert beim Laden
   alert('DEFINE: updateDashboardProjectFilter wurde definiert!');
   
-  function onDashboardProjectChange() {
+  window.onDashboardProjectChange = function onDashboardProjectChange() {
     const filter = document.getElementById('dashboardProjectFilter');
+    if (filter) {
+      localStorage.setItem('selectedDashboardProject', filter.value);
+    }
+    
+    // Refresh dashboard
+    if (typeof updateStatistics === 'function') updateStatistics();
+    if (typeof renderCalendar === 'function') renderCalendar();
+  };
 
   // ========== EXPORT PROJECT FILTER ==========
   window.updateExportProjectFilter = function updateExportProjectFilter() {
@@ -2569,16 +2577,14 @@
       filter.appendChild(option);
     });
   };
-  // ========== END EXPORT PROJECT FILTER ==========
-
+  
+  window.onExportProjectChange = function onExportProjectChange() {
+    const filter = document.getElementById('exportProjectFilter');
     if (filter) {
-      localStorage.setItem('selectedDashboardProject', filter.value);
+      localStorage.setItem('selectedExportProject', filter.value);
     }
-    
-    // Refresh dashboard
-    if (typeof updateStatistics === 'function') updateStatistics();
-    if (typeof renderCalendar === 'function') renderCalendar();
-  }
+  };
+  // ========== END EXPORT PROJECT FILTER ==========
   // ========== END DASHBOARD PROJECT FILTER ==========
 
     // Clear and rebuild street filter
