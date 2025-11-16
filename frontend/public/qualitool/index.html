@@ -2493,6 +2493,51 @@
       }
     });
     
+
+  // ========== DASHBOARD PROJECT FILTER ==========
+  function updateDashboardProjectFilter() {
+    const filter = document.getElementById('dashboardProjectFilter');
+    if (!filter) return;
+    
+    const savedProject = localStorage.getItem('selectedDashboardProject') || 'all';
+    
+    // Collect cities
+    const cities = new Set();
+    contacts.forEach(contact => {
+      if (contact.ort) cities.add(contact.ort);
+    });
+    
+    // Clear and rebuild
+    while (filter.options.length > 1) filter.remove(1);
+    
+    const citiesList = Array.from(cities).sort();
+    citiesList.forEach(city => {
+      const option = document.createElement('option');
+      option.value = city;
+      option.textContent = city;
+      filter.appendChild(option);
+    });
+    
+    // Restore selection
+    if (savedProject && citiesList.includes(savedProject)) {
+      filter.value = savedProject;
+    } else {
+      filter.value = 'all';
+    }
+  }
+  
+  function onDashboardProjectChange() {
+    const filter = document.getElementById('dashboardProjectFilter');
+    if (filter) {
+      localStorage.setItem('selectedDashboardProject', filter.value);
+    }
+    
+    // Refresh dashboard
+    if (typeof updateStatistics === 'function') updateStatistics();
+    if (typeof renderCalendar === 'function') renderCalendar();
+  }
+  // ========== END DASHBOARD PROJECT FILTER ==========
+
     // Clear and rebuild street filter
     while (streetFilter.options.length > 1) streetFilter.remove(1);
     
