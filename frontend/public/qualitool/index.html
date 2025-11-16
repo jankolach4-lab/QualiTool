@@ -2135,19 +2135,41 @@
     });
   }
   function filterByStatus(status) {
+    // Multi-select logic: toggle status filters
+    if (status === 'all') {
+      // Reset to "all"
+      activeFilters = ['all'];
+    } else {
+      // Toggle status in array
+      const index = activeFilters.indexOf(status);
+      if (index > -1) {
+        // Remove if already active
+        activeFilters.splice(index, 1);
+        // If no filters left, reset to 'all'
+        if (activeFilters.length === 0 || activeFilters.includes('all')) {
+          activeFilters = ['all'];
+        }
+      } else {
+        // Add to active filters
+        // Remove 'all' if adding specific status
+        activeFilters = activeFilters.filter(f => f !== 'all');
+        activeFilters.push(status);
+      }
+    }
+    
+    // Update button UI
     document.querySelector('.status-filters').innerHTML = `
-      <button onclick="filterByStatus('all')" class="filter-btn ${status === 'all' ? 'active' : ''}">Alle</button>
-      <button onclick="filterByStatus('nicht-angetroffen')" class="filter-btn ${status === 'nicht-angetroffen' ? 'active' : ''}">Nicht angetroffen</button>
-      <button onclick="filterByStatus('kein-eintritt')" class="filter-btn ${status === 'kein-eintritt' ? 'active' : ''}">Kein Eintritt persönlich</button>
-      <button onclick="filterByStatus('wiedervorlage')" class="filter-btn ${status === 'wiedervorlage' ? 'active' : ''}">Wiedervorlage</button>
-      <button onclick="filterByStatus('termin')" class="filter-btn ${status === 'termin' ? 'active' : ''}">Termin</button>
-      <button onclick="filterByStatus('beraten')" class="filter-btn ${status === 'beraten' ? 'active' : ''}">Bereits beraten</button>
-      <button onclick="filterByStatus('kein-interesse')" class="filter-btn ${status === 'kein-interesse' ? 'active' : ''}">Kein Interesse</button>
-      <button onclick="filterByStatus('abschluss')" class="filter-btn ${status === 'abschluss' ? 'active' : ''}">Abschluss</button>
-      <button onclick="filterByStatus('onlineabschluss')" class="filter-btn ${status === 'onlineabschluss' ? 'active' : ''}">Online/TS</button>
-      <button onclick="filterByStatus('abschl-anderer-vp')" class="filter-btn ${status === 'abschl-anderer-vp' ? 'active' : ''}">Abschl. anderer VP</button>
+      <button onclick="filterByStatus('all')" class="filter-btn ${activeFilters.includes('all') ? 'active' : ''}">Alle</button>
+      <button onclick="filterByStatus('nicht-angetroffen')" class="filter-btn ${activeFilters.includes('nicht-angetroffen') ? 'active' : ''}">Nicht angetroffen</button>
+      <button onclick="filterByStatus('kein-eintritt')" class="filter-btn ${activeFilters.includes('kein-eintritt') ? 'active' : ''}">Kein Eintritt persönlich</button>
+      <button onclick="filterByStatus('wiedervorlage')" class="filter-btn ${activeFilters.includes('wiedervorlage') ? 'active' : ''}">Wiedervorlage</button>
+      <button onclick="filterByStatus('termin')" class="filter-btn ${activeFilters.includes('termin') ? 'active' : ''}">Termin</button>
+      <button onclick="filterByStatus('beraten')" class="filter-btn ${activeFilters.includes('beraten') ? 'active' : ''}">Bereits beraten</button>
+      <button onclick="filterByStatus('kein-interesse')" class="filter-btn ${activeFilters.includes('kein-interesse') ? 'active' : ''}">Kein Interesse</button>
+      <button onclick="filterByStatus('abschluss')" class="filter-btn ${activeFilters.includes('abschluss') ? 'active' : ''}">Abschluss</button>
+      <button onclick="filterByStatus('onlineabschluss')" class="filter-btn ${activeFilters.includes('onlineabschluss') ? 'active' : ''}">Online/TS</button>
+      <button onclick="filterByStatus('abschl-anderer-vp')" class="filter-btn ${activeFilters.includes('abschl-anderer-vp') ? 'active' : ''}">Abschl. anderer VP</button>
     `;
-    currentFilter = status;
     applyFilters();
   }
   function sortContacts(contactsToSort) {
