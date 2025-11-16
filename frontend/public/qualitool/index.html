@@ -2209,6 +2209,11 @@
     section.classList.toggle('expanded', willExpand);
     if (content) content.style.display = willExpand ? 'block' : 'none';
     if (btns) btns.style.display = willExpand ? 'flex' : 'none';
+    
+    // Update export filter when section opens
+    if (willExpand && typeof updateExportProjectFilter === 'function') {
+      updateExportProjectFilter();
+    }
   }
   function toggleEntrySection() {
     const section = document.querySelector('.entry-section');
