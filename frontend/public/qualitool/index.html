@@ -4836,13 +4836,14 @@
 
   function toggleStatistics() {
     const statsDiv = document.getElementById('statusStats');
-    statsDiv.style.display = statsDiv.style.display === 'none' ? 'block' : 'none';
-    if (statsDiv.style.display === 'block') {
+    const wasHidden = statsDiv.style.display === 'none';
+    statsDiv.style.display = wasHidden ? 'block' : 'none';
+    if (wasHidden) {
+      // Longer timeout to ensure DOM is ready
       setTimeout(() => {
-        // Use _NEW functions
         if (window.updateDashboardProjectFilter_NEW) window.updateDashboardProjectFilter_NEW();
         updateStatistics();
-      }, 100);
+      }, 200);
     }
   }
 </script>
