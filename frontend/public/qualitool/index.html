@@ -2511,7 +2511,10 @@
   // ========== DASHBOARD PROJECT FILTER ==========
   function updateDashboardProjectFilter() {
     const filter = document.getElementById('dashboardProjectFilter');
-    if (!filter) return; // Element nicht da = Sektion noch nicht geöffnet
+    if (!filter) {
+      alert('DashboardFilter: Element NICHT gefunden');
+      return;
+    }
     
     const savedProject = localStorage.getItem('selectedDashboardProject') || 'all';
     
@@ -2520,6 +2523,8 @@
     contacts.forEach(contact => {
       if (contact.ort) cities.add(contact.ort);
     });
+    
+    alert('DashboardFilter: ' + contacts.length + ' Kontakte, ' + cities.size + ' Städte gefunden: ' + Array.from(cities).join(', '));
     
     // Clear and rebuild
     while (filter.options.length > 1) filter.remove(1);
