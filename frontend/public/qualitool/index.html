@@ -2502,14 +2502,22 @@
     
     console.log('[StreetFilter] Updating with', contacts.length, 'contacts');
     
+    // Get selected city for cascading
+    const cityFilter = document.getElementById('cityFilter');
+    const selectedCity = cityFilter ? cityFilter.value : 'all';
+    
     // Save current filter value to restore after update
     const currentFilterValue = streetFilter.value;
     console.log('[StreetFilter] Current filter:', currentFilterValue || 'Alle Straßen');
+    console.log('[StreetFilter] Selected city:', selectedCity);
     
     const streets = new Set();
     contacts.forEach(contact => {
-      if (contact.strasse) {
-        streets.add(contact.strasse);
+      // CASCADING: Only add streets from selected city
+      if (selectedCity === 'all' || contact.ort === selectedCity) {
+        if (contact.strasse) {
+          streets.add(contact.strasse);
+        }
       }
     });
     
@@ -2520,7 +2528,7 @@
     
     // Add sorted streets
     const streetsList = Array.from(streets).sort();
-    console.log('[StreetFilter] Found', streetsList.length, 'unique streets');
+    console.log('[StreetFilter] Found', streetsList.length, 'unique streets for city:', selectedCity);
     
     streetsList.forEach(street => {
       const option = document.createElement('option');
