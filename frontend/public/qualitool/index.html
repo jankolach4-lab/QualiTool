@@ -2547,31 +2547,24 @@
   // ========== EXPORT PROJECT FILTER ==========
   function updateExportProjectFilter() {
     const filter = document.getElementById('exportProjectFilter');
-    if (!filter) {
-      console.warn('[ExportFilter] Element not found - will populate when section opens');
-      return;
-    }
+    if (!filter) return; // Element nicht da = Sektion noch nicht geöffnet
     
-    console.log('[ExportFilter] Updating with', contacts.length, 'contacts');
-    
-    // Use cached cities
-    if (cachedCities.length === 0) {
-      refreshCachedCities();
-    }
-    
-    console.log('[ExportFilter] Found', cachedCities.length, 'unique cities:', cachedCities);
+    // Sammle Städte DIREKT (wie beim CityFilter)
+    const cities = new Set();
+    contacts.forEach(contact => {
+      if (contact.ort) cities.add(contact.ort);
+    });
     
     // Clear and rebuild
     while (filter.options.length > 1) filter.remove(1);
     
-    cachedCities.forEach(city => {
+    const citiesList = Array.from(cities).sort();
+    citiesList.forEach(city => {
       const option = document.createElement('option');
       option.value = city;
       option.textContent = city;
       filter.appendChild(option);
     });
-    
-    console.log('[ExportFilter] Added', cachedCities.length, 'options to dropdown');
   }
   // ========== END EXPORT PROJECT FILTER ==========
 
