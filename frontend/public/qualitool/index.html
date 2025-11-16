@@ -2413,7 +2413,12 @@
   // ========== CITY FILTER (with Street Cascading) ==========
   function updateCityFilter() {
     const cityFilter = document.getElementById('cityFilter');
-    if (!cityFilter) return;
+    if (!cityFilter) {
+      console.warn('[updateCityFilter] City filter element not found');
+      return;
+    }
+    
+    console.log('[CityFilter] Updating with', contacts.length, 'contacts');
     
     // Save current selection
     const currentCity = localStorage.getItem('selectedCity') || cityFilter.value;
@@ -2421,8 +2426,13 @@
     // Collect unique cities
     const cities = new Set();
     contacts.forEach(contact => {
-      if (contact.ort) cities.add(contact.ort);
+      if (contact.ort) {
+        cities.add(contact.ort);
+        console.log('[CityFilter] Adding city:', contact.ort);
+      }
     });
+    
+    console.log('[CityFilter] Found', cities.size, 'unique cities:', Array.from(cities));
     
     // Clear and rebuild
     while (cityFilter.options.length > 1) cityFilter.remove(1);
@@ -2435,9 +2445,12 @@
       cityFilter.appendChild(option);
     });
     
+    console.log('[CityFilter] Added', citiesList.length, 'cities to dropdown');
+    
     // Restore selection
     if (currentCity && currentCity !== 'all' && citiesList.includes(currentCity)) {
       cityFilter.value = currentCity;
+      console.log('[CityFilter] ✓ Restored city:', currentCity);
     } else {
       cityFilter.value = 'all';
     }
