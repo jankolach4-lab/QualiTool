@@ -2704,6 +2704,9 @@
     // Aktualisiere Tagesstatistik
     updateDailyStats();
     
+    // Refresh city cache
+    if (typeof refreshCachedCities === 'function') refreshCachedCities();
+    
     // Aktualisiere Filter IMMER beim Rendern
     if (typeof updateCityFilter === 'function') updateCityFilter();
     if (typeof updateDashboardProjectFilter === 'function') updateDashboardProjectFilter();
