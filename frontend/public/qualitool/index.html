@@ -2535,6 +2535,31 @@
   
   function onDashboardProjectChange() {
     const filter = document.getElementById('dashboardProjectFilter');
+
+  // ========== EXPORT PROJECT FILTER ==========
+  function updateExportProjectFilter() {
+    const filter = document.getElementById('exportProjectFilter');
+    if (!filter) return;
+    
+    // Collect cities
+    const cities = new Set();
+    contacts.forEach(contact => {
+      if (contact.ort) cities.add(contact.ort);
+    });
+    
+    // Clear and rebuild
+    while (filter.options.length > 1) filter.remove(1);
+    
+    const citiesList = Array.from(cities).sort();
+    citiesList.forEach(city => {
+      const option = document.createElement('option');
+      option.value = city;
+      option.textContent = city;
+      filter.appendChild(option);
+    });
+  }
+  // ========== END EXPORT PROJECT FILTER ==========
+
     if (filter) {
       localStorage.setItem('selectedDashboardProject', filter.value);
     }
