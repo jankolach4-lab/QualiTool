@@ -2572,6 +2572,8 @@
       filter.appendChild(option);
     });
   }
+  // EXPORT to window
+  try { window.updateExportProjectFilter = updateExportProjectFilter; } catch(_) {}
   // ========== END EXPORT PROJECT FILTER ==========
 
     if (filter) {
