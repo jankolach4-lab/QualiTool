@@ -2549,17 +2549,15 @@
     const filter = document.getElementById('dashboardProjectFilter');
 
   // ========== EXPORT PROJECT FILTER ==========
-  function updateExportProjectFilter() {
+  window.updateExportProjectFilter = function updateExportProjectFilter() {
     const filter = document.getElementById('exportProjectFilter');
-    if (!filter) return; // Element nicht da = Sektion noch nicht geöffnet
+    if (!filter) return;
     
-    // Sammle Städte DIREKT (wie beim CityFilter)
     const cities = new Set();
     contacts.forEach(contact => {
       if (contact.ort) cities.add(contact.ort);
     });
     
-    // Clear and rebuild
     while (filter.options.length > 1) filter.remove(1);
     
     const citiesList = Array.from(cities).sort();
@@ -2569,9 +2567,7 @@
       option.textContent = city;
       filter.appendChild(option);
     });
-  }
-  // EXPORT to window
-  try { window.updateExportProjectFilter = updateExportProjectFilter; } catch(_) {}
+  };
   // ========== END EXPORT PROJECT FILTER ==========
 
     if (filter) {
