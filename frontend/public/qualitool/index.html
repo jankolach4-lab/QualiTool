@@ -2553,13 +2553,20 @@
   // ========== EXPORT PROJECT FILTER ==========
   function updateExportProjectFilter() {
     const filter = document.getElementById('exportProjectFilter');
-    if (!filter) return;
+    if (!filter) {
+      console.warn('[ExportFilter] Element not found');
+      return;
+    }
+    
+    console.log('[ExportFilter] Updating with', contacts.length, 'contacts');
     
     // Collect cities
     const cities = new Set();
     contacts.forEach(contact => {
       if (contact.ort) cities.add(contact.ort);
     });
+    
+    console.log('[ExportFilter] Found', cities.size, 'unique cities:', Array.from(cities));
     
     // Clear and rebuild
     while (filter.options.length > 1) filter.remove(1);
@@ -2571,6 +2578,8 @@
       option.textContent = city;
       filter.appendChild(option);
     });
+    
+    console.log('[ExportFilter] Added', citiesList.length, 'options to dropdown');
   }
   // ========== END EXPORT PROJECT FILTER ==========
 
