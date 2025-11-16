@@ -4834,6 +4834,17 @@
   };
   // ========== END FILTERS ==========
 
+  window.onDashboardProjectChange = function() {
+    const filter = document.getElementById('dashboardProjectFilter');
+    if (filter) {
+      localStorage.setItem('selectedDashboardProject', filter.value);
+    }
+    // Refresh statistics and calendar
+    updateStatistics();
+    if (typeof renderCalendar === 'function') renderCalendar();
+  };
+
+
   function toggleStatistics() {
     const statsDiv = document.getElementById('statusStats');
     const wasHidden = statsDiv.style.display === 'none';
