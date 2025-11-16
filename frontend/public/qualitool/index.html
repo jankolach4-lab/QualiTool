@@ -4576,6 +4576,10 @@
     const statsGrid = document.getElementById('statsGrid');
     if (!statsGrid) return;
 
+    // Get selected project from dashboard filter
+    const dashboardFilter = document.getElementById('dashboardProjectFilter');
+    const selectedProject = dashboardFilter ? dashboardFilter.value : 'all';
+
     // Reset statistics grid
     statsGrid.innerHTML = '';
 
@@ -4599,8 +4603,13 @@
     let totalStatusChanges = 0;
     let totalCompletions = 0;
 
-    // Count statuses and total status changes
+    // Count statuses and total status changes (filtered by project)
     contacts.forEach(contact => {
+      // Apply project filter
+      if (selectedProject !== 'all' && contact.ort !== selectedProject) {
+        return; // Skip this contact
+      }
+      
       const weCount = parseInt(contact.we) || 0;
       totalUnits += weCount;
     
