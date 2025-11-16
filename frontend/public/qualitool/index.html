@@ -2640,6 +2640,7 @@
     
     // Aktualisiere Filter IMMER beim Rendern
     if (typeof updateCityFilter === 'function') updateCityFilter();
+    if (typeof updateDashboardProjectFilter === 'function') updateDashboardProjectFilter();
     updateStreetFilter();
     
     contactsToRender = sortContacts([...contactsToRender]);
