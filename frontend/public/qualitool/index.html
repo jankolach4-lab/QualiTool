@@ -4820,8 +4820,12 @@
     const statsDiv = document.getElementById('statusStats');
     statsDiv.style.display = statsDiv.style.display === 'none' ? 'block' : 'none';
     if (statsDiv.style.display === 'block') {
-      if (typeof updateDashboardProjectFilter === 'function') updateDashboardProjectFilter();
-      updateStatistics();
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        console.log('[toggleStatistics] Calling updateDashboardProjectFilter, cache:', cachedCities);
+        if (typeof updateDashboardProjectFilter === 'function') updateDashboardProjectFilter();
+        updateStatistics();
+      }, 50);
     }
   }
 </script>
