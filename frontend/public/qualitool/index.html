@@ -2509,7 +2509,7 @@
     
 
   // ========== DASHBOARD PROJECT FILTER ==========
-  function updateDashboardProjectFilter() {
+  window.updateDashboardProjectFilter = function updateDashboardProjectFilter() {
     const filter = document.getElementById('dashboardProjectFilter');
     if (!filter) {
       alert('DashboardFilter: Element NICHT gefunden');
@@ -2543,9 +2543,7 @@
     } else {
       filter.value = 'all';
     }
-  }
-  // EXPORT to window
-  try { window.updateDashboardProjectFilter = updateDashboardProjectFilter; } catch(_) {}
+  };
   
   function onDashboardProjectChange() {
     const filter = document.getElementById('dashboardProjectFilter');
