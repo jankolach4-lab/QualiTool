@@ -2517,13 +2517,14 @@
     
     const savedProject = localStorage.getItem('selectedDashboardProject') || 'all';
     
-    // Sammle Städte DIREKT (wie beim CityFilter)
+    // Sammle Städte DIREKT (verwende window.contacts um Scope-Probleme zu vermeiden)
     const cities = new Set();
-    contacts.forEach(contact => {
+    const contactList = window.contacts || contacts || [];
+    contactList.forEach(contact => {
       if (contact.ort) cities.add(contact.ort);
     });
     
-    alert('DashboardFilter: ' + contacts.length + ' Kontakte, ' + cities.size + ' Städte gefunden: ' + Array.from(cities).join(', '));
+    alert('DashboardFilter: ' + contactList.length + ' Kontakte, ' + cities.size + ' Städte gefunden: ' + Array.from(cities).join(', '));
     
     // Clear and rebuild
     while (filter.options.length > 1) filter.remove(1);
@@ -2563,7 +2564,8 @@
     if (!filter) return;
     
     const cities = new Set();
-    contacts.forEach(contact => {
+    const contactList = window.contacts || contacts || [];
+    contactList.forEach(contact => {
       if (contact.ort) cities.add(contact.ort);
     });
     
