@@ -4858,7 +4858,7 @@
     if (wasHidden) {
       // Longer timeout to ensure DOM is ready
       setTimeout(() => {
-        if (window.updateDashboardProjectFilter_NEW) window.updateDashboardProjectFilter_NEW();
+        if (window.updateDashboardProjectFilter) window.updateDashboardProjectFilter();
         updateStatistics();
       }, 200);
     }
