@@ -2567,32 +2567,30 @@
   function updateExportProjectFilter() {
     const filter = document.getElementById('exportProjectFilter');
     if (!filter) {
-      console.warn('[ExportFilter] Element not found');
+      console.warn('[ExportFilter] Element not found - will populate when section opens');
       return;
     }
     
     console.log('[ExportFilter] Updating with', contacts.length, 'contacts');
     
-    // Collect cities
-    const cities = new Set();
-    contacts.forEach(contact => {
-      if (contact.ort) cities.add(contact.ort);
-    });
+    // Use cached cities
+    if (cachedCities.length === 0) {
+      refreshCachedCities();
+    }
     
-    console.log('[ExportFilter] Found', cities.size, 'unique cities:', Array.from(cities));
+    console.log('[ExportFilter] Found', cachedCities.length, 'unique cities:', cachedCities);
     
     // Clear and rebuild
     while (filter.options.length > 1) filter.remove(1);
     
-    const citiesList = Array.from(cities).sort();
-    citiesList.forEach(city => {
+    cachedCities.forEach(city => {
       const option = document.createElement('option');
       option.value = city;
       option.textContent = city;
       filter.appendChild(option);
     });
     
-    console.log('[ExportFilter] Added', citiesList.length, 'options to dropdown');
+    console.log('[ExportFilter] Added', cachedCities.length, 'options to dropdown');
   }
   // ========== END EXPORT PROJECT FILTER ==========
 
