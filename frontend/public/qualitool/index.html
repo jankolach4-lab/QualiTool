@@ -3699,9 +3699,23 @@
   }
 
   async function exportToCSV() {
+    // Get selected project from export filter
+    const exportFilter = document.getElementById('exportProjectFilter');
+    const selectedProject = exportFilter ? exportFilter.value : 'all';
+    
+    // Filter contacts by project
+    const filteredContacts = selectedProject === 'all' 
+      ? contacts 
+      : contacts.filter(contact => contact.ort === selectedProject);
+    
+    if (filteredContacts.length === 0) {
+      alert('Keine Kontakte für das ausgewählte Projekt gefunden.');
+      return;
+    }
+    
     const headers = ['PLZ', 'Ort', 'Strasse', 'Nummer', 'Zusatz', 'WE', 'BewohnerName', 'BewohnerTelefon', 'Status', 'Notizen', 'IstMieter', 'StatusVerlauf'];
     let csvContent = headers.join(',') + '\n';
-    contacts.forEach(contact => {
+    filteredContacts.forEach(contact => {
       if (!contact.residents || contact.residents.length === 0) {
         const row = [contact.plz || '', contact.ort || '', contact.strasse || '', contact.nummer || '', contact.zusatz || '', contact.we || '', '', '', '', '', '', ''].map(field => `"${(field + '').replace(/"/g, '""')}"`);
         csvContent += row.join(',') + '\n';
@@ -3713,7 +3727,7 @@
       }
     });
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const place = (contacts && contacts[0] && contacts[0].ort) ? String(contacts[0].ort).replace(/\s+/g,'-').toLowerCase() : 'ort';
+    const place = selectedProject !== 'all' ? String(selectedProject).replace(/\s+/g,'-').toLowerCase() : ((filteredContacts && filteredContacts[0] && filteredContacts[0].ort) ? String(filteredContacts[0].ort).replace(/\s+/g,'-').toLowerCase() : 'alle-projekte');
     const d = new Date();
     const pad = n => (n<10?('0'+n):n);
     const filename = `qualifizierungen_${place}_${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}.csv`;
