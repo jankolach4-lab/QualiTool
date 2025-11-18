@@ -172,18 +172,21 @@ export default function Dashboard() {
         const residents = (contactItem as any).residents || {}
         const residentList = Object.values(residents || {}) as Resident[]
         residentList.forEach((resident) => {
-          if (resident.status) {
-            projects[project].statusCounts[resident.status] = (projects[project].statusCounts[resident.status] || 0) + 1
+          // Use highest priority status instead of current status
+          const highestStatus = getHighestPriorityStatus(resident)
+          
+          if (highestStatus) {
+            projects[project].statusCounts[highestStatus] = (projects[project].statusCounts[highestStatus] || 0) + 1
             projects[project].weWithStatus++
-            if (resident.status === 'abschluss') projects[project].completions++
+            if (highestStatus === 'abschluss' || highestStatus === 'onlineabschluss') projects[project].completions++
 
-            vps[vpId].statusCounts[resident.status] = (vps[vpId].statusCounts[resident.status] || 0) + 1
+            vps[vpId].statusCounts[highestStatus] = (vps[vpId].statusCounts[highestStatus] || 0) + 1
             vps[vpId].weWithStatus++
-            if (resident.status === 'abschluss') vps[vpId].completions++
+            if (highestStatus === 'abschluss' || highestStatus === 'onlineabschluss') vps[vpId].completions++
 
-            vpSlice.statusCounts[resident.status] = (vpSlice.statusCounts[resident.status] || 0) + 1
+            vpSlice.statusCounts[highestStatus] = (vpSlice.statusCounts[highestStatus] || 0) + 1
             vpSlice.weWithStatus++
-            if (resident.status === 'abschluss') vpSlice.completions++
+            if (highestStatus === 'abschluss' || highestStatus === 'onlineabschluss') vpSlice.completions++
           }
 
           if (resident.statusHistory && Array.isArray(resident.statusHistory)) {
