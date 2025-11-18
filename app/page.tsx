@@ -70,6 +70,66 @@ export default function Dashboard() {
     }
   }
 
+  const getStatusPriority = (status: string): number => {
+    const priorities: { [key: string]: number } = {
+      'abschluss': 12,
+      'onlineabschluss': 11,
+      'abschl-anderer-vp': 10,
+      'beraten': 9,
+      'termin': 8,
+      'wiedervorlage': 7,
+      'kein-eintritt': 6,
+      'kein-interesse': 5,
+      'nicht-vermarktbar': 4,
+      'blacklist': 3,
+      'nicht-angetroffen': 2,
+      'offen': 1,
+      '': 0
+    }
+    return priorities[status] || 0
+  }
+
+  const getHighestPriorityStatus = (resident: Resident): string => {
+    if (!resident?.statusHistory?.length) {
+      return resident?.status || ''
+    }
+
+    // Sort history by date (newest first)
+    const sortedHistory = [...resident.statusHistory].sort((a: any, b: any) => {
+      const aTime = new Date(a.date || a.timestamp).getTime()
+      const bTime = new Date(b.date || b.timestamp).getTime()
+      return bTime - aTime
+    })
+    
+    // Find highest status by normal priority
+    const highestByPriority = resident.statusHistory.reduce((highestStatus: string, entry: any) => {
+      const currentPriority = getStatusPriority(entry.status)
+      const highestPriority = getStatusPriority(highestStatus)
+      return currentPriority > highestPriority ? entry.status : highestStatus
+    }, '')
+    
+    // SPECIAL RULE: "kein-eintritt" or "kein-interesse" AFTER higher prioritized status
+    const newestEntry = sortedHistory[0]
+    const newestStatus = newestEntry?.status
+    
+    // Check if newest status is one of the two special statuses
+    if (newestStatus === 'kein-eintritt' || newestStatus === 'kein-interesse') {
+      // Check if there is an older status with higher priority
+      const hasOlderHigherPriorityStatus = sortedHistory.some((entry: any, index: number) => {
+        if (index === 0) return false // Skip newest status
+        return getStatusPriority(entry.status) > getStatusPriority(newestStatus)
+      })
+      
+      // If yes, then use the newer (special) status
+      if (hasOlderHigherPriorityStatus) {
+        return newestStatus
+      }
+    }
+    
+    // Otherwise normal priority logic
+    return highestByPriority
+  }
+
   const ensureVPSlice = (vp: VPData, projectName: string): VPProjectSlice => {
     if (!vp.perProject) vp.perProject = {}
     if (!vp.perProject[projectName]) {
