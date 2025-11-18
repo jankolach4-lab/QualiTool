@@ -75,7 +75,8 @@ export default function ProjectMap() {
       })
 
       // Filter addresses with completions for this project
-      const completionStatuses = ['abschluss', 'abschluss-vp-anderer', 'online-abschluss', 'ts-abschluss']
+      // Note: Using actual status names from system (without dashes for online/onlineabschluss)
+      const completionStatuses = ['abschluss', 'abschl-anderer-vp', 'onlineabschluss', 'online-abschluss', 'ts-abschluss']
       const addressesToMap: any[] = []
       const debugStats = {
         totalContacts: 0,
