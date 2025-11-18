@@ -448,7 +448,7 @@ export default function ProjectMap() {
         
         // List all residents
         groupedAddresses.forEach((addr, idx) => {
-          const statusColor = (addr.status === 'online-abschluss' || addr.status === 'ts-abschluss') ? '#3b82f6' : '#10b981'
+          const statusColor = (addr.status === 'onlineabschluss' || addr.status === 'online-abschluss' || addr.status === 'ts-abschluss') ? '#3b82f6' : '#10b981'
           popupContent += `
             <div style="margin: 6px 0; padding: 6px; background: #f9fafb; border-radius: 4px; border-left: 3px solid ${statusColor};">
               <div style="font-weight: 600;">Wohnung ${addr.residentKey}</div>
