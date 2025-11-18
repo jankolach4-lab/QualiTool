@@ -382,10 +382,10 @@ export default function ProjectMap() {
       if (coords) {
         // Count by status type
         const greenCount = groupedAddresses.filter(a => 
-          a.status === 'abschluss' || a.status === 'abschluss-vp-anderer'
+          a.status === 'abschluss' || a.status === 'abschl-anderer-vp' || a.status === 'abschluss-vp-anderer'
         ).length
         const blueCount = groupedAddresses.filter(a => 
-          a.status === 'online-abschluss' || a.status === 'ts-abschluss'
+          a.status === 'onlineabschluss' || a.status === 'online-abschluss' || a.status === 'ts-abschluss'
         ).length
         
         // Determine dominant color and size
