@@ -5313,8 +5313,18 @@
   }
   try { window.enqueueFullContactsSnapshot = enqueueFullContactsSnapshot; } catch(_){ }
 
+  // Global sync lock to prevent concurrent operations
+  let _syncInProgress = false;
+  
   // Direkter Sync ohne Queue: Upsert + Events-RPC (2A)
 async function manualDirectSyncNow(){
+  // Prevent concurrent sync operations
+  if (_syncInProgress) {
+    console.warn('[manualDirectSyncNow] ⚠️ Sync already in progress, skipping this call');
+    return false;
+  }
+  
+  _syncInProgress = true;
   const stamp = Date.now();
   try{
     localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'start' }));
