@@ -5270,12 +5270,20 @@
     try{
       const normalized = normalizeContacts(readLocalContactsRaw());
       
-      // 🚨 CRITICAL GUARD: NEVER send empty array to Supabase if data exists
-      // This prevents catastrophic data loss from race conditions
+      // 🚨 IMPROVED GUARD: Check if this is a legitimate empty state vs data loss
       if (!normalized || normalized.length === 0) {
-        console.warn('[enqueueFullContactsSnapshot] ⚠️ BLOCKED: Attempted to sync empty array. This prevents data loss.');
+        console.warn('[enqueueFullContactsSnapshot] ⚠️ Empty contacts array detected');
         console.warn('[enqueueFullContactsSnapshot] Local contacts:', normalized?.length || 0);
         console.warn('[enqueueFullContactsSnapshot] Global contacts:', window.contacts?.length || 0);
+        
+        // Check if we had data before (via LAST_HASH_KEY)
+        let hadDataBefore = false;
+        try {
+          const lastHash = localStorage.getItem(LAST_HASH_KEY);
+          if (lastHash && lastHash !== '[]' && lastHash !== 'null') {
+            hadDataBefore = true;
+          }
+        } catch(_) {}
         
         // If global contacts exists and has data, use it instead
         if (window.contacts && Array.isArray(window.contacts) && window.contacts.length > 0) {
@@ -5286,15 +5294,22 @@
           return;
         }
         
-        // Otherwise, do NOT sync - better to skip than to delete all data
-        console.error('[enqueueFullContactsSnapshot] ❌ SYNC ABORTED: No valid data to sync. Skipping to prevent data loss.');
-        return;
+        // If we had data before and now it's empty, this is SUSPICIOUS - block it
+        if (hadDataBefore) {
+          console.error('[enqueueFullContactsSnapshot] ❌ SYNC BLOCKED: Had data before, now empty - possible corruption. Manual sync required.');
+          return;
+        }
+        
+        // Otherwise: legitimate empty state (new install, user deleted all) - ALLOW sync
+        console.warn('[enqueueFullContactsSnapshot] ⚠️ ALLOWING sync of empty array (no previous data detected)');
       }
       
-      console.log('[enqueueFullContactsSnapshot] ✅ Syncing', normalized.length, 'contacts');
-      enqueue({ type: 'contacts', data: normalized, ts: Date.now(), force: true });
-      try { localStorage.setItem(LAST_HASH_KEY, stableStringify(normalized)); } catch(_){ }
-    }catch(e){ console.warn('Full-Snapshot fehlgeschlagen:', e); }
+      console.log('[enqueueFullContactsSnapshot] ✅ Syncing', normalized?.length || 0, 'contacts');
+      enqueue({ type: 'contacts', data: normalized || [], ts: Date.now(), force: true });
+      try { localStorage.setItem(LAST_HASH_KEY, stableStringify(normalized || [])); } catch(_){ }
+    }catch(e){ 
+      console.error('[enqueueFullContactsSnapshot] ERROR:', e); 
+    }
   }
   try { window.enqueueFullContactsSnapshot = enqueueFullContactsSnapshot; } catch(_){ }
 
