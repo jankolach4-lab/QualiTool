@@ -7051,18 +7051,18 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       }
       
       // Create new contact with coordinates
-      // residents Array bleibt komplett leer - WE müssen manuell hinzugefügt werden
+      // WE standardmäßig 1, kann später angepasst werden
       const newContact = {
         id: Date.now() + Math.random(),
         strasse: addr.strasse,
         nummer: addr.nummer,
         zusatz: addr.zusatz || '',
         plz: addr.plz,
-        ort: addr.ort,
-        we: 0, // Leer - muss manuell eingetragen werden
+        ort: addr.ort || 'Unbekannt', // Fallback if city is missing
+        we: 1, // Standard: 1 WE pro Adresse
         lat: addr.lat,
         lng: addr.lng,
-        residents: [] // Komplett leer - keine Default-Residents
+        residents: [] // Leer - Residents werden manuell hinzugefügt
       };
       
       contacts.push(newContact);
