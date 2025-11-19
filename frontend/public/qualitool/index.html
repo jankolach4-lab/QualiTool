@@ -2397,13 +2397,13 @@
   }
   function saveContacts() {
     localStorage.setItem('contacts', JSON.stringify(contacts));
-    try { window.contacts = contacts; } catch(_) {}
-    try { setLocalContacts(getUserIdFromLocalStorage(), contacts); } catch(_){}
-    try { enqueueFullContactsSnapshot(); } catch(_) {}
-    try { rescanAndEnqueueStatusDiffs(); } catch(_) {}
-    try { flushQueue(); } catch(_) {}
+    try { window.contacts = contacts; } catch(e) { console.error('[saveContacts] window.contacts failed:', e); }
+    try { setLocalContacts(getUserIdFromLocalStorage(), contacts); } catch(e){ console.error('[saveContacts] setLocalContacts failed:', e); }
+    try { enqueueFullContactsSnapshot(); } catch(e) { console.error('[saveContacts] enqueueFullContactsSnapshot failed:', e); }
+    try { rescanAndEnqueueStatusDiffs(); } catch(e) { console.error('[saveContacts] rescanAndEnqueueStatusDiffs failed:', e); }
+    try { flushQueue(); } catch(e) { console.error('[saveContacts] flushQueue failed:', e); }
     // Auto‑Sync nach Änderungen zuverlässig anstoßen (debounced)
-    try { scheduleAutoSync('saveContacts'); } catch(_) {}
+    try { scheduleAutoSync('saveContacts'); } catch(e) { console.error('[saveContacts] scheduleAutoSync failed:', e); }
     
     // Update map if open
     if (typeof window.onContactsChanged === 'function') {
