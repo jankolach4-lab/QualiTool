@@ -5326,11 +5326,20 @@ async function manualDirectSyncNow(){
 
     const snapshot = normalizeContacts(readLocalContactsRaw());
     
-    // 🚨 CRITICAL GUARD: NEVER send empty array to Supabase
+    // 🚨 IMPROVED GUARD: Check if this is a legitimate empty state vs data loss
     if (!snapshot || snapshot.length === 0) {
-      console.warn('[manualDirectSyncNow] ⚠️ BLOCKED: Attempted to sync empty array');
+      console.warn('[manualDirectSyncNow] ⚠️ Empty contacts array detected');
       
-      // Try using global contacts
+      // Check if we had data before
+      let hadDataBefore = false;
+      try {
+        const lastHash = localStorage.getItem(LAST_HASH_KEY);
+        if (lastHash && lastHash !== '[]' && lastHash !== 'null') {
+          hadDataBefore = true;
+        }
+      } catch(_) {}
+      
+      // Try using global contacts first
       if (window.contacts && Array.isArray(window.contacts) && window.contacts.length > 0) {
         console.warn('[manualDirectSyncNow] ✅ Using global contacts array:', window.contacts.length);
         const globalSnapshot = normalizeContacts(window.contacts);
@@ -5346,14 +5355,20 @@ async function manualDirectSyncNow(){
           if (e2) throw e2;
         }
         localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'upsert_ok', count: globalSnapshot.length }));
-        return;
+        return true;
       }
       
-      // No valid data - abort
-      const errorMsg = 'No valid contacts to sync - aborting to prevent data loss';
-      console.error('[manualDirectSyncNow] ❌', errorMsg);
-      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'aborted_empty', error: errorMsg }));
-      throw new Error(errorMsg);
+      // If we had data before and now it's empty, this is SUSPICIOUS
+      if (hadDataBefore) {
+        const errorMsg = 'Had data before, now empty - possible corruption. Please check localStorage or contact support.';
+        console.error('[manualDirectSyncNow] ❌', errorMsg);
+        localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'blocked_suspicious_empty', error: errorMsg, hadDataBefore: true }));
+        throw new Error(errorMsg);
+      }
+      
+      // Otherwise: legitimate empty state (new user, deleted all contacts) - ALLOW sync with warning
+      console.warn('[manualDirectSyncNow] ⚠️ ALLOWING sync of empty array (no previous data detected - new install?)');
+      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: 0, warning: 'empty_allowed' }));
     }
     
     localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: snapshot.length }));
