@@ -6965,10 +6965,17 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
       const strasse = tags['addr:street'] || '';
       const nummer = tags['addr:housenumber'] || '';
       const plz = tags['addr:postcode'] || '';
-      const ort = tags['addr:city'] || '';
+      // Try multiple fields for city/town: addr:city, addr:town, addr:suburb
+      const ort = tags['addr:city'] || tags['addr:town'] || tags['addr:suburb'] || '';
       
       if (!strasse || !nummer) {
+        console.log('[Polygon] Skipping address: missing street or number', { strasse, nummer, tags });
         continue;
+      }
+      
+      // Log if ort is empty for debugging
+      if (!ort) {
+        console.warn('[Polygon] Address has no city:', { strasse, nummer, plz, tags });
       }
       
       // Create unique key to avoid duplicates
