@@ -228,6 +228,28 @@ export default function Dashboard() {
       })
     })
 
+    // Apply manual WE overrides from project_settings (localStorage)
+    Object.keys(projects).forEach(projectName => {
+      try {
+        const manualWEStr = localStorage.getItem(`proj_total_we_${projectName}`)
+        if (manualWEStr) {
+          const manualWE = Number(manualWEStr)
+          if (Number.isFinite(manualWE) && manualWE > 0) {
+            const autoWE = projects[projectName].totalWE
+            // Use the HIGHER value: max(automatic, manual)
+            if (manualWE > autoWE) {
+              console.log(`[Project ${projectName}] Manual WE (${manualWE}) > Auto WE (${autoWE}), using manual`)
+              projects[projectName].totalWE = manualWE
+            } else {
+              console.log(`[Project ${projectName}] Auto WE (${autoWE}) >= Manual WE (${manualWE}), using auto`)
+            }
+          }
+        }
+      } catch (e) {
+        console.warn(`[Project ${projectName}] Error reading manual WE:`, e)
+      }
+    })
+
     setProjectsData(projects)
     setVpsData(vps)
   }
