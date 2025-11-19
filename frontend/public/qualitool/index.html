@@ -7014,13 +7014,19 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
         nummer: hausnummer,
         zusatz: zusatz,
         plz: plz,
-        ort: ort,
+        ort: ort || fallbackCity || '', // Use fallback city if addr:city is missing
         lat: lat,
         lng: lon
       });
     }
     
     console.log('[Polygon] Filtered to', addresses.length, 'unique addresses inside polygon');
+    
+    // Log statistics
+    const withCity = addresses.filter(a => a.ort).length;
+    const withoutCity = addresses.length - withCity;
+    console.log(`[Polygon] City info: ${withCity} with city, ${withoutCity} without (using fallback: ${fallbackCity || 'none'})`);
+    
     return addresses;
   }
   
