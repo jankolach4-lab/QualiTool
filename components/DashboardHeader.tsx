@@ -33,6 +33,15 @@ export default function DashboardHeader({ onRefresh, onDebug, onLogout, timeRang
             <i className="fas fa-draw-polygon"></i>
             Polygontool
           </a>
+          <a
+            className="btn btn-secondary"
+            href="/unifier"
+            aria-label="Adress-Unifier öffnen"
+            title="Adress-Unifier"
+          >
+            <i className="fas fa-table"></i>
+            Adress-Unifier
+          </a>
           <select
             className="select"
             aria-label="Zeitraum"
