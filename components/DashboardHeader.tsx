@@ -36,7 +36,9 @@ export default function DashboardHeader({ onRefresh, onDebug, onLogout, timeRang
           <a
             className="btn btn-secondary"
             href="/unifier"
-            aria-label="Adress-Unifier öffnen"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Adress-Unifier in neuem Tab öffnen"
             title="Adress-Unifier"
           >
             <i className="fas fa-table"></i>
