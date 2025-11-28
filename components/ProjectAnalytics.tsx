@@ -191,6 +191,251 @@ export default function ProjectAnalytics({ project, vpsData, timeRangeDays }: Pr
           </div>
         </div>
       </div>
+
+      {/* Projekt-Forecast Chart - Full Width */}
+      <ProjectForecastChart project={project} />
+    </div>
+  )
+}
+
+// Neue Komponente für Projekt-Forecast
+function ProjectForecastChart({ project }: { project: ProjectData }) {
+  const chartRef = useRef<HTMLCanvasElement>(null)
+  const chartInstanceRef = useRef<any>(null)
+  const [targetQuote, setTargetQuote] = useState<number>(33)
+
+  useEffect(() => {
+    // Load saved target quote
+    const saved = localStorage.getItem(`proj_target_quote_${project.name}`)
+    if (saved) setTargetQuote(Number(saved))
+  }, [project.name])
+
+  useEffect(() => {
+    if (chartInstanceRef.current) {
+      chartInstanceRef.current.destroy()
+    }
+
+    if (typeof window !== 'undefined' && (window as any).Chart && chartRef.current) {
+      createForecastChart()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project, targetQuote])
+
+  const createForecastChart = () => {
+    const Chart = (window as any).Chart
+
+    // Get project dates from localStorage
+    const startDateStr = localStorage.getItem(`proj_start_${project.name}`) || ''
+    const endDateStr = localStorage.getItem(`proj_end_${project.name}`) || ''
+    
+    if (!startDateStr || !endDateStr) {
+      console.warn('[ProjectForecast] No project dates set for', project.name)
+      return
+    }
+
+    const startDate = new Date(startDateStr)
+    const endDate = new Date(endDateStr)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    // Generate all dates from start to end
+    const allDates: Date[] = []
+    const currentDate = new Date(startDate)
+    while (currentDate <= endDate) {
+      allDates.push(new Date(currentDate))
+      currentDate.setDate(currentDate.getDate() + 1)
+    }
+
+    const labels = allDates.map(d => d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }))
+    const totalDays = allDates.length
+    const daysPassed = allDates.filter(d => d <= today).length
+
+    // Calculate total WE
+    const totalWE = project.totalWE || 1
+
+    // 1. Soll-Linie (Linear Target): 0% → targetQuote%
+    const sollData = allDates.map((_, idx) => {
+      const progress = (idx + 1) / totalDays
+      return progress * targetQuote
+    })
+
+    // 2. Tägliche Ist-Quote (Balkendiagramm)
+    const dailyQuoteData: number[] = []
+    let cumulativeCompletions = 0
+    
+    allDates.forEach(date => {
+      const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      const dailyStats = project.dailyStats?.[dateKey]
+      
+      if (dailyStats && dailyStats.completions) {
+        cumulativeCompletions += dailyStats.completions
+      }
+      
+      const currentQuote = (cumulativeCompletions / totalWE) * 100
+      dailyQuoteData.push(date <= today ? currentQuote : null as any)
+    })
+
+    // 3. Forecast-Linie (Hochrechnung)
+    const forecastData: (number | null)[] = []
+    
+    allDates.forEach((date, idx) => {
+      if (date > today) {
+        forecastData.push(null)
+        return
+      }
+
+      // Calculate current completion rate per day
+      const completionsToDate = cumulativeCompletions
+      const daysElapsed = daysPassed
+      
+      if (daysElapsed === 0) {
+        forecastData.push(0)
+        return
+      }
+
+      const avgCompletionsPerDay = completionsToDate / daysElapsed
+      const remainingDays = totalDays - daysElapsed
+      const projectedTotalCompletions = completionsToDate + (avgCompletionsPerDay * remainingDays)
+      const projectedEndQuote = (projectedTotalCompletions / totalWE) * 100
+
+      forecastData.push(projectedEndQuote)
+    })
+
+    const chart = new Chart(chartRef.current, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            type: 'line',
+            label: `Soll-Quote (${targetQuote}% Ziel)`,
+            data: sollData,
+            borderColor: '#10b981',
+            backgroundColor: 'transparent',
+            borderWidth: 3,
+            borderDash: [5, 5],
+            pointRadius: 0,
+            tension: 0
+          },
+          {
+            type: 'line',
+            label: 'Hochrechnung (Forecast)',
+            data: forecastData,
+            borderColor: '#f59e0b',
+            backgroundColor: 'transparent',
+            borderWidth: 3,
+            pointRadius: 2,
+            tension: 0.3
+          },
+          {
+            type: 'bar',
+            label: 'Aktuelle Quote',
+            data: dailyQuoteData,
+            backgroundColor: '#3b82f6',
+            borderColor: '#2563eb',
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              padding: 15,
+              font: { size: 13 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context: any) {
+                let label = context.dataset.label || ''
+                if (label) label += ': '
+                if (context.parsed.y !== null) {
+                  label += context.parsed.y.toFixed(2) + '%'
+                }
+                return label
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            stacked: false,
+            grid: { display: false },
+            ticks: {
+              maxRotation: 45,
+              minRotation: 45,
+              autoSkip: true,
+              maxTicksLimit: 30
+            }
+          },
+          y: {
+            stacked: false,
+            beginAtZero: true,
+            max: Math.max(targetQuote * 1.2, 100),
+            title: {
+              display: true,
+              text: 'Quote (%)'
+            },
+            ticks: {
+              callback: function(value: any) {
+                return value + '%'
+              }
+            }
+          }
+        }
+      }
+    })
+
+    chartInstanceRef.current = chart
+  }
+
+  const handleTargetQuoteChange = (value: string) => {
+    const num = Number(value)
+    if (num > 0 && num <= 100) {
+      setTargetQuote(num)
+      localStorage.setItem(`proj_target_quote_${project.name}`, value)
+    }
+  }
+
+  return (
+    <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', border: '1px solid var(--gray-200)', marginTop: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>
+          📈 Projekt-Forecast & Hochrechnung
+        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Ziel-Quote:</label>
+          <input
+            type="number"
+            min="1"
+            max="100"
+            step="0.1"
+            value={targetQuote}
+            onChange={(e) => handleTargetQuoteChange(e.target.value)}
+            style={{
+              width: '80px',
+              padding: '6px 10px',
+              border: '1px solid var(--gray-300)',
+              borderRadius: '6px',
+              fontSize: '0.875rem'
+            }}
+          />
+          <span style={{ fontSize: '0.875rem' }}>%</span>
+        </div>
+      </div>
+      <div style={{ height: '400px', position: 'relative' }}>
+        <canvas ref={chartRef} style={{ width: '100%', height: '100%' }} />
+      </div>
     </div>
   )
 }
