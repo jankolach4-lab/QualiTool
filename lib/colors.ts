@@ -1,36 +1,36 @@
 // Utilities for consistent status colors across charts
-// Deutlich unterscheidbare Farben mit hohem Kontrast
+// MAXIMAL unterscheidbare Farben - jeder Status eine KOMPLETT andere Farbe
 
 const PRESET: Record<string, string> = {
-  // Abschluss-Status (Grüntöne)
-  'abschluss': 'rgba(22, 163, 74, 0.9)',              // dunkelgrün
-  'onlineabschluss': 'rgba(34, 197, 94, 0.9)',        // hellgrün
-  'abschl-anderer-vp': 'rgba(134, 239, 172, 0.9)',    // mintgrün
+  // Abschluss-Status - leuchtende Grüntöne
+  'abschluss': '#10B981',                    // leuchtend grün
+  'onlineabschluss': '#3B82F6',              // leuchtend blau
+  'abschl-anderer-vp': '#14B8A6',            // türkis/teal
   
-  // Terminbezogen (Blautöne)
-  'termin': 'rgba(37, 99, 235, 0.9)',                 // königsblau
-  'termin-vereinbart': 'rgba(59, 130, 246, 0.9)',     // hellblau
+  // Terminbezogen - Blau/Violett
+  'termin': '#8B5CF6',                       // violett
+  'termin-vereinbart': '#6366F1',            // indigo
   
-  // Wiedervorlage (Violett/Lila)
-  'wiedervorlage': 'rgba(147, 51, 234, 0.9)',         // violett
+  // Wiedervorlage - knalliges Magenta
+  'wiedervorlage': '#EC4899',                // pink/magenta
   
-  // Beratung (Türkis)
-  'beraten': 'rgba(6, 182, 212, 0.9)',                // cyan
-  'in-bearbeitung': 'rgba(20, 184, 166, 0.9)',        // teal
+  // Beratung - Cyan/Aqua
+  'beraten': '#06B6D4',                      // cyan
+  'in-bearbeitung': '#14B8A6',               // teal
   
-  // Ablehnungen (Rottöne)
-  'kein-interesse': 'rgba(239, 68, 68, 0.9)',         // rot
-  'kein-eintritt': 'rgba(220, 38, 38, 0.9)',          // dunkelrot
-  'nicht-vermarktbar': 'rgba(185, 28, 28, 0.9)',      // sehr dunkelrot
-  'blacklist': 'rgba(127, 29, 29, 0.9)',              // fast schwarz-rot
+  // Ablehnungen - Rot/Orange/Braun MIX
+  'kein-interesse': '#FBBF24',               // gelb/gold
+  'kein-eintritt': '#EF4444',                // rot
+  'nicht-vermarktbar': '#7C2D12',            // dunkelbraun
+  'blacklist': '#1F2937',                    // dunkelgrau/schwarz
   
-  // Offen/Nicht erreicht (Gelb/Orange)
-  'offen': 'rgba(250, 204, 21, 0.9)',                 // gelb
-  'nicht-angetroffen': 'rgba(251, 146, 60, 0.9)',     // orange
+  // Offen/Nicht erreicht - Orange/Gelb
+  'offen': '#FCD34D',                        // hellgelb
+  'nicht-angetroffen': '#F97316',            // orange
   
-  // Sonstige (Grautöne und spezielle Farben)
-  'verschoben': 'rgba(107, 114, 128, 0.9)',           // grau
-  'abgelehnt': 'rgba(156, 163, 175, 0.9)',            // hellgrau
+  // Sonstige - komplett andere Farben
+  'verschoben': '#9CA3AF',                   // grau
+  'abgelehnt': '#DC2626',                    // hellrot
 }
 
 function hashCode(str: string): number {
