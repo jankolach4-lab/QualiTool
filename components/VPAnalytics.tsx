@@ -104,8 +104,10 @@ export default function VPAnalytics({ vp, projectName, projectTotalWE, timeRange
                 <tr><td>Anteil WE am Projekt</td><td><strong>{shareWEProject.toFixed(2)}%</strong> (von {projectTotalWE.toLocaleString()})</td></tr>
                 <tr><td>Abschlüsse (aktuell)</td><td><strong>{slice.completions}</strong></td></tr>
                 <tr><td>Anteil Abschlüsse am Projekt</td><td><strong>{shareCompletionsProject.toFixed(2)}%</strong></td></tr>
+                <tr><td>Abschlüsse im eigenen Gebiet</td><td><strong>{shareCompletionsOwnArea.toFixed(2)}%</strong> (von {totalWE} WE)</td></tr>
                 <tr><td>WE mit Status</td><td>{weWithStatus}</td></tr>
                 <tr><td>Statusänderungen (gesamt)</td><td><strong>{slice.totalStatusChanges}</strong></td></tr>
+                <tr><td>Statusänderungen pro Abschluss</td><td><strong>{statusChangesPerCompletion.toFixed(2)}</strong></td></tr>
               </tbody>
             </table>
           </div>
