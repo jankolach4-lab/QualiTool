@@ -38,7 +38,9 @@ export default function VPAnalytics({ vp, projectName, projectTotalWE, timeRange
       chartsRef.current.push(chart)
     }
     if (statusBreakdownRef.current) {
-      const statusData = prepareStatusBreakdownData(); const colors = statusData.labels.map(l=>colorForStatus(String(l)))
+      const statusData = prepareStatusBreakdownData()
+      // Verwende originalLabels für die Farbzuordnung, nicht die Labels mit Prozenten
+      const colors = (statusData.originalLabels || statusData.labels).map(l=>colorForStatus(String(l)))
       const chart = new Chart(statusBreakdownRef.current, { type:'pie', data:{ labels: statusData.labels, datasets:[{ data: statusData.values, backgroundColor: colors, borderWidth:2 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ title:{ display:true, text:'Status-Breakdown' }, legend:{ position:'bottom', labels:{ boxWidth:10 } } } } })
       chartsRef.current.push(chart)
     }
