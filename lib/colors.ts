@@ -42,18 +42,24 @@ function hashCode(str: string): number {
   return Math.abs(h)
 }
 
-// Vordefinierte kontrastreiche Farben für unbekannte Status
+// MAXIMAL kontrastreiche Farben für unbekannte Status
+// Jede Farbe ist KOMPLETT verschieden von den anderen
 const FALLBACK_COLORS = [
-  'rgba(236, 72, 153, 0.9)',    // pink
-  'rgba(168, 85, 247, 0.9)',    // lila
-  'rgba(59, 130, 246, 0.9)',    // blau
-  'rgba(14, 165, 233, 0.9)',    // himmelblau
-  'rgba(34, 197, 94, 0.9)',     // grün
-  'rgba(234, 179, 8, 0.9)',     // gold
-  'rgba(251, 146, 60, 0.9)',    // orange
-  'rgba(239, 68, 68, 0.9)',     // rot
-  'rgba(139, 92, 246, 0.9)',    // violett
-  'rgba(20, 184, 166, 0.9)',    // teal
+  '#EC4899',    // pink
+  '#8B5CF6',    // lila
+  '#3B82F6',    // blau
+  '#06B6D4',    // cyan
+  '#10B981',    // grün
+  '#84CC16',    // lime
+  '#FBBF24',    // gelb
+  '#F97316',    // orange
+  '#EF4444',    // rot
+  '#6366F1',    // indigo
+  '#14B8A6',    // teal
+  '#A855F7',    // violett
+  '#F59E0B',    // amber
+  '#DC2626',    // dunkelrot
+  '#059669',    // smaragd
 ]
 
 export function colorForStatus(status: string): string {
