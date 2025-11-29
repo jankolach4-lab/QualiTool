@@ -53,7 +53,21 @@ export default function VPAnalytics({ vp, projectName, projectTotalWE, timeRange
   const isWithinRange = (dateStr: string) => { const date = new Date(dateStr); const cutoff = new Date(); cutoff.setHours(0,0,0,0); cutoff.setDate(cutoff.getDate() - (timeRangeDays - 1)); return date >= cutoff }
   const prepareDailyCompletionsData = () => { const dailyStats = slice.dailyStats || {}; const sortedDates = Object.keys(dailyStats).sort().filter(isWithinRange); return { labels: sortedDates.map(date => { const d = new Date(date); return `${d.getDate()}.${d.getMonth()+1}` }), completions: sortedDates.map(date => dailyStats[date]?.completions || 0) } }
   const prepareDailyStatusChangesData = () => { const dailyStats = slice.dailyStats || {}; const sortedDates = Object.keys(dailyStats).sort().filter(isWithinRange); return { labels: sortedDates.map(date => { const d = new Date(date); return `${d.getDate()}.${d.getMonth()+1}` }), statusChanges: sortedDates.map(date => dailyStats[date]?.statusChanges || 0) } }
-  const prepareStatusBreakdownData = () => { const statusCounts = slice.statusCounts || {}; const labels = Object.keys(statusCounts); const values = Object.values(statusCounts); return { labels, values } }
+  const prepareStatusBreakdownData = () => { 
+    const statusCounts = slice.statusCounts || {}
+    const labels = Object.keys(statusCounts)
+    const values = Object.values(statusCounts) as number[]
+    const total = values.reduce((sum, v) => sum + v, 0)
+    
+    // Erstelle Labels mit Prozenten für VP-Analytics
+    const labelsWithPercent = labels.map((label, idx) => {
+      const count = values[idx]
+      const percent = total > 0 ? ((count / total) * 100).toFixed(1) : '0.0'
+      return `${label}: ${count} (${percent}%)`
+    })
+    
+    return { labels: labelsWithPercent, values } 
+  }
   const prepareHourlyActivityData = () => { const counts = new Array(24).fill(0); if (slice.events && Array.isArray(slice.events) && slice.events.length > 0) { const day = selectedDay; slice.events.forEach(ev => { if (!day || ev.dateKey === day) { const h = Math.max(0, Math.min(23, (ev.hour||0))); counts[h] += 1 } }) } else if (slice.hourlyStats) { for (let h = 0; h < 24; h++) counts[h] = slice.hourlyStats[h] || 0 } return counts }
 
   const totalWE = slice.totalWE || 0
