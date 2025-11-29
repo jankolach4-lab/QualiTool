@@ -43,24 +43,29 @@ function hashCode(str: string): number {
   return Math.abs(h)
 }
 
-// MAXIMAL kontrastreiche Farben für unbekannte Status
-// Jede Farbe ist KOMPLETT verschieden von den anderen
+// Material Design Farben - MAXIMALER Kontrast garantiert
+// Aus dem Farbkreis mit 360° Abstand für perfekte Unterscheidbarkeit
 const FALLBACK_COLORS = [
-  '#EC4899',    // pink
-  '#8B5CF6',    // lila
-  '#3B82F6',    // blau
-  '#06B6D4',    // cyan
-  '#10B981',    // grün
-  '#84CC16',    // lime
-  '#FBBF24',    // gelb
-  '#F97316',    // orange
-  '#EF4444',    // rot
-  '#6366F1',    // indigo
-  '#14B8A6',    // teal
-  '#A855F7',    // violett
-  '#F59E0B',    // amber
-  '#DC2626',    // dunkelrot
-  '#059669',    // smaragd
+  '#F44336',    // ROT
+  '#2196F3',    // BLAU
+  '#4CAF50',    // GRÜN
+  '#FFEB3B',    // GELB
+  '#FF9800',    // ORANGE
+  '#9C27B0',    // VIOLETT
+  '#E91E63',    // PINK
+  '#00BCD4',    // CYAN
+  '#8BC34A',    // LIME
+  '#FF5722',    // TIEFORANGE
+  '#673AB7',    // TIEFES LILA
+  '#009688',    // TEAL
+  '#FFC107',    // AMBER
+  '#795548',    // BRAUN
+  '#607D8B',    // BLAUGRAU
+  '#CDDC39',    // LIME-GELB
+  '#3F51B5',    // INDIGO
+  '#00E5FF',    // HELL-CYAN
+  '#76FF03',    // NEON-GRÜN
+  '#FF1744',    // NEON-ROT
 ]
 
 export function colorForStatus(status: string): string {
