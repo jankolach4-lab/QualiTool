@@ -1,36 +1,36 @@
 // Utilities for consistent status colors across charts
-// MAXIMALER Kontrast - klassische Farbkreis-Farben mit hoher Sättigung
+// Professionell ausgewählte, maximal kontraststarke Farben
 
 const PRESET: Record<string, string> = {
-  // Abschluss-Status - Primärfarben
-  'abschluss': '#00C853',                    // REINES GRÜN
-  'onlineabschluss': '#2196F3',              // REINES BLAU
-  'abschl-anderer-vp': '#00BCD4',            // CYAN
+  // Abschluss-Status
+  'abschluss': '#3CB44B',                    // starkes Grün
+  'onlineabschluss': '#0082C8',              // sattes Blau
+  'abschl-anderer-vp': '#46F0F0',            // kräftiges Türkis
   
-  // Terminbezogen - Violett/Lila Spektrum
-  'termin': '#9C27B0',                       // VIOLETT
-  'termin-vereinbart': '#673AB7',            // TIEFES LILA
+  // Terminbezogen
+  'termin': '#911EB4',                       // intensives Violett
+  'termin-vereinbart': '#F032E6',            // Pink/Magenta
   
-  // Wiedervorlage - Pink
-  'wiedervorlage': '#E91E63',                // PINK
+  // Wiedervorlage
+  'wiedervorlage': '#F032E6',                // Pink/Magenta
   
-  // Beratung - Türkis/Teal
-  'beraten': '#009688',                      // TEAL
-  'in-bearbeitung': '#4CAF50',               // HELLGRÜN
+  // Beratung
+  'beraten': '#46F0F0',                      // kräftiges Türkis
+  'in-bearbeitung': '#3CB44B',               // starkes Grün
   
-  // Ablehnungen - Komplett verschiedene Farben
-  'kein-interesse': '#FF9800',               // ORANGE
-  'kein-eintritt': '#F44336',                // ROT
-  'nicht-vermarktbar': '#795548',            // BRAUN
-  'blacklist': '#212121',                    // SCHWARZ
+  // Ablehnungen
+  'kein-interesse': '#F58231',               // leuchtendes Orange
+  'kein-eintritt': '#E6194B',                // kräftiges Rot
+  'nicht-vermarktbar': '#9A6324',            // warmes Braun
+  'blacklist': '#800000',                    // dunkles Rotbraun
   
-  // Offen/Nicht erreicht - Gelb/Amber
-  'offen': '#FFEB3B',                        // GELB
-  'nicht-angetroffen': '#FF5722',            // TIEFORANGE/ROT-ORANGE
+  // Offen/Nicht erreicht
+  'offen': '#FFE119',                        // helles Gelb
+  'nicht-angetroffen': '#F58231',            // leuchtendes Orange
   
   // Sonstige
-  'verschoben': '#9E9E9E',                   // GRAU
-  'abgelehnt': '#FF1744',                    // NEON-ROT
+  'verschoben': '#9A6324',                   // warmes Braun
+  'abgelehnt': '#E6194B',                    // kräftiges Rot
 }
 
 function hashCode(str: string): number {
