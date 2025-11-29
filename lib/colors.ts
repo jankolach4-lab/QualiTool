@@ -42,29 +42,18 @@ function hashCode(str: string): number {
   return Math.abs(h)
 }
 
-// Material Design Farben - MAXIMALER Kontrast garantiert
-// Aus dem Farbkreis mit 360° Abstand für perfekte Unterscheidbarkeit
+// Professionell ausgewählte, maximal kontraststarke Fallback-Farben
 const FALLBACK_COLORS = [
-  '#F44336',    // ROT
-  '#2196F3',    // BLAU
-  '#4CAF50',    // GRÜN
-  '#FFEB3B',    // GELB
-  '#FF9800',    // ORANGE
-  '#9C27B0',    // VIOLETT
-  '#E91E63',    // PINK
-  '#00BCD4',    // CYAN
-  '#8BC34A',    // LIME
-  '#FF5722',    // TIEFORANGE
-  '#673AB7',    // TIEFES LILA
-  '#009688',    // TEAL
-  '#FFC107',    // AMBER
-  '#795548',    // BRAUN
-  '#607D8B',    // BLAUGRAU
-  '#CDDC39',    // LIME-GELB
-  '#3F51B5',    // INDIGO
-  '#00E5FF',    // HELL-CYAN
-  '#76FF03',    // NEON-GRÜN
-  '#FF1744',    // NEON-ROT
+  '#E6194B',    // kräftiges Rot
+  '#3CB44B',    // starkes Grün
+  '#0082C8',    // sattes Blau
+  '#F58231',    // leuchtendes Orange
+  '#911EB4',    // intensives Violett
+  '#FFE119',    // helles Gelb
+  '#46F0F0',    // kräftiges Türkis
+  '#F032E6',    // Pink/Magenta
+  '#800000',    // dunkles Rotbraun
+  '#9A6324',    // warmes Braun
 ]
 
 export function colorForStatus(status: string): string {
