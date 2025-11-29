@@ -400,7 +400,16 @@ function ProjectForecastChart({ project }: { project: ProjectData }) {
           y: {
             stacked: false,
             beginAtZero: true,
-            max: Math.max(targetQuote * 1.2, 100),
+            max: (() => {
+              // Finde den höchsten Wert aus allen drei Datenreihen
+              const maxSoll = Math.max(...sollData)
+              const maxDaily = Math.max(...dailyQuoteData.filter((v): v is number => v !== null))
+              const maxForecast = Math.max(...forecastData.filter((v): v is number => v !== null))
+              const overallMax = Math.max(maxSoll, maxDaily, maxForecast, targetQuote)
+              
+              // Y-Achse = höchster Wert + 15
+              return overallMax + 15
+            })(),
             title: {
               display: true,
               text: 'Quote (%)'
