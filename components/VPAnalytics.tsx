@@ -66,7 +66,8 @@ export default function VPAnalytics({ vp, projectName, projectTotalWE, timeRange
       return `${label}: ${count} (${percent}%)`
     })
     
-    return { labels: labelsWithPercent, values } 
+    // Gebe auch die Original-Labels zurück für die Farbzuordnung
+    return { labels: labelsWithPercent, values, originalLabels: labels } 
   }
   const prepareHourlyActivityData = () => { const counts = new Array(24).fill(0); if (slice.events && Array.isArray(slice.events) && slice.events.length > 0) { const day = selectedDay; slice.events.forEach(ev => { if (!day || ev.dateKey === day) { const h = Math.max(0, Math.min(23, (ev.hour||0))); counts[h] += 1 } }) } else if (slice.hourlyStats) { for (let h = 0; h < 24; h++) counts[h] = slice.hourlyStats[h] || 0 } return counts }
 
