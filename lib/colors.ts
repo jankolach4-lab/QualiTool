@@ -31,7 +31,6 @@ const PRESET: Record<string, string> = {
   // Sonstige
   'verschoben': '#9E9E9E',                   // GRAU
   'abgelehnt': '#FF1744',                    // NEON-ROT
-  'beraten': '#00E5FF',                      // HELL-CYAN
 }
 
 function hashCode(str: string): number {
