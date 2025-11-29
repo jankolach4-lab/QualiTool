@@ -275,7 +275,7 @@ function ProjectForecastChart({ project }: { project: ProjectData }) {
       dailyQuoteData.push(date <= today ? currentQuote : null as any)
     })
 
-    // 3. Forecast-Linie (Hochrechnung)
+    // 3. Forecast-Linie (Hochrechnung) - für jeden Tag einzeln berechnen
     const forecastData: (number | null)[] = []
     
     allDates.forEach((date, idx) => {
@@ -284,18 +284,37 @@ function ProjectForecastChart({ project }: { project: ProjectData }) {
         return
       }
 
-      // Calculate current completion rate per day
-      const completionsToDate = cumulativeCompletions
-      const daysElapsed = daysPassed
+      // Berechne Prognose AUS SICHT DIESES TAGES
+      // Summiere alle Abschlüsse BIS zu diesem Tag
+      let completionsUpToThisDay = 0
+      let daysElapsedUpToThisDay = 0
       
-      if (daysElapsed === 0) {
+      for (let i = 0; i <= idx; i++) {
+        const checkDate = allDates[i]
+        if (checkDate > date) break
+        
+        daysElapsedUpToThisDay++
+        const dateKey = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`
+        const stats = project.dailyStats?.[dateKey]
+        
+        if (stats && stats.completions) {
+          completionsUpToThisDay += stats.completions
+        }
+      }
+      
+      if (daysElapsedUpToThisDay === 0) {
         forecastData.push(0)
         return
       }
 
-      const avgCompletionsPerDay = completionsToDate / daysElapsed
-      const remainingDays = totalDays - daysElapsed
-      const projectedTotalCompletions = completionsToDate + (avgCompletionsPerDay * remainingDays)
+      // Durchschnitt pro Tag bis zu diesem Zeitpunkt
+      const avgCompletionsPerDay = completionsUpToThisDay / daysElapsedUpToThisDay
+      
+      // Verbleibende Tage ab diesem Tag bis Projektende
+      const remainingDaysFromThisDay = totalDays - daysElapsedUpToThisDay
+      
+      // Hochrechnung: bisherige Abschlüsse + (Durchschnitt × verbleibende Tage)
+      const projectedTotalCompletions = completionsUpToThisDay + (avgCompletionsPerDay * remainingDaysFromThisDay)
       const projectedEndQuote = (projectedTotalCompletions / totalWE) * 100
 
       forecastData.push(projectedEndQuote)
