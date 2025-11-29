@@ -61,6 +61,10 @@ export default function VPAnalytics({ vp, projectName, projectTotalWE, timeRange
   const weWithoutStatus = totalWE - weWithStatus
   const shareWEProject = projectTotalWE > 0 ? Math.round((totalWE / projectTotalWE) * 10000) / 100 : 0
   const shareCompletionsProject = projectTotalWE > 0 ? Math.round((slice.completions / projectTotalWE) * 10000) / 100 : 0
+  
+  // Neue Metriken
+  const shareCompletionsOwnArea = totalWE > 0 ? Math.round((slice.completions / totalWE) * 10000) / 100 : 0
+  const statusChangesPerCompletion = slice.completions > 0 ? Math.round((slice.totalStatusChanges / slice.completions) * 100) / 100 : 0
 
   return (
     <div className="section">
