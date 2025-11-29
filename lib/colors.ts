@@ -42,9 +42,25 @@ function hashCode(str: string): number {
   return Math.abs(h)
 }
 
+// Vordefinierte kontrastreiche Farben für unbekannte Status
+const FALLBACK_COLORS = [
+  'rgba(236, 72, 153, 0.9)',    // pink
+  'rgba(168, 85, 247, 0.9)',    // lila
+  'rgba(59, 130, 246, 0.9)',    // blau
+  'rgba(14, 165, 233, 0.9)',    // himmelblau
+  'rgba(34, 197, 94, 0.9)',     // grün
+  'rgba(234, 179, 8, 0.9)',     // gold
+  'rgba(251, 146, 60, 0.9)',    // orange
+  'rgba(239, 68, 68, 0.9)',     // rot
+  'rgba(139, 92, 246, 0.9)',    // violett
+  'rgba(20, 184, 166, 0.9)',    // teal
+]
+
 export function colorForStatus(status: string): string {
   const key = (status || '').toLowerCase()
   if (PRESET[key]) return PRESET[key]
-  const hue = hashCode(key) % 360
-  return `hsla(${hue}, 65%, 55%, 0.85)`
+  
+  // Verwende vordefinierte kontrastreiche Farben statt HSL
+  const index = hashCode(key) % FALLBACK_COLORS.length
+  return FALLBACK_COLORS[index]
 }
