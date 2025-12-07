@@ -70,9 +70,9 @@ export default function AddressUnifier() {
     
     reader.onload = function (e) {
       try {
-        const wb = XLSX.read(e.target?.result, { type: 'array' })
+        const wb = XLSX.read(e.target?.result, { type: 'array', raw: true, cellDates: false, cellText: false })
         const ws = wb.Sheets[wb.SheetNames[0]]
-        const json: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+        const json: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true })
         const header = json[0]
         const rows = json.slice(1).filter(r => r.some(c => c !== ''))
 
