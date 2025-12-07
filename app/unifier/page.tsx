@@ -177,10 +177,29 @@ export default function AddressUnifier() {
   }
 
   const handleExport = () => {
-    const ws = XLSX.utils.json_to_sheet(finalData)
+    // Erstelle Worksheet mit expliziter Text-Formatierung
+    const ws = XLSX.utils.json_to_sheet(finalData, { raw: false })
+    
+    // Forciere ALLE Zellen als Text, um automatische Konvertierung zu verhindern
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C })
+        if (!ws[cellAddress]) continue
+        
+        // Setze alle Zellen explizit als Text (type 's')
+        const cellValue = ws[cellAddress].v
+        ws[cellAddress] = {
+          t: 's',  // Type: String
+          v: String(cellValue),  // Wert als String
+          w: String(cellValue)   // Formatted value
+        }
+      }
+    }
+    
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, "Adressen")
-    XLSX.writeFile(wb, "Adressen_bereinigt_final.xlsx")
+    XLSX.writeFile(wb, "Adressen_bereinigt_final.xlsx", { bookType: 'xlsx', cellDates: false })
     alert(`FERTIG! ${finalData.length} Adressen exportiert – alles korrekt erkannt!`)
   }
 
