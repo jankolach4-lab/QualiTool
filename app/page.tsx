@@ -165,12 +165,17 @@ export default function Dashboard() {
 
         vps[vpId].projects.add(project)
         projects[project].vps.add(vpId)
-        projects[project].totalWE += weCount
-        vps[vpId].totalWE += weCount
-        vpSlice.totalWE += weCount
 
         const residents = (contactItem as any).residents || {}
         const residentList = Object.values(residents || {}) as Resident[]
+        
+        // Zähle WE basierend auf tatsächlichen Residents, nicht auf dem we-Feld
+        const actualWECount = residentList.length > 0 ? residentList.length : weCount
+        
+        projects[project].totalWE += actualWECount
+        vps[vpId].totalWE += actualWECount
+        vpSlice.totalWE += actualWECount
+        
         residentList.forEach((resident) => {
           // Use highest priority status instead of current status
           const highestStatus = getHighestPriorityStatus(resident)
