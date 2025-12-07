@@ -251,6 +251,33 @@ export default function Dashboard() {
       })
     })
 
+    // Add projects from project_settings that don't have contacts yet
+    console.log('=== Adding projects from project_settings ===')
+    if (typeof window !== 'undefined') {
+      // Scan localStorage for all project settings
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith('proj_total_we_')) {
+          const projectName = key.replace('proj_total_we_', '')
+          if (!projects[projectName]) {
+            console.log(`[${projectName}] Project has settings but no contacts - creating entry`)
+            projects[projectName] = { 
+              name: projectName, 
+              totalWE: 0, 
+              vps: new Set(), 
+              completions: 0, 
+              statusCounts: {}, 
+              dailyStats: {}, 
+              hourlyStats: {}, 
+              totalStatusChanges: 0, 
+              weWithStatus: 0, 
+              events: [] 
+            }
+          }
+        }
+      }
+    }
+    
     // Apply manual WE overrides from project_settings (localStorage)
     console.log('=== WE Override Check ===')
     Object.keys(projects).forEach(projectName => {
