@@ -36,7 +36,27 @@ export default function Dashboard() {
     } catch (error) { console.error('Auth check failed:', error); setError('Authentifizierung fehlgeschlagen'); return false }
   }
 
-  const logout = async () => { try { const { error } = await supabase.auth.signOut(); if (error) throw error; router.push('/login') } catch (error) { console.error('Logout failed:', error); setError('Fehler beim Abmelden') } }
+  const logout = async () => { 
+    try { 
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error('Supabase signOut error:', error)
+        // Auch bei Fehler zum Login weiterleiten (Session ist wahrscheinlich eh abgelaufen)
+      }
+      // Clear localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.clear()
+      }
+      router.push('/login')
+    } catch (error) { 
+      console.error('Logout failed:', error)
+      // Trotzdem zum Login weiterleiten
+      if (typeof window !== 'undefined') {
+        localStorage.clear()
+      }
+      router.push('/login')
+    } 
+  }
 
   const loadUserDirectory = async () => {
     try { const { data: users, error } = await supabase.from('user_directory').select('user_id, email, display_name'); if (error) throw error; const directory: { [key: string]: UserDirectory } = {}; (users || []).forEach(user => { directory[user.user_id] = user }); setUserDirectory(directory) }
