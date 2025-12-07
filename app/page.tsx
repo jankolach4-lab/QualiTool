@@ -252,26 +252,32 @@ export default function Dashboard() {
     })
 
     // Apply manual WE overrides from project_settings (localStorage)
+    console.log('=== WE Override Check ===')
     Object.keys(projects).forEach(projectName => {
       try {
+        const autoWE = projects[projectName].totalWE
         const manualWEStr = localStorage.getItem(`proj_total_we_${projectName}`)
+        console.log(`[${projectName}] Auto WE: ${autoWE}, Manual localStorage: ${manualWEStr}`)
+        
         if (manualWEStr) {
           const manualWE = Number(manualWEStr)
           if (Number.isFinite(manualWE) && manualWE > 0) {
-            const autoWE = projects[projectName].totalWE
             // Use the HIGHER value: max(automatic, manual)
             if (manualWE > autoWE) {
-              console.log(`[Project ${projectName}] Manual WE (${manualWE}) > Auto WE (${autoWE}), using manual`)
+              console.log(`[${projectName}] ✅ Using MANUAL WE: ${manualWE} (was ${autoWE})`)
               projects[projectName].totalWE = manualWE
             } else {
-              console.log(`[Project ${projectName}] Auto WE (${autoWE}) >= Manual WE (${manualWE}), using auto`)
+              console.log(`[${projectName}] ℹ️ Using AUTO WE: ${autoWE} (manual was ${manualWE})`)
             }
           }
+        } else {
+          console.log(`[${projectName}] ℹ️ No manual WE set, using auto: ${autoWE}`)
         }
       } catch (e) {
-        console.warn(`[Project ${projectName}] Error reading manual WE:`, e)
+        console.warn(`[${projectName}] ❌ Error reading manual WE:`, e)
       }
     })
+    console.log('=== End WE Override Check ===')
 
     setProjectsData(projects)
     setVpsData(vps)
