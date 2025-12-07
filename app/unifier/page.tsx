@@ -177,8 +177,8 @@ export default function AddressUnifier() {
   }
 
   const handleExport = () => {
-    // Erstelle Worksheet mit expliziter Text-Formatierung
-    const ws = XLSX.utils.json_to_sheet(finalData, { raw: false })
+    // Erstelle Worksheet
+    const ws = XLSX.utils.json_to_sheet(finalData)
     
     // Forciere ALLE Zellen als Text, um automatische Konvertierung zu verhindern
     const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
