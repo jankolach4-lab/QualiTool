@@ -171,7 +171,9 @@ export default function Dashboard() {
       contactsArray.forEach(contactItem => {
         const project = (contactItem as any).ort || 'Unbekannt'
         const weRaw = (contactItem as any).we
-        const weCount = (typeof weRaw === 'number' && weRaw > 0) ? weRaw : 1
+        // Parse WE auch wenn es als String gespeichert ist
+        const weParsed = typeof weRaw === 'number' ? weRaw : (typeof weRaw === 'string' ? parseInt(weRaw, 10) : 0)
+        const weCount = (weParsed > 0) ? weParsed : 1
 
         if (!projects[project]) {
           projects[project] = { name: project, totalWE: 0, vps: new Set(), completions: 0, statusCounts: {}, dailyStats: {}, hourlyStats: {}, totalStatusChanges: 0, weWithStatus: 0, events: [] }
