@@ -186,6 +186,11 @@ export default function Dashboard() {
         vps[vpId].projects.add(project)
         projects[project].vps.add(vpId)
 
+        // DEBUG: Log für Neuenstein
+        if (project === 'Neuenstein') {
+          console.log(`[Neuenstein] Adding ${weCount} WE from ${contactItem.strasse} ${contactItem.nummer} (VP: ${vpId})`)
+        }
+
         // Verwende IMMER das we-Feld der Adresse (tatsächliche WE im Gebäude)
         projects[project].totalWE += weCount
         vps[vpId].totalWE += weCount
