@@ -2382,11 +2382,11 @@
     saveContacts();
     renderContacts();
     
-    // Clear flag after 5 seconds (in case sync is delayed)
+    // Clear flag after 15 seconds (guards check for 10s window, so give extra buffer)
     setTimeout(() => {
       localStorage.removeItem('intentional_delete_all');
       localStorage.removeItem('intentional_delete_timestamp');
-    }, 5000);
+    }, 15000);
   }
   function addUnit(contactId) {
     const contact = contacts.find(c => c.id === contactId);
