@@ -5448,14 +5448,17 @@ async function manualDirectSyncNow(){
     localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'events_ok' }));
     try { localStorage.removeItem('qt_last_event_err'); } catch(_){}
     _syncInProgress = false;
+    _syncStartTime = 0;
     return true;
   } catch(err){
     try { localStorage.setItem('qt_last_event_err', JSON.stringify({ t: Date.now(), stage: 'manual_direct_sync', msg: String(err && err.message || err) })); } catch(_){}
     _syncInProgress = false;
+    _syncStartTime = 0;
     return false;
   } finally {
     // Always reset sync flag, even if error occurred above
     _syncInProgress = false;
+    _syncStartTime = 0;
   }
 }
 // Globale Registrierung (überschreibt den Shim nur 1x)
