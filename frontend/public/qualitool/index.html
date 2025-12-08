@@ -5289,6 +5289,18 @@
         console.warn('[enqueueFullContactsSnapshot] Local contacts:', normalized?.length || 0);
         console.warn('[enqueueFullContactsSnapshot] Global contacts:', window.contacts?.length || 0);
         
+        // Check if user intentionally deleted all contacts
+        const intentionalDelete = localStorage.getItem('intentional_delete_all') === 'true';
+        const deleteTimestamp = localStorage.getItem('intentional_delete_timestamp');
+        const isRecentDelete = deleteTimestamp && (Date.now() - parseInt(deleteTimestamp, 10) < 10000); // Within 10 seconds
+        
+        if (intentionalDelete && isRecentDelete) {
+          console.warn('[enqueueFullContactsSnapshot] ✅ Intentional delete detected - ALLOWING empty sync');
+          enqueue({ type: 'contacts', data: [], ts: Date.now(), force: true });
+          try { localStorage.setItem(LAST_HASH_KEY, '[]'); } catch(_){ }
+          return;
+        }
+        
         // Check if we had data before (via LAST_HASH_KEY)
         let hadDataBefore = false;
         try {
