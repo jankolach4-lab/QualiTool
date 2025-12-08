@@ -256,6 +256,14 @@ export default function Dashboard() {
       })
     })
 
+    // DEBUG: Log finale Summen VOR Override
+    console.log('=== FINAL SUMS BEFORE OVERRIDE ===')
+    Object.keys(projects).forEach(projName => {
+      if (projName === 'Neuenstein' || projName === 'Waldenburg') {
+        console.log(`[${projName}] Total WE calculated: ${projects[projName].totalWE}`)
+      }
+    })
+
     // Add projects from project_settings that don't have contacts yet
     console.log('=== Adding projects from project_settings ===')
     if (typeof window !== 'undefined') {
