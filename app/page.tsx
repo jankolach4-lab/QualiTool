@@ -254,7 +254,6 @@ export default function Dashboard() {
     })
 
     // Add projects from project_settings that don't have contacts yet
-    console.log('=== Adding projects from project_settings ===')
     if (typeof window !== 'undefined') {
       // Scan localStorage for all project settings
       for (let i = 0; i < localStorage.length; i++) {
@@ -262,7 +261,6 @@ export default function Dashboard() {
         if (key && key.startsWith('proj_total_we_')) {
           const projectName = key.replace('proj_total_we_', '')
           if (!projects[projectName]) {
-            console.log(`[${projectName}] Project has settings but no contacts - creating entry`)
             projects[projectName] = { 
               name: projectName, 
               totalWE: 0, 
@@ -281,32 +279,24 @@ export default function Dashboard() {
     }
     
     // Apply manual WE overrides from project_settings (localStorage)
-    console.log('=== WE Override Check ===')
     Object.keys(projects).forEach(projectName => {
       try {
         const autoWE = projects[projectName].totalWE
         const manualWEStr = localStorage.getItem(`proj_total_we_${projectName}`)
-        console.log(`[${projectName}] Auto WE: ${autoWE}, Manual localStorage: ${manualWEStr}`)
         
         if (manualWEStr) {
           const manualWE = Number(manualWEStr)
           if (Number.isFinite(manualWE) && manualWE > 0) {
             // Use the HIGHER value: max(automatic, manual)
             if (manualWE > autoWE) {
-              console.log(`[${projectName}] ✅ Using MANUAL WE: ${manualWE} (was ${autoWE})`)
               projects[projectName].totalWE = manualWE
-            } else {
-              console.log(`[${projectName}] ℹ️ Using AUTO WE: ${autoWE} (manual was ${manualWE})`)
             }
           }
-        } else {
-          console.log(`[${projectName}] ℹ️ No manual WE set, using auto: ${autoWE}`)
         }
       } catch (e) {
-        console.warn(`[${projectName}] ❌ Error reading manual WE:`, e)
+        console.warn(`[Project ${projectName}] Error reading manual WE:`, e)
       }
     })
-    console.log('=== End WE Override Check ===')
 
     setProjectsData(projects)
     setVpsData(vps)
