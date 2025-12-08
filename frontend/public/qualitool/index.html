@@ -5340,16 +5340,26 @@
 
   // Global sync lock to prevent concurrent operations
   let _syncInProgress = false;
+  let _syncStartTime = 0;
+  const SYNC_TIMEOUT_MS = 30000; // 30 seconds
   
   // Direkter Sync ohne Queue: Upsert + Events-RPC (2A)
 async function manualDirectSyncNow(){
   // Prevent concurrent sync operations
   if (_syncInProgress) {
-    console.warn('[manualDirectSyncNow] ⚠️ Sync already in progress, skipping this call');
-    return false;
+    const timeSinceStart = Date.now() - _syncStartTime;
+    if (timeSinceStart > SYNC_TIMEOUT_MS) {
+      console.warn('[manualDirectSyncNow] ⚠️ Sync lock timeout - resetting after', timeSinceStart, 'ms');
+      _syncInProgress = false;
+      _syncStartTime = 0;
+    } else {
+      console.warn('[manualDirectSyncNow] ⚠️ Sync already in progress, skipping this call');
+      return false;
+    }
   }
   
   _syncInProgress = true;
+  _syncStartTime = Date.now();
   const stamp = Date.now();
   try{
     localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'start' }));
