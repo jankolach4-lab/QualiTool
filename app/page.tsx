@@ -41,7 +41,6 @@ export default function Dashboard() {
       const { error } = await supabase.auth.signOut()
       if (error) {
         console.error('Supabase signOut error:', error)
-        // Auch bei Fehler zum Login weiterleiten (Session ist wahrscheinlich eh abgelaufen)
       }
       // Clear localStorage
       if (typeof window !== 'undefined') {
@@ -57,6 +56,23 @@ export default function Dashboard() {
       router.push('/login')
     } 
   }
+
+  // Cleanup: Remove old project settings for projects that no longer exist
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && projectsData) {
+      const validProjects = new Set(Object.keys(projectsData))
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith('proj_total_we_')) {
+          const projectName = key.replace('proj_total_we_', '')
+          if (!validProjects.has(projectName)) {
+            console.log(`Removing old project setting: ${projectName}`)
+            localStorage.removeItem(key)
+          }
+        }
+      }
+    }
+  }, [projectsData])
 
   const loadUserDirectory = async () => {
     try { const { data: users, error } = await supabase.from('user_directory').select('user_id, email, display_name'); if (error) throw error; const directory: { [key: string]: UserDirectory } = {}; (users || []).forEach(user => { directory[user.user_id] = user }); setUserDirectory(directory) }
