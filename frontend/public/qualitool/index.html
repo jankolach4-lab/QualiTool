@@ -5365,45 +5365,56 @@ async function manualDirectSyncNow(){
     if (!snapshot || snapshot.length === 0) {
       console.warn('[manualDirectSyncNow] ⚠️ Empty contacts array detected');
       
-      // Check if we had data before
-      let hadDataBefore = false;
-      try {
-        const lastHash = localStorage.getItem(LAST_HASH_KEY);
-        if (lastHash && lastHash !== '[]' && lastHash !== 'null') {
-          hadDataBefore = true;
-        }
-      } catch(_) {}
+      // Check if user intentionally deleted all contacts
+      const intentionalDelete = localStorage.getItem('intentional_delete_all') === 'true';
+      const deleteTimestamp = localStorage.getItem('intentional_delete_timestamp');
+      const isRecentDelete = deleteTimestamp && (Date.now() - parseInt(deleteTimestamp, 10) < 10000); // Within 10 seconds
       
-      // Try using global contacts first
-      if (window.contacts && Array.isArray(window.contacts) && window.contacts.length > 0) {
-        console.warn('[manualDirectSyncNow] ✅ Using global contacts array:', window.contacts.length);
-        const globalSnapshot = normalizeContacts(window.contacts);
-        localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: globalSnapshot.length, source: 'global' }));
+      if (intentionalDelete && isRecentDelete) {
+        console.warn('[manualDirectSyncNow] ✅ Intentional delete detected - ALLOWING empty sync');
+        localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: 0, reason: 'intentional_delete' }));
+        // Continue with empty snapshot - will be synced to Supabase below
+      } else {
+        // Check if we had data before
+        let hadDataBefore = false;
+        try {
+          const lastHash = localStorage.getItem(LAST_HASH_KEY);
+          if (lastHash && lastHash !== '[]' && lastHash !== 'null') {
+            hadDataBefore = true;
+          }
+        } catch(_) {}
         
-        // Continue with global snapshot
-        try{
-          const { error } = await client.rpc('fn_public_upsert_user_contacts', { p_user_id: user.id, p_contacts: globalSnapshot });
-          if (error) throw error;
-        }catch(e1){
-          localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'rpc_upsert_failed', err: String(e1 && e1.message || e1) }));
-          const { error: e2 } = await client.from('user_contacts').upsert({ user_id: user.id, contacts: globalSnapshot }, { onConflict: 'user_id' });
-          if (e2) throw e2;
+        // Try using global contacts first
+        if (window.contacts && Array.isArray(window.contacts) && window.contacts.length > 0) {
+          console.warn('[manualDirectSyncNow] ✅ Using global contacts array:', window.contacts.length);
+          const globalSnapshot = normalizeContacts(window.contacts);
+          localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: globalSnapshot.length, source: 'global' }));
+          
+          // Continue with global snapshot
+          try{
+            const { error } = await client.rpc('fn_public_upsert_user_contacts', { p_user_id: user.id, p_contacts: globalSnapshot });
+            if (error) throw error;
+          }catch(e1){
+            localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'rpc_upsert_failed', err: String(e1 && e1.message || e1) }));
+            const { error: e2 } = await client.from('user_contacts').upsert({ user_id: user.id, contacts: globalSnapshot }, { onConflict: 'user_id' });
+            if (e2) throw e2;
+          }
+          localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'upsert_ok', count: globalSnapshot.length }));
+          return true;
         }
-        localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'upsert_ok', count: globalSnapshot.length }));
-        return true;
+        
+        // If we had data before and now it's empty, this is SUSPICIOUS
+        if (hadDataBefore) {
+          const errorMsg = 'Had data before, now empty - possible corruption. Please check localStorage or contact support.';
+          console.error('[manualDirectSyncNow] ❌', errorMsg);
+          localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'blocked_suspicious_empty', error: errorMsg, hadDataBefore: true }));
+          throw new Error(errorMsg);
+        }
+        
+        // Otherwise: legitimate empty state (new user, deleted all contacts) - ALLOW sync with warning
+        console.warn('[manualDirectSyncNow] ⚠️ ALLOWING sync of empty array (no previous data detected - new install?)');
+        localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: 0, warning: 'empty_allowed' }));
       }
-      
-      // If we had data before and now it's empty, this is SUSPICIOUS
-      if (hadDataBefore) {
-        const errorMsg = 'Had data before, now empty - possible corruption. Please check localStorage or contact support.';
-        console.error('[manualDirectSyncNow] ❌', errorMsg);
-        localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'blocked_suspicious_empty', error: errorMsg, hadDataBefore: true }));
-        throw new Error(errorMsg);
-      }
-      
-      // Otherwise: legitimate empty state (new user, deleted all contacts) - ALLOW sync with warning
-      console.warn('[manualDirectSyncNow] ⚠️ ALLOWING sync of empty array (no previous data detected - new install?)');
-      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: 0, warning: 'empty_allowed' }));
     }
     
     localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: snapshot.length }));
