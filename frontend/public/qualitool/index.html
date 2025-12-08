@@ -2368,12 +2368,25 @@
     renderContacts();
   }
   function deleteAllContacts() {
-    if (confirm('Möchten Sie wirklich alle Adressen löschen?')) {
-      contacts = [];
-      saveContacts();
-      // Filter beibehalten nach Speichern
-      renderContacts();
+    if (!confirm('Möchten Sie wirklich alle Adressen löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
+      return;
     }
+    if (!confirm('ACHTUNG: Dies löscht ALLE Adressen auch aus der Cloud!\n\nWirklich fortfahren?')) {
+      return;
+    }
+    // Set intentional delete flag BEFORE clearing contacts
+    localStorage.setItem('intentional_delete_all', 'true');
+    localStorage.setItem('intentional_delete_timestamp', Date.now().toString());
+    
+    contacts = [];
+    saveContacts();
+    renderContacts();
+    
+    // Clear flag after 5 seconds (in case sync is delayed)
+    setTimeout(() => {
+      localStorage.removeItem('intentional_delete_all');
+      localStorage.removeItem('intentional_delete_timestamp');
+    }, 5000);
   }
   function addUnit(contactId) {
     const contact = contacts.find(c => c.id === contactId);
