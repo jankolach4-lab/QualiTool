@@ -223,6 +223,13 @@ jobs:
           cd android
           chmod +x ./gradlew
 
+      - name: Clear Gradle build cache (ensure fresh APK)
+        run: |
+          cd android
+          ./gradlew clean
+          rm -rf app/build
+          echo "✓ Gradle build cache cleared"
+
       - name: Build Release APK (Signed)
         run: |
           cd android
