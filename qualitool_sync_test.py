@@ -205,7 +205,8 @@ class QualiToolSyncTester:
                     self.log_test("Contact Verification", False, 
                                 f"Test contact NOT found in database. Total contacts: {len(synced_contacts)}")
                     print(f"   Looking for: {test_contact['strasse']} {test_contact['hausnummer']}, {test_contact['ort']}")
-                    print(f"   Found contacts: {[f\"{c.get('strasse', 'N/A')} {c.get('hausnummer', 'N/A')}, {c.get('ort', 'N/A')}\" for c in synced_contacts[:3]]}")
+                    contact_list = [f"{c.get('strasse', 'N/A')} {c.get('hausnummer', 'N/A')}, {c.get('ort', 'N/A')}" for c in synced_contacts[:3]]
+                    print(f"   Found contacts: {contact_list}")
                     return False
             else:
                 self.log_test("Contact Verification", False, "No contacts found in database")
