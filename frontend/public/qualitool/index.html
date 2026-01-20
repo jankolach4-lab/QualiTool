@@ -22,17 +22,8 @@
 
 <body>
 <script>
-  // Früher Redirect zur Login-Seite, falls kein Offline-Flag und kein letzter Nutzer vorhanden.
-  (function(){
-    try {
-      var offlineAllowed = localStorage.getItem('offline_allowed') === 'true';
-      var lastUser = localStorage.getItem('last_user_id');
-      if (!offlineAllowed || !lastUser) {
-        // Falls eine aktive Supabase-Session existiert, leitet login.html ohnehin direkt zurück.
-        window.location.replace('./login.html');
-      }
-    } catch (e) { /* ignore */ }
-  })();
+  // REMOVED: Early redirect was causing infinite loop for new users
+  // The proper auth check is handled by requireAuthOrRedirect() later in the initialization
 </script>
 <!-- HTML structure -->
 <style>
