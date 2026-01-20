@@ -193,6 +193,30 @@ jobs:
           
           echo "✓ build.gradle configured for release signing"
 
+      - name: Set Android version from package.json (AFTER signing config)
+        run: |
+          cd android/app
+          VERSION_NAME=$(node -p "require('../../package.json').version")
+          # Use Unix timestamp with MINUTES for versionCode (always increasing)
+          # Format: YYYYMMDDHHMM (e.g., 202501201945 for Jan 20, 2025, 19:45)
+          VERSION_CODE=$(date +%Y%m%d%H%M)
+          
+          echo "📦 Setting Android version (after signing config):"
+          echo "   versionName: $VERSION_NAME"
+          echo "   versionCode: $VERSION_CODE (includes minutes for unique builds)"
+          
+          # Update build.gradle with version from package.json
+          sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION_NAME\"/" build.gradle
+          
+          echo "✓ build.gradle version updated successfully"
+          echo "   versionCode: $VERSION_CODE"
+          echo "   versionName: $VERSION_NAME"
+          
+          # Verify it worked
+          echo "📋 Verification:"
+          grep -E "versionCode|versionName" build.gradle
+
       - name: Grant execute permission for Gradle
         run: |
           cd android
