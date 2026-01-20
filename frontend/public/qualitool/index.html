@@ -4560,24 +4560,33 @@
         const offlineAllowed = localStorage.getItem('offline_allowed') === 'true';
         const lastUser = localStorage.getItem('last_user_id');
         if (offlineAllowed && lastUser) {
+          console.log('[requireAuthOrRedirect] Offline mode - using cached user:', lastUser);
           return { id: lastUser };
         }
         
-        // Online-Fall: Supabase verfügbar -> Sitzung prüfen
-        if (supa) {
-          const { data: { session } } = await supa.auth.getSession();
-          if (!session) { window.location.href = './login.html'; return null; }
-          return session.user;
+        // Online-Fall: Wait for Supabase to be ready, then check session
+        console.log('[requireAuthOrRedirect] Waiting for Supabase client...');
+        const client = await awaitSupabase();
+        console.log('[requireAuthOrRedirect] Supabase client ready, checking session...');
+        const { data: { session } } = await client.auth.getSession();
+        
+        if (!session) { 
+          console.log('[requireAuthOrRedirect] No session found - redirecting to login');
+          window.location.href = './login.html'; 
+          return null; 
         }
         
-        // Sonst zur Login-Seite leiten
-        window.location.href = './login.html';
-        return null;
+        console.log('[requireAuthOrRedirect] Valid session found for user:', session.user.id);
+        return session.user;
       } catch (e) {
-        console.warn('Auth check failed; redirecting to login unless offline allowed:', e?.message || e);
+        console.warn('[requireAuthOrRedirect] Auth check failed:', e?.message || e);
         const offlineAllowed = localStorage.getItem('offline_allowed') === 'true';
         const lastUser = localStorage.getItem('last_user_id');
-        if (offlineAllowed && lastUser) { return { id: lastUser }; }
+        if (offlineAllowed && lastUser) { 
+          console.log('[requireAuthOrRedirect] Error occurred, but offline mode available');
+          return { id: lastUser }; 
+        }
+        console.log('[requireAuthOrRedirect] No offline mode - redirecting to login');
         window.location.href = './login.html';
         return null;
       }
