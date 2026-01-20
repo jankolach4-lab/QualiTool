@@ -4424,8 +4424,46 @@
   }
   
   // Support both web and Capacitor environments
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
     console.log('[Event] DOMContentLoaded fired');
+    
+    // AUTH CHECK FIRST - redirect to login if not authenticated
+    await (async () => {
+      try {
+        // Check offline mode first
+        const offlineAllowed = localStorage.getItem('offline_allowed') === 'true';
+        const lastUser = localStorage.getItem('last_user_id');
+        
+        if (offlineAllowed && lastUser) {
+          console.log('[Auth Check] Offline mode - user allowed:', lastUser);
+          return; // Continue with app initialization
+        }
+        
+        // Wait for Supabase and check session
+        console.log('[Auth Check] Waiting for Supabase client...');
+        const client = await awaitSupabase();
+        console.log('[Auth Check] Checking session...');
+        const { data: { session } } = await client.auth.getSession();
+        
+        if (!session) {
+          console.log('[Auth Check] No session - redirecting to login');
+          window.location.href = './login.html';
+          return;
+        }
+        
+        console.log('[Auth Check] Session valid - proceeding with initialization');
+      } catch (e) {
+        console.error('[Auth Check] Error:', e);
+        // Check offline mode as fallback
+        const offlineAllowed = localStorage.getItem('offline_allowed') === 'true';
+        const lastUser = localStorage.getItem('last_user_id');
+        
+        if (!offlineAllowed || !lastUser) {
+          console.log('[Auth Check] No offline mode - redirecting to login');
+          window.location.href = './login.html';
+        }
+      }
+    })();
     
     // VERSION CHECK & CACHE CLEAR (prevents update issues)
     const CURRENT_VERSION = '0.4.0';
