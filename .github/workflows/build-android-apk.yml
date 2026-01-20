@@ -80,6 +80,22 @@ jobs:
           test -f build/qualitool/login.html
           grep -qi "<!DOCTYPE html" build/qualitool/index.html || (echo "index.html marker not found" && exit 1)
           grep -q "Login zum Qualifizierungs" build/qualitool/login.html || (echo "login.html marker not found" && exit 1)
+          
+          # CRITICAL: Verify correct version is built
+          EXPECTED_VERSION=$(node -p "require('./package.json').version")
+          BUILT_VERSION=$(grep -oP "CURRENT_VERSION = '\K[^']+" build/qualitool/index.html || echo "NOT_FOUND")
+          
+          echo "📦 Expected version: $EXPECTED_VERSION"
+          echo "📦 Built version: $BUILT_VERSION"
+          
+          if [ "$BUILT_VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "❌ ERROR: Built version mismatch!"
+            echo "   Expected: $EXPECTED_VERSION"
+            echo "   Got: $BUILT_VERSION"
+            exit 1
+          fi
+          
+          echo "✅ Version verification passed: $BUILT_VERSION"
           head -n 5 build/index.html || true
 
       - name: Copy/sync web assets to Android
