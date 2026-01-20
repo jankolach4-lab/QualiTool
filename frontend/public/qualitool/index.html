@@ -4538,20 +4538,11 @@
       link.addEventListener('click', handleLinkInteraction, { passive: false });
     });
   
-    // Supabase Client Init (einmalig; Wiederverwendung wenn vorhanden)
-    let supa = null;
-    try {
-      if (window.supa) {
-        supa = window.supa;
-      } else if (window.supabase && typeof window.supabase.createClient === 'function') {
-        const SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
-        supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
-        window.supa = supa;
-      }
-    } catch (e) {
-      console.warn('Supabase init skipped (offline):', e?.message || e);
-      supa = null;
+    // IMPORTANT: Use the Supabase client configured by login.html
+    // DO NOT create a new client here - it will lose the authenticated session
+    let supa = window.supa || null;
+    if (!supa) {
+      console.warn('[index.html] No Supabase client found - user may need to login');
     }
 
     async function requireAuthOrRedirect(){
