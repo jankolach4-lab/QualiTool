@@ -189,7 +189,7 @@
     // Bereits eingeloggt? Weiterleiten (nur online möglich)
     (async () => { 
       if (!isOnline()) { $('offlineMsg').style.display='block'; return; }
-      const { data: { session } } = await supabase.auth.getSession(); 
+      const { data: { session } } = await supaClient.auth.getSession(); 
       if (session) { window.location.href = './index.html'; } 
     })();
   </script>
