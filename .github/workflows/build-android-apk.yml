@@ -104,6 +104,23 @@ jobs:
           test -f android/app/src/main/assets/public/qualitool/login.html
           grep -q "Login zum Qualifizierungs" android/app/src/main/assets/public/qualitool/login.html || (echo "android assets missing login" && exit 1)
           grep -q "qualitool/index.html" android/app/src/main/assets/public/index.html || (echo "redirect to qualitool not present" && exit 1)
+          
+          # CRITICAL: Verify Android assets have correct version
+          EXPECTED_VERSION=$(node -p "require('./package.json').version")
+          ANDROID_VERSION=$(grep -oP "CURRENT_VERSION = '\K[^']+" android/app/src/main/assets/public/qualitool/index.html || echo "NOT_FOUND")
+          
+          echo "📦 Expected version: $EXPECTED_VERSION"
+          echo "📦 Android assets version: $ANDROID_VERSION"
+          
+          if [ "$ANDROID_VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "❌ ERROR: Android assets have wrong version!"
+            echo "   Expected: $EXPECTED_VERSION"
+            echo "   Got: $ANDROID_VERSION"
+            echo "   This means cap sync failed to copy the correct files!"
+            exit 1
+          fi
+          
+          echo "✅ Android assets verification passed: $ANDROID_VERSION"
           head -n 5 android/app/src/main/assets/public/index.html || true
 
       # Remove previous SaveAs injection step (we avoid native plugin for now)
