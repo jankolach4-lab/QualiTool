@@ -78,7 +78,7 @@
       }catch(e){ return null; }
     }
     const capStore2 = getCapacitorStorage();
-    const supabase = window.supa || window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, storage: capStore2 || undefined, autoRefreshToken: true, detectSessionInUrl: false } });
+    const supaClient = window.supa || window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, storage: capStore2 || undefined, autoRefreshToken: true, detectSessionInUrl: false } });
 
     const $ = (id) => document.getElementById(id);
     const isOnline = () => navigator.onLine;
