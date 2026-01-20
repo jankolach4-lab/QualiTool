@@ -1442,6 +1442,41 @@
   }
 </style>
 
+
+<!-- GLOBAL STORAGE HELPER FUNCTIONS -->
+<script>
+  // These functions must be globally available for sync to work
+  // They are used by saveContacts() and sync functions throughout the app
+  
+  window.storageKey = function(userId){ 
+    return userId ? `contacts:${userId}` : 'contacts'; 
+  };
+  
+  window.getLocalContacts = function(userId){ 
+    try { 
+      return JSON.parse(localStorage.getItem(window.storageKey(userId))||'[]'); 
+    } catch { 
+      return []; 
+    } 
+  };
+  
+  window.setLocalContacts = function(userId, c){ 
+    try {
+      localStorage.setItem(window.storageKey(userId), JSON.stringify(c||[])); 
+      console.log('[setLocalContacts] Saved', c?.length || 0, 'contacts for user', userId);
+    } catch(e) {
+      console.error('[setLocalContacts] Error:', e);
+    }
+  };
+  
+  window.getUserIdFromLocalStorage = function() {
+    return localStorage.getItem('last_user_id');
+  };
+  
+  console.log('[Global] Storage helper functions initialized');
+</script>
+
+
 <!-- HTML structure -->
 <div class="page-layout">
   <nav class="sidebar">
