@@ -128,7 +128,7 @@
         if (!isOnline()) { $('offlineMsg').style.display='block'; setLoading(false); return; }
         const email = $('email').value.trim(); const password = $('password').value;
         if (!email || !password) { showError('Bitte E‑Mail und Passwort eingeben.'); return; }
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supaClient.auth.signInWithPassword({ email, password });
         if (error) throw error;
         await afterAuth();
       } catch(e){ showError(e.message || 'Login fehlgeschlagen'); }
@@ -141,7 +141,7 @@
         if (!isOnline()) { $('offlineMsg').style.display='block'; setLoading(false); return; }
         const email = $('email').value.trim(); const password = $('password').value;
         if (!email || !password) { showError('Bitte E‑Mail und Passwort eingeben.'); return; }
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supaClient.auth.signUp({ email, password });
         if (error) throw error;
         if (data.user && !data.session) {
           alert('Registrierung erfolgreich. Bitte E‑Mail bestätigen und anschließend einloggen.');
@@ -153,7 +153,7 @@
     }
 
     async function afterAuth(){
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supaClient.auth.getUser();
       if (!user) { showError('Kein Nutzer gefunden.'); return; }
 
       // KRITISCH: Stelle sicher, dass User-Zeile existiert (für Auto-Sync/Realtime)
