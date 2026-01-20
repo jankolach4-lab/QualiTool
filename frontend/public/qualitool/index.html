@@ -4580,33 +4580,8 @@
       console.warn('[index.html] No Supabase client found - user may need to login');
     }
 
-    // STORAGE HELPER FUNCTIONS (must match login.html)
-    // Make them globally available
-    window.storageKey = function(userId){ 
-      return userId ? `contacts:${userId}` : 'contacts'; 
-    };
-    
-    window.getLocalContacts = function(userId){ 
-      try { 
-        return JSON.parse(localStorage.getItem(window.storageKey(userId))||'[]'); 
-      } catch { 
-        return []; 
-      } 
-    };
-    
-    window.setLocalContacts = function(userId, c){ 
-      try {
-        localStorage.setItem(window.storageKey(userId), JSON.stringify(c||[])); 
-      } catch(e) {
-        console.error('[setLocalContacts] Error:', e);
-      }
-    };
-    
-    window.getUserIdFromLocalStorage = function() {
-      return localStorage.getItem('last_user_id');
-    };
-    
-    // Also create non-window references for local use
+    // Storage helper functions are defined globally (see <script> block after </style>)
+    // Create local references for convenience
     const storageKey = window.storageKey;
     const getLocalContacts = window.getLocalContacts;
     const setLocalContacts = window.setLocalContacts;
