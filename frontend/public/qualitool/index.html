@@ -4545,6 +4545,32 @@
       console.warn('[index.html] No Supabase client found - user may need to login');
     }
 
+    // STORAGE HELPER FUNCTIONS (must match login.html)
+    function storageKey(userId){ 
+      return userId ? `contacts:${userId}` : 'contacts'; 
+    }
+    
+    function getLocalContacts(userId){ 
+      try { 
+        return JSON.parse(localStorage.getItem(storageKey(userId))||'[]'); 
+      } catch { 
+        return []; 
+      } 
+    }
+    
+    function setLocalContacts(userId, c){ 
+      try {
+        localStorage.setItem(storageKey(userId), JSON.stringify(c||[])); 
+      } catch(e) {
+        console.error('[setLocalContacts] Error:', e);
+      }
+    }
+    
+    function getUserIdFromLocalStorage() {
+      return localStorage.getItem('last_user_id');
+    }
+
+
     async function requireAuthOrRedirect(){
       try {
         // Offline-/No-CDN-Fallback ZUERST prüfen, wenn bereits einmal eingeloggt wurde
