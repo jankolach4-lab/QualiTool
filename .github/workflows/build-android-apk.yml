@@ -49,13 +49,13 @@ jobs:
       - name: Set Android version from package.json
         run: |
           VERSION_NAME=$(node -p "require('./package.json').version")
-          # Use Unix timestamp as versionCode (always increasing, even from very old versions)
-          # Format: YYYYMMDDHH (e.g., 2025012315 for Jan 23, 2025, 15:00)
-          VERSION_CODE=$(date +%Y%m%d%H)
+          # Use Unix timestamp with MINUTES for versionCode (always increasing)
+          # Format: YYYYMMDDHHMM (e.g., 202501201945 for Jan 20, 2025, 19:45)
+          VERSION_CODE=$(date +%Y%m%d%H%M)
           
           echo "📦 Setting Android version:"
           echo "   versionName: $VERSION_NAME"
-          echo "   versionCode: $VERSION_CODE"
+          echo "   versionCode: $VERSION_CODE (includes minutes for unique builds)"
           echo "   (This will work even if old APK has versionCode 1 or no version)"
           
           # Update build.gradle with version from package.json
