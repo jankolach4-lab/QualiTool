@@ -30,6 +30,11 @@ jobs:
           # Ensure Capacitor core is available for CLI operations
           yarn add @capacitor/core@^6 -W || yarn add @capacitor/core@^6
 
+      - name: Clear build cache (ensure fresh build)
+        run: |
+          rm -rf build node_modules/.cache
+          echo "✓ Build cache cleared"
+
       - name: Build web assets
         run: |
           yarn build
