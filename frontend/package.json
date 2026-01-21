@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "version": "0.5.6",
+  "version": "1.0.0",
   "private": true,
   "dependencies": {
     "@capacitor/filesystem": "^6.0.0",
