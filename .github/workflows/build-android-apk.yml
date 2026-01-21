@@ -135,54 +135,13 @@ jobs:
           cp app/release.keystore release.keystore
           echo "✓ Keystore also copied to android/release.keystore"
 
-      - name: Configure build.gradle for Release Signing
-        run: |
-          cd android/app
-          
-          # Backup original build.gradle
-          cp build.gradle build.gradle.bak
-          
-          # Add signing config after android { block
-          awk '
-          /android \{/ {
-            print
-            print "    signingConfigs {"
-            print "        release {"
-            print "            def keystorePropertiesFile = rootProject.file(\"keystore.properties\")"
-            print "            if (keystorePropertiesFile.exists()) {"
-            print "                def keystoreProperties = new Properties()"
-            print "                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))"
-            print "                storeFile file(keystoreProperties[\"storeFile\"])"
-            print "                storePassword keystoreProperties[\"storePassword\"]"
-            print "                keyAlias keystoreProperties[\"keyAlias\"]"
-            print "                keyPassword keystoreProperties[\"keyPassword\"]"
-            print "            }"
-            print "        }"
-            print "    }"
-            next
-          }
-          /buildTypes \{/,/release \{/ {
-            print
-            if (/release \{/) {
-              print "            signingConfig signingConfigs.release"
-            }
-            next
-          }
-          { print }
-          ' build.gradle.bak > build.gradle
-          
-          echo "✓ build.gradle configured for release signing"
-
-      - name: Grant execute permission for Gradle
+      - name: BUILD DEBUG APK (No signing required)
         run: |
           cd android
           chmod +x ./gradlew
-
-      - name: Build Release APK (Signed)
-        run: |
-          cd android
-          ./gradlew assembleRelease
-          echo "✓ Signed Release APK built successfully"
+          ./gradlew assembleDebug
+          echo "✓ Debug APK built successfully"
+          ls -lh app/build/outputs/apk/debug/
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
