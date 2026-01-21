@@ -22,8 +22,17 @@
 
 <body>
 <script>
-  // REMOVED: Early redirect was causing infinite loop for new users
-  // The proper auth check is handled by requireAuthOrRedirect() later in the initialization
+  // Früher Redirect zur Login-Seite, falls kein Offline-Flag und kein letzter Nutzer vorhanden.
+  (function(){
+    try {
+      var offlineAllowed = localStorage.getItem('offline_allowed') === 'true';
+      var lastUser = localStorage.getItem('last_user_id');
+      if (!offlineAllowed || !lastUser) {
+        // Falls eine aktive Supabase-Session existiert, leitet login.html ohnehin direkt zurück.
+        window.location.replace('./login.html');
+      }
+    } catch (e) { /* ignore */ }
+  })();
 </script>
 <!-- HTML structure -->
 <style>
@@ -1442,41 +1451,6 @@
   }
 </style>
 
-
-<!-- GLOBAL STORAGE HELPER FUNCTIONS -->
-<script>
-  // These functions must be globally available for sync to work
-  // They are used by saveContacts() and sync functions throughout the app
-  
-  window.storageKey = function(userId){ 
-    return userId ? `contacts:${userId}` : 'contacts'; 
-  };
-  
-  window.getLocalContacts = function(userId){ 
-    try { 
-      return JSON.parse(localStorage.getItem(window.storageKey(userId))||'[]'); 
-    } catch { 
-      return []; 
-    } 
-  };
-  
-  window.setLocalContacts = function(userId, c){ 
-    try {
-      localStorage.setItem(window.storageKey(userId), JSON.stringify(c||[])); 
-      console.log('[setLocalContacts] Saved', c?.length || 0, 'contacts for user', userId);
-    } catch(e) {
-      console.error('[setLocalContacts] Error:', e);
-    }
-  };
-  
-  window.getUserIdFromLocalStorage = function() {
-    return localStorage.getItem('last_user_id');
-  };
-  
-  console.log('[Global] Storage helper functions initialized');
-</script>
-
-
 <!-- HTML structure -->
 <div class="page-layout">
   <nav class="sidebar">
@@ -2394,25 +2368,12 @@
     renderContacts();
   }
   function deleteAllContacts() {
-    if (!confirm('Möchten Sie wirklich alle Adressen löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
-      return;
+    if (confirm('Möchten Sie wirklich alle Adressen löschen?')) {
+      contacts = [];
+      saveContacts();
+      // Filter beibehalten nach Speichern
+      renderContacts();
     }
-    if (!confirm('ACHTUNG: Dies löscht ALLE Adressen auch aus der Cloud!\n\nWirklich fortfahren?')) {
-      return;
-    }
-    // Set intentional delete flag BEFORE clearing contacts
-    localStorage.setItem('intentional_delete_all', 'true');
-    localStorage.setItem('intentional_delete_timestamp', Date.now().toString());
-    
-    contacts = [];
-    saveContacts();
-    renderContacts();
-    
-    // Clear flag after 15 seconds (guards check for 10s window, so give extra buffer)
-    setTimeout(() => {
-      localStorage.removeItem('intentional_delete_all');
-      localStorage.removeItem('intentional_delete_timestamp');
-    }, 15000);
   }
   function addUnit(contactId) {
     const contact = contacts.find(c => c.id === contactId);
@@ -4463,7 +4424,7 @@
     console.log('[Event] DOMContentLoaded fired');
     
     // VERSION CHECK & CACHE CLEAR (prevents update issues)
-    const CURRENT_VERSION = '1.0.3';
+    const CURRENT_VERSION = '0.4.0';
     const lastVersion = localStorage.getItem('app_version');
     
     if (lastVersion && lastVersion !== CURRENT_VERSION) {
@@ -4573,20 +4534,21 @@
       link.addEventListener('click', handleLinkInteraction, { passive: false });
     });
   
-    // IMPORTANT: Use the Supabase client configured by login.html
-    // DO NOT create a new client here - it will lose the authenticated session
-    let supa = window.supa || null;
-    if (!supa) {
-      console.warn('[index.html] No Supabase client found - user may need to login');
+    // Supabase Client Init (einmalig; Wiederverwendung wenn vorhanden)
+    let supa = null;
+    try {
+      if (window.supa) {
+        supa = window.supa;
+      } else if (window.supabase && typeof window.supabase.createClient === 'function') {
+        const SUPABASE_URL = 'https://whigasnqcvjkilkmbfld.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaWdhc25xY3Zqa2lsa21iZmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQyNDE1OTIsImV4cCI6MjA2OTgxNzU5Mn0.tfUnIP_oWy3N9UM6Ws9mPiKqsGtj8_kIOMW42E298rc';
+        supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
+        window.supa = supa;
+      }
+    } catch (e) {
+      console.warn('Supabase init skipped (offline):', e?.message || e);
+      supa = null;
     }
-
-    // Storage helper functions are defined globally (see <script> block after </style>)
-    // Create local references for convenience
-    const storageKey = window.storageKey;
-    const getLocalContacts = window.getLocalContacts;
-    const setLocalContacts = window.setLocalContacts;
-    const getUserIdFromLocalStorage = window.getUserIdFromLocalStorage;
-
 
     async function requireAuthOrRedirect(){
       try {
@@ -4594,33 +4556,24 @@
         const offlineAllowed = localStorage.getItem('offline_allowed') === 'true';
         const lastUser = localStorage.getItem('last_user_id');
         if (offlineAllowed && lastUser) {
-          console.log('[requireAuthOrRedirect] Offline mode - using cached user:', lastUser);
           return { id: lastUser };
         }
         
-        // Online-Fall: Wait for Supabase to be ready, then check session
-        console.log('[requireAuthOrRedirect] Waiting for Supabase client...');
-        const client = await awaitSupabase();
-        console.log('[requireAuthOrRedirect] Supabase client ready, checking session...');
-        const { data: { session } } = await client.auth.getSession();
-        
-        if (!session) { 
-          console.log('[requireAuthOrRedirect] No session found - redirecting to login');
-          window.location.href = './login.html'; 
-          return null; 
+        // Online-Fall: Supabase verfügbar -> Sitzung prüfen
+        if (supa) {
+          const { data: { session } } = await supa.auth.getSession();
+          if (!session) { window.location.href = './login.html'; return null; }
+          return session.user;
         }
         
-        console.log('[requireAuthOrRedirect] Valid session found for user:', session.user.id);
-        return session.user;
+        // Sonst zur Login-Seite leiten
+        window.location.href = './login.html';
+        return null;
       } catch (e) {
-        console.warn('[requireAuthOrRedirect] Auth check failed:', e?.message || e);
+        console.warn('Auth check failed; redirecting to login unless offline allowed:', e?.message || e);
         const offlineAllowed = localStorage.getItem('offline_allowed') === 'true';
         const lastUser = localStorage.getItem('last_user_id');
-        if (offlineAllowed && lastUser) { 
-          console.log('[requireAuthOrRedirect] Error occurred, but offline mode available');
-          return { id: lastUser }; 
-        }
-        console.log('[requireAuthOrRedirect] No offline mode - redirecting to login');
+        if (offlineAllowed && lastUser) { return { id: lastUser }; }
         window.location.href = './login.html';
         return null;
       }
@@ -5323,18 +5276,6 @@
         console.warn('[enqueueFullContactsSnapshot] Local contacts:', normalized?.length || 0);
         console.warn('[enqueueFullContactsSnapshot] Global contacts:', window.contacts?.length || 0);
         
-        // Check if user intentionally deleted all contacts
-        const intentionalDelete = localStorage.getItem('intentional_delete_all') === 'true';
-        const deleteTimestamp = localStorage.getItem('intentional_delete_timestamp');
-        const isRecentDelete = deleteTimestamp && (Date.now() - parseInt(deleteTimestamp, 10) < 10000); // Within 10 seconds
-        
-        if (intentionalDelete && isRecentDelete) {
-          console.warn('[enqueueFullContactsSnapshot] ✅ Intentional delete detected - ALLOWING empty sync');
-          enqueue({ type: 'contacts', data: [], ts: Date.now(), force: true });
-          try { localStorage.setItem(LAST_HASH_KEY, '[]'); } catch(_){ }
-          return;
-        }
-        
         // Check if we had data before (via LAST_HASH_KEY)
         let hadDataBefore = false;
         try {
@@ -5374,26 +5315,16 @@
 
   // Global sync lock to prevent concurrent operations
   let _syncInProgress = false;
-  let _syncStartTime = 0;
-  const SYNC_TIMEOUT_MS = 30000; // 30 seconds
   
   // Direkter Sync ohne Queue: Upsert + Events-RPC (2A)
 async function manualDirectSyncNow(){
   // Prevent concurrent sync operations
   if (_syncInProgress) {
-    const timeSinceStart = Date.now() - _syncStartTime;
-    if (timeSinceStart > SYNC_TIMEOUT_MS) {
-      console.warn('[manualDirectSyncNow] ⚠️ Sync lock timeout - resetting after', timeSinceStart, 'ms');
-      _syncInProgress = false;
-      _syncStartTime = 0;
-    } else {
-      console.warn('[manualDirectSyncNow] ⚠️ Sync already in progress, skipping this call');
-      return false;
-    }
+    console.warn('[manualDirectSyncNow] ⚠️ Sync already in progress, skipping this call');
+    return false;
   }
   
   _syncInProgress = true;
-  _syncStartTime = Date.now();
   const stamp = Date.now();
   try{
     localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'start' }));
@@ -5409,56 +5340,45 @@ async function manualDirectSyncNow(){
     if (!snapshot || snapshot.length === 0) {
       console.warn('[manualDirectSyncNow] ⚠️ Empty contacts array detected');
       
-      // Check if user intentionally deleted all contacts
-      const intentionalDelete = localStorage.getItem('intentional_delete_all') === 'true';
-      const deleteTimestamp = localStorage.getItem('intentional_delete_timestamp');
-      const isRecentDelete = deleteTimestamp && (Date.now() - parseInt(deleteTimestamp, 10) < 10000); // Within 10 seconds
+      // Check if we had data before
+      let hadDataBefore = false;
+      try {
+        const lastHash = localStorage.getItem(LAST_HASH_KEY);
+        if (lastHash && lastHash !== '[]' && lastHash !== 'null') {
+          hadDataBefore = true;
+        }
+      } catch(_) {}
       
-      if (intentionalDelete && isRecentDelete) {
-        console.warn('[manualDirectSyncNow] ✅ Intentional delete detected - ALLOWING empty sync');
-        localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: 0, reason: 'intentional_delete' }));
-        // Continue with empty snapshot - will be synced to Supabase below
-      } else {
-        // Check if we had data before
-        let hadDataBefore = false;
-        try {
-          const lastHash = localStorage.getItem(LAST_HASH_KEY);
-          if (lastHash && lastHash !== '[]' && lastHash !== 'null') {
-            hadDataBefore = true;
-          }
-        } catch(_) {}
+      // Try using global contacts first
+      if (window.contacts && Array.isArray(window.contacts) && window.contacts.length > 0) {
+        console.warn('[manualDirectSyncNow] ✅ Using global contacts array:', window.contacts.length);
+        const globalSnapshot = normalizeContacts(window.contacts);
+        localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: globalSnapshot.length, source: 'global' }));
         
-        // Try using global contacts first
-        if (window.contacts && Array.isArray(window.contacts) && window.contacts.length > 0) {
-          console.warn('[manualDirectSyncNow] ✅ Using global contacts array:', window.contacts.length);
-          const globalSnapshot = normalizeContacts(window.contacts);
-          localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: globalSnapshot.length, source: 'global' }));
-          
-          // Continue with global snapshot
-          try{
-            const { error } = await client.rpc('fn_public_upsert_user_contacts', { p_user_id: user.id, p_contacts: globalSnapshot });
-            if (error) throw error;
-          }catch(e1){
-            localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'rpc_upsert_failed', err: String(e1 && e1.message || e1) }));
-            const { error: e2 } = await client.from('user_contacts').upsert({ user_id: user.id, contacts: globalSnapshot }, { onConflict: 'user_id' });
-            if (e2) throw e2;
-          }
-          localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'upsert_ok', count: globalSnapshot.length }));
-          return true;
+        // Continue with global snapshot
+        try{
+          const { error } = await client.rpc('fn_public_upsert_user_contacts', { p_user_id: user.id, p_contacts: globalSnapshot });
+          if (error) throw error;
+        }catch(e1){
+          localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'rpc_upsert_failed', err: String(e1 && e1.message || e1) }));
+          const { error: e2 } = await client.from('user_contacts').upsert({ user_id: user.id, contacts: globalSnapshot }, { onConflict: 'user_id' });
+          if (e2) throw e2;
         }
-        
-        // If we had data before and now it's empty, this is SUSPICIOUS
-        if (hadDataBefore) {
-          const errorMsg = 'Had data before, now empty - possible corruption. Please check localStorage or contact support.';
-          console.error('[manualDirectSyncNow] ❌', errorMsg);
-          localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'blocked_suspicious_empty', error: errorMsg, hadDataBefore: true }));
-          throw new Error(errorMsg);
-        }
-        
-        // Otherwise: legitimate empty state (new user, deleted all contacts) - ALLOW sync with warning
-        console.warn('[manualDirectSyncNow] ⚠️ ALLOWING sync of empty array (no previous data detected - new install?)');
-        localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: 0, warning: 'empty_allowed' }));
+        localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'upsert_ok', count: globalSnapshot.length }));
+        return true;
       }
+      
+      // If we had data before and now it's empty, this is SUSPICIOUS
+      if (hadDataBefore) {
+        const errorMsg = 'Had data before, now empty - possible corruption. Please check localStorage or contact support.';
+        console.error('[manualDirectSyncNow] ❌', errorMsg);
+        localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'blocked_suspicious_empty', error: errorMsg, hadDataBefore: true }));
+        throw new Error(errorMsg);
+      }
+      
+      // Otherwise: legitimate empty state (new user, deleted all contacts) - ALLOW sync with warning
+      console.warn('[manualDirectSyncNow] ⚠️ ALLOWING sync of empty array (no previous data detected - new install?)');
+      localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: 0, warning: 'empty_allowed' }));
     }
     
     localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'snapshot_ready', count: snapshot.length }));
@@ -5482,17 +5402,14 @@ async function manualDirectSyncNow(){
     localStorage.setItem('qt_last_sync_try', JSON.stringify({ t: stamp, stage: 'events_ok' }));
     try { localStorage.removeItem('qt_last_event_err'); } catch(_){}
     _syncInProgress = false;
-    _syncStartTime = 0;
     return true;
   } catch(err){
     try { localStorage.setItem('qt_last_event_err', JSON.stringify({ t: Date.now(), stage: 'manual_direct_sync', msg: String(err && err.message || err) })); } catch(_){}
     _syncInProgress = false;
-    _syncStartTime = 0;
     return false;
   } finally {
     // Always reset sync flag, even if error occurred above
     _syncInProgress = false;
-    _syncStartTime = 0;
   }
 }
 // Globale Registrierung (überschreibt den Shim nur 1x)
@@ -7285,7 +7202,7 @@ try { window.__mdsn_impl = manualDirectSyncNow; window.manualDirectSyncNow = man
   const UPDATE_CONFIG = {
     githubOwner: 'jankolach4-lab',
     githubRepo: 'QualiTool',
-    currentVersion: '0.4.3', // In-App Update Fix + Polygon-Import + Sync-Verbesserungen + Admin-Dashboard WE-Fix
+    currentVersion: '0.4.2', // Polygon-Import Fixes + Sync-Verbesserungen + Admin-Dashboard WE-Fix
     autoCheckEnabled: localStorage.getItem('autoUpdateCheck') === 'true'
   };
 
