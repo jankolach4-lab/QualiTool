@@ -158,9 +158,10 @@ jobs:
       - name: Configure build.gradle for Release Signing AND Version
         run: |
           # Use Python script for clean, reliable modification
-          python3 .github/scripts/configure_buildgradle.py \
-            frontend/package.json \
-            frontend/android/app/build.gradle
+          # Note: Script is in repo root .github/scripts/, we're in frontend/ working dir
+          python3 ../.github/scripts/configure_buildgradle.py \
+            package.json \
+            android/app/build.gradle
           
           echo "✓ build.gradle configured via Python script"
 
