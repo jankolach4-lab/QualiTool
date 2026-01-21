@@ -60,6 +60,24 @@ jobs:
           grep -q "qualitool/index.html" android/app/src/main/assets/public/index.html || (echo "redirect to qualitool not present" && exit 1)
           head -n 5 android/app/src/main/assets/public/index.html || true
 
+      - name: Set Android version AFTER cap sync
+        run: |
+          VERSION_NAME=$(node -p "require('./package.json').version")
+          VERSION_CODE=$(date +%Y%m%d%H%M)
+          
+          echo "📦 Setting version in build.gradle:"
+          echo "   versionCode: $VERSION_CODE"
+          echo "   versionName: $VERSION_NAME"
+          
+          cd android/app
+          
+          # Use perl for in-place editing (more reliable than sed)
+          perl -i -pe "s/versionCode\s+\d+/versionCode $VERSION_CODE/" build.gradle
+          perl -i -pe "s/versionName\\s+\"[^\"]*\"/versionName \"$VERSION_NAME\"/" build.gradle
+          
+          echo "✅ Version set"
+          grep -E "versionCode|versionName" build.gradle
+
       # Remove previous SaveAs injection step (we avoid native plugin for now)
       - name: Patch AndroidManifest for permissions (Storage + Location)
         run: |
