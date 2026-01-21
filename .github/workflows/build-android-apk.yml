@@ -171,24 +171,29 @@ jobs:
           sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" build.gradle
           sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION_NAME\"/" build.gradle
           
-          # Now add signing configuration
+          # Now add signing configuration using a temp file
           # Check if signingConfigs already exists
           if ! grep -q "signingConfigs {" build.gradle; then
-            # Add signingConfigs block after 'android {' line
-            sed -i '/android {/a\
-    signingConfigs {\
-        release {\
-            def keystorePropertiesFile = rootProject.file("keystore.properties")\
-            if (keystorePropertiesFile.exists()) {\
-                def keystoreProperties = new Properties()\
-                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))\
-                storeFile file(keystoreProperties["storeFile"])\
-                storePassword keystoreProperties["storePassword"]\
-                keyAlias keystoreProperties["keyAlias"]\
-                keyPassword keystoreProperties["keyPassword"]\
-            }\
-        }\
-    }' build.gradle
+            # Create the signing config block
+            cat > signing_config.txt << 'SIGNINGEOF'
+    signingConfigs {
+        release {
+            def keystorePropertiesFile = rootProject.file("keystore.properties")
+            if (keystorePropertiesFile.exists()) {
+                def keystoreProperties = new Properties()
+                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+                storeFile file(keystoreProperties["storeFile"])
+                storePassword keystoreProperties["storePassword"]
+                keyAlias keystoreProperties["keyAlias"]
+                keyPassword keystoreProperties["keyPassword"]
+            }
+        }
+    }
+SIGNINGEOF
+            
+            # Insert after 'android {' line
+            sed -i '/android {/r signing_config.txt' build.gradle
+            rm signing_config.txt
           fi
           
           # Add signingConfig to release buildType if not present
