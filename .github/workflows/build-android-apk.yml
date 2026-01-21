@@ -155,67 +155,53 @@ jobs:
           cp app/release.keystore release.keystore
           echo "✓ Keystore also copied to android/release.keystore"
 
-      - name: Configure build.gradle for Release Signing
+      - name: Configure build.gradle for Release Signing AND Version
         run: |
           cd android/app
           
-          # Backup original build.gradle
-          cp build.gradle build.gradle.bak
-          
-          # Add signing config after android { block
-          awk '
-          /android \{/ {
-            print
-            print "    signingConfigs {"
-            print "        release {"
-            print "            def keystorePropertiesFile = rootProject.file(\"keystore.properties\")"
-            print "            if (keystorePropertiesFile.exists()) {"
-            print "                def keystoreProperties = new Properties()"
-            print "                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))"
-            print "                storeFile file(keystoreProperties[\"storeFile\"])"
-            print "                storePassword keystoreProperties[\"storePassword\"]"
-            print "                keyAlias keystoreProperties[\"keyAlias\"]"
-            print "                keyPassword keystoreProperties[\"keyPassword\"]"
-            print "            }"
-            print "        }"
-            print "    }"
-            next
-          }
-          /buildTypes \{/,/release \{/ {
-            print
-            if (/release \{/) {
-              print "            signingConfig signingConfigs.release"
-            }
-            next
-          }
-          { print }
-          ' build.gradle.bak > build.gradle
-          
-          echo "✓ build.gradle configured for release signing"
-
-      - name: Set Android version from package.json (AFTER signing config)
-        run: |
-          cd android/app
+          # Get version info
           VERSION_NAME=$(node -p "require('../../package.json').version")
-          # Use Unix timestamp with MINUTES for versionCode (always increasing)
-          # Format: YYYYMMDDHHMM (e.g., 202501201945 for Jan 20, 2025, 19:45)
           VERSION_CODE=$(date +%Y%m%d%H%M)
           
-          echo "📦 Setting Android version (after signing config):"
+          echo "📦 Configuring build.gradle with:"
           echo "   versionName: $VERSION_NAME"
-          echo "   versionCode: $VERSION_CODE (includes minutes for unique builds)"
+          echo "   versionCode: $VERSION_CODE"
           
-          # Update build.gradle with version from package.json
+          # First, set the version (replace existing values)
           sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" build.gradle
           sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION_NAME\"/" build.gradle
           
-          echo "✓ build.gradle version updated successfully"
-          echo "   versionCode: $VERSION_CODE"
-          echo "   versionName: $VERSION_NAME"
+          # Now add signing configuration
+          # Check if signingConfigs already exists
+          if ! grep -q "signingConfigs {" build.gradle; then
+            # Add signingConfigs block after 'android {' line
+            sed -i '/android {/a\
+    signingConfigs {\
+        release {\
+            def keystorePropertiesFile = rootProject.file("keystore.properties")\
+            if (keystorePropertiesFile.exists()) {\
+                def keystoreProperties = new Properties()\
+                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))\
+                storeFile file(keystoreProperties["storeFile"])\
+                storePassword keystoreProperties["storePassword"]\
+                keyAlias keystoreProperties["keyAlias"]\
+                keyPassword keystoreProperties["keyPassword"]\
+            }\
+        }\
+    }' build.gradle
+          fi
           
-          # Verify it worked
+          # Add signingConfig to release buildType if not present
+          if ! grep -q "signingConfig signingConfigs.release" build.gradle; then
+            sed -i '/release {/a\            signingConfig signingConfigs.release' build.gradle
+          fi
+          
+          echo "✓ build.gradle configured successfully"
+          
+          # Verify version was set
           echo "📋 Verification:"
-          grep -E "versionCode|versionName" build.gradle
+          grep -E "versionCode|versionName" build.gradle || echo "⚠ WARNING: Version not found!"
+          grep -A2 "signingConfigs" build.gradle | head -5 || echo "⚠ WARNING: Signing config not found!"
 
       - name: Grant execute permission for Gradle
         run: |
