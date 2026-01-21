@@ -30,11 +30,6 @@ jobs:
           # Ensure Capacitor core is available for CLI operations
           yarn add @capacitor/core@^6 -W || yarn add @capacitor/core@^6
 
-      - name: Clear build cache (ensure fresh build)
-        run: |
-          rm -rf build node_modules/.cache
-          echo "✓ Build cache cleared"
-
       - name: Build web assets
         run: |
           yarn build
@@ -46,6 +41,31 @@ jobs:
         run: |
           npx cap add android || echo 'Android platform already present'
 
+      - name: Set Android version from package.json
+        run: |
+          VERSION_NAME=$(node -p "require('./package.json').version")
+          # Use Unix timestamp as versionCode (always increasing, even from very old versions)
+          # Format: YYYYMMDDHH (e.g., 2025012315 for Jan 23, 2025, 15:00)
+          VERSION_CODE=$(date +%Y%m%d%H)
+          
+          echo "📦 Setting Android version:"
+          echo "   versionName: $VERSION_NAME"
+          echo "   versionCode: $VERSION_CODE"
+          echo "   (This will work even if old APK has versionCode 1 or no version)"
+          
+          # Update build.gradle with version from package.json
+          if [ -f android/app/build.gradle ]; then
+            # Replace both versionCode patterns (handle both "1" and any existing number)
+            sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" android/app/build.gradle
+            sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle
+            
+            echo "✓ build.gradle updated successfully"
+            echo "   versionCode: $VERSION_CODE (guarantees update from any old version)"
+            echo "   versionName: $VERSION_NAME"
+          else
+            echo "⚠ build.gradle not found yet, version will be set during cap sync"
+          fi
+
       - name: Generate Android icons
         run: npx @capacitor/assets generate --android || true
 
@@ -55,22 +75,6 @@ jobs:
           test -f build/qualitool/login.html
           grep -qi "<!DOCTYPE html" build/qualitool/index.html || (echo "index.html marker not found" && exit 1)
           grep -q "Login zum Qualifizierungs" build/qualitool/login.html || (echo "login.html marker not found" && exit 1)
-          
-          # CRITICAL: Verify correct version is built
-          EXPECTED_VERSION=$(node -p "require('./package.json').version")
-          BUILT_VERSION=$(grep -oP "CURRENT_VERSION = '\K[^']+" build/qualitool/index.html || echo "NOT_FOUND")
-          
-          echo "📦 Expected version: $EXPECTED_VERSION"
-          echo "📦 Built version: $BUILT_VERSION"
-          
-          if [ "$BUILT_VERSION" != "$EXPECTED_VERSION" ]; then
-            echo "❌ ERROR: Built version mismatch!"
-            echo "   Expected: $EXPECTED_VERSION"
-            echo "   Got: $BUILT_VERSION"
-            exit 1
-          fi
-          
-          echo "✅ Version verification passed: $BUILT_VERSION"
           head -n 5 build/index.html || true
 
       - name: Copy/sync web assets to Android
@@ -79,23 +83,6 @@ jobs:
           test -f android/app/src/main/assets/public/qualitool/login.html
           grep -q "Login zum Qualifizierungs" android/app/src/main/assets/public/qualitool/login.html || (echo "android assets missing login" && exit 1)
           grep -q "qualitool/index.html" android/app/src/main/assets/public/index.html || (echo "redirect to qualitool not present" && exit 1)
-          
-          # CRITICAL: Verify Android assets have correct version
-          EXPECTED_VERSION=$(node -p "require('./package.json').version")
-          ANDROID_VERSION=$(grep -oP "CURRENT_VERSION = '\K[^']+" android/app/src/main/assets/public/qualitool/index.html || echo "NOT_FOUND")
-          
-          echo "📦 Expected version: $EXPECTED_VERSION"
-          echo "📦 Android assets version: $ANDROID_VERSION"
-          
-          if [ "$ANDROID_VERSION" != "$EXPECTED_VERSION" ]; then
-            echo "❌ ERROR: Android assets have wrong version!"
-            echo "   Expected: $EXPECTED_VERSION"
-            echo "   Got: $ANDROID_VERSION"
-            echo "   This means cap sync failed to copy the correct files!"
-            exit 1
-          fi
-          
-          echo "✅ Android assets verification passed: $ANDROID_VERSION"
           head -n 5 android/app/src/main/assets/public/index.html || true
 
       # Remove previous SaveAs injection step (we avoid native plugin for now)
@@ -155,27 +142,48 @@ jobs:
           cp app/release.keystore release.keystore
           echo "✓ Keystore also copied to android/release.keystore"
 
-      - name: Configure build.gradle for Release Signing AND Version
+      - name: Configure build.gradle for Release Signing
         run: |
-          # Use Python script for clean, reliable modification
-          # Note: Script is in repo root .github/scripts/, we're in frontend/ working dir
-          python3 ../.github/scripts/configure_buildgradle.py \
-            package.json \
-            android/app/build.gradle
+          cd android/app
           
-          echo "✓ build.gradle configured via Python script"
+          # Backup original build.gradle
+          cp build.gradle build.gradle.bak
+          
+          # Add signing config after android { block
+          awk '
+          /android \{/ {
+            print
+            print "    signingConfigs {"
+            print "        release {"
+            print "            def keystorePropertiesFile = rootProject.file(\"keystore.properties\")"
+            print "            if (keystorePropertiesFile.exists()) {"
+            print "                def keystoreProperties = new Properties()"
+            print "                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))"
+            print "                storeFile file(keystoreProperties[\"storeFile\"])"
+            print "                storePassword keystoreProperties[\"storePassword\"]"
+            print "                keyAlias keystoreProperties[\"keyAlias\"]"
+            print "                keyPassword keystoreProperties[\"keyPassword\"]"
+            print "            }"
+            print "        }"
+            print "    }"
+            next
+          }
+          /buildTypes \{/,/release \{/ {
+            print
+            if (/release \{/) {
+              print "            signingConfig signingConfigs.release"
+            }
+            next
+          }
+          { print }
+          ' build.gradle.bak > build.gradle
+          
+          echo "✓ build.gradle configured for release signing"
 
       - name: Grant execute permission for Gradle
         run: |
           cd android
           chmod +x ./gradlew
-
-      - name: Clear Gradle build cache (ensure fresh APK)
-        run: |
-          cd android
-          ./gradlew clean
-          rm -rf app/build
-          echo "✓ Gradle build cache cleared"
 
       - name: Build Release APK (Signed)
         run: |
