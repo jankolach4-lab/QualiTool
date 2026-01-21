@@ -46,7 +46,7 @@ jobs:
           VERSION_NAME=$(node -p "require('./package.json').version")
           # Use Unix timestamp as versionCode (always increasing, even from very old versions)
           # Format: YYYYMMDDHH (e.g., 2025012315 for Jan 23, 2025, 15:00)
-          VERSION_CODE=$(date +%Y%m%d%H)
+          VERSION_CODE=$(date +%Y%m%d%H%M)
           
           echo "📦 Setting Android version:"
           echo "   versionName: $VERSION_NAME"
