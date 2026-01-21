@@ -41,6 +41,31 @@ jobs:
         run: |
           npx cap add android || echo 'Android platform already present'
 
+      - name: Set Android version from package.json
+        run: |
+          VERSION_NAME=$(node -p "require('./package.json').version")
+          # Use Unix timestamp as versionCode (always increasing, even from very old versions)
+          # Format: YYYYMMDDHH (e.g., 2025012315 for Jan 23, 2025, 15:00)
+          VERSION_CODE=$(date +%Y%m%d%H)
+          
+          echo "📦 Setting Android version:"
+          echo "   versionName: $VERSION_NAME"
+          echo "   versionCode: $VERSION_CODE"
+          echo "   (This will work even if old APK has versionCode 1 or no version)"
+          
+          # Update build.gradle with version from package.json
+          if [ -f android/app/build.gradle ]; then
+            # Replace both versionCode patterns (handle both "1" and any existing number)
+            sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" android/app/build.gradle
+            sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle
+            
+            echo "✓ build.gradle updated successfully"
+            echo "   versionCode: $VERSION_CODE (guarantees update from any old version)"
+            echo "   versionName: $VERSION_NAME"
+          else
+            echo "⚠ build.gradle not found yet, version will be set during cap sync"
+          fi
+
       - name: Generate Android icons
         run: npx @capacitor/assets generate --android || true
 
@@ -59,24 +84,6 @@ jobs:
           grep -q "Login zum Qualifizierungs" android/app/src/main/assets/public/qualitool/login.html || (echo "android assets missing login" && exit 1)
           grep -q "qualitool/index.html" android/app/src/main/assets/public/index.html || (echo "redirect to qualitool not present" && exit 1)
           head -n 5 android/app/src/main/assets/public/index.html || true
-
-      - name: Set Android version AFTER cap sync
-        run: |
-          VERSION_NAME=$(node -p "require('./package.json').version")
-          VERSION_CODE=$(date +%Y%m%d%H%M)
-          
-          echo "📦 Setting version in build.gradle:"
-          echo "   versionCode: $VERSION_CODE"
-          echo "   versionName: $VERSION_NAME"
-          
-          cd android/app
-          
-          # Use perl for in-place editing (more reliable than sed)
-          perl -i -pe "s/versionCode\s+\d+/versionCode $VERSION_CODE/" build.gradle
-          perl -i -pe "s/versionName\\s+\"[^\"]*\"/versionName \"$VERSION_NAME\"/" build.gradle
-          
-          echo "✅ Version set"
-          grep -E "versionCode|versionName" build.gradle
 
       # Remove previous SaveAs injection step (we avoid native plugin for now)
       - name: Patch AndroidManifest for permissions (Storage + Location)
@@ -135,19 +142,60 @@ jobs:
           cp app/release.keystore release.keystore
           echo "✓ Keystore also copied to android/release.keystore"
 
-      - name: BUILD DEBUG APK (No signing required)
+      - name: Configure build.gradle for Release Signing
+        run: |
+          cd android/app
+          
+          # Backup original build.gradle
+          cp build.gradle build.gradle.bak
+          
+          # Add signing config after android { block
+          awk '
+          /android \{/ {
+            print
+            print "    signingConfigs {"
+            print "        release {"
+            print "            def keystorePropertiesFile = rootProject.file(\"keystore.properties\")"
+            print "            if (keystorePropertiesFile.exists()) {"
+            print "                def keystoreProperties = new Properties()"
+            print "                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))"
+            print "                storeFile file(keystoreProperties[\"storeFile\"])"
+            print "                storePassword keystoreProperties[\"storePassword\"]"
+            print "                keyAlias keystoreProperties[\"keyAlias\"]"
+            print "                keyPassword keystoreProperties[\"keyPassword\"]"
+            print "            }"
+            print "        }"
+            print "    }"
+            next
+          }
+          /buildTypes \{/,/release \{/ {
+            print
+            if (/release \{/) {
+              print "            signingConfig signingConfigs.release"
+            }
+            next
+          }
+          { print }
+          ' build.gradle.bak > build.gradle
+          
+          echo "✓ build.gradle configured for release signing"
+
+      - name: Grant execute permission for Gradle
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleDebug
-          echo "✓ Debug APK built successfully"
-          ls -lh app/build/outputs/apk/debug/
+
+      - name: Build Release APK (Signed)
+        run: |
+          cd android
+          ./gradlew assembleRelease
+          echo "✓ Signed Release APK built successfully"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: qualitool-debug-apk
-          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          name: qualitool-release-apk
+          path: frontend/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -225,7 +273,7 @@ jobs:
           tag_name: v${{ steps.get_version.outputs.version }}
           name: QualiTool v${{ steps.get_version.outputs.version }}
           body_path: frontend/changelog.txt
-          files: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          files: frontend/android/app/build/outputs/apk/release/app-release.apk
           draft: false
           prerelease: false
         env:
