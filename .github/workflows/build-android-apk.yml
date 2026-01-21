@@ -157,56 +157,12 @@ jobs:
 
       - name: Configure build.gradle for Release Signing AND Version
         run: |
-          cd android/app
+          # Use Python script for clean, reliable modification
+          python3 .github/scripts/configure_buildgradle.py \
+            frontend/package.json \
+            frontend/android/app/build.gradle
           
-          # Get version info
-          VERSION_NAME=$(node -p "require('../../package.json').version")
-          VERSION_CODE=$(date +%Y%m%d%H%M)
-          
-          echo "📦 Configuring build.gradle with:"
-          echo "   versionName: $VERSION_NAME"
-          echo "   versionCode: $VERSION_CODE"
-          
-          # First, set the version (replace existing values)
-          sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" build.gradle
-          sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION_NAME\"/" build.gradle
-          
-          # Now add signing configuration using a temp file
-          # Check if signingConfigs already exists
-          if ! grep -q "signingConfigs {" build.gradle; then
-            # Create the signing config block
-            cat > signing_config.txt << 'SIGNINGEOF'
-    signingConfigs {
-        release {
-            def keystorePropertiesFile = rootProject.file("keystore.properties")
-            if (keystorePropertiesFile.exists()) {
-                def keystoreProperties = new Properties()
-                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-                storeFile file(keystoreProperties["storeFile"])
-                storePassword keystoreProperties["storePassword"]
-                keyAlias keystoreProperties["keyAlias"]
-                keyPassword keystoreProperties["keyPassword"]
-            }
-        }
-    }
-SIGNINGEOF
-            
-            # Insert after 'android {' line
-            sed -i '/android {/r signing_config.txt' build.gradle
-            rm signing_config.txt
-          fi
-          
-          # Add signingConfig to release buildType if not present
-          if ! grep -q "signingConfig signingConfigs.release" build.gradle; then
-            sed -i '/release {/a\            signingConfig signingConfigs.release' build.gradle
-          fi
-          
-          echo "✓ build.gradle configured successfully"
-          
-          # Verify version was set
-          echo "📋 Verification:"
-          grep -E "versionCode|versionName" build.gradle || echo "⚠ WARNING: Version not found!"
-          grep -A2 "signingConfigs" build.gradle | head -5 || echo "⚠ WARNING: Signing config not found!"
+          echo "✓ build.gradle configured via Python script"
 
       - name: Grant execute permission for Gradle
         run: |
