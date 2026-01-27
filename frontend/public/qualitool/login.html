@@ -94,7 +94,7 @@
     // Stelle sicher, dass User-Zeile in user_contacts existiert (ohne Daten zu überschreiben)
     async function ensureUserRow(userId){
       try {
-        const { error } = await supabase
+        const { error } = await supaClient
           .from('user_contacts')
           .insert({ user_id: userId, contacts: [] }, { ignoreDuplicates: true });
         // ignoreDuplicates bedeutet: Wenn Zeile existiert, nichts tun
@@ -107,7 +107,7 @@
     }
 
     async function getCloudContacts(userId){
-      const { data, error } = await supabase
+      const { data, error } = await supaClient
         .from('user_contacts')
         .select('contacts')
         .eq('user_id', userId)
